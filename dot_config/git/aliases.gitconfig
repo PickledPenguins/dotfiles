@@ -1,0 +1,20 @@
+[alias]
+    st = status -sb
+    co = checkout
+    sw = switch
+    br = branch -av
+    brdel = branch -D
+    cm = commit
+    ca = commit --amend --no-edit
+    cp = cherry-pick
+    df = diff
+    dfs = diff --staged
+    unstage = reset HEAD --
+    undo = reset --soft HEAD~1
+    last = log -1 HEAD --stat
+    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+    lga = lg --all
+    hist = log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short
+    who = shortlog -sn --no-merges
+    root = rev-parse --show-toplevel
+    aliases = !git config --get-regexp '^alias\\.' | sed 's/^alias\\.\\([^ ]*\\) /\\1\\t= /' | sort

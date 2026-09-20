@@ -1,0 +1,33 @@
+# ~/.bashrc -- loader only.  Everything lives in ~/.config/bash/rc.d/.
+#
+# Each NN-name.sh there is one responsibility.  To turn one off:
+#   everywhere:    git mv rc.d/70-conda.sh rc.d/70-conda.sh.off
+#   this machine:  echo conda >> ~/.config/bash/disabled
+# Machine-local additions go in ~/.bashrc.local (sourced last by 90-local.sh).
+# DOTFILES_DEBUG=1 bash -i   prints each module as it loads, with timing.
+
+case $- in *i*) ;; *) return ;; esac            # interactive shells only
+
+DOTFILES_BASH_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/bash"
+DOTFILES_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+export DOTFILES_DIR
+
+_dotfiles_disabled() {
+    # name is disabled when listed in ~/.config/bash/disabled (one per line, # comments)
+    [[ -r "$DOTFILES_BASH_DIR/disabled" ]] || return 1
+    grep -qxF "$1" <(sed 's/#.*//; s/[[:space:]]//g' "$DOTFILES_BASH_DIR/disabled")
+}
+
+for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
+    [[ -r "$_rc" ]] || continue
+    _name="${_rc##*/}"; _name="${_name%.sh}"; _name="${_name#[0-9][0-9]-}"
+    if _dotfiles_disabled "$_name"; then
+        [[ -n "${DOTFILES_DEBUG-}" ]] && echo "bashrc: skip $_name" >&2
+        continue
+    fi
+    _t0=${EPOCHREALTIME/./}                 # microseconds, bash 5+
+    source "$_rc"
+    [[ -n "${DOTFILES_DEBUG-}" ]] && printf 'bashrc: %-14s %5d ms\n' "$_name" "$(( (${EPOCHREALTIME/./} - _t0) / 1000 ))" >&2
+done
+unset _rc _name _t0
+unset -f _dotfiles_disabled

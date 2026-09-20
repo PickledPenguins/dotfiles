@@ -1,0 +1,13 @@
+# ~/.gitconfig -- loader only.  Each include is one concern; comment one out
+# to drop it.  Identity (name, email, signing key) lives in ~/.gitconfig.local,
+# which is never committed:
+#
+#   [user]
+#       name = Your Name
+#       email = you@example.com
+
+[include]
+    path = ~/.config/git/core.gitconfig
+    path = ~/.config/git/color.gitconfig
+    path = ~/.config/git/aliases.gitconfig
+    path = ~/.gitconfig.local

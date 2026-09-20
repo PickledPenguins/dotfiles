@@ -1,0 +1,22 @@
+# Plain one-line colored prompt; a fallback for machines where the toolkit
+# prompt is unwanted.  Enable by removing the .off suffix (and disabling
+# 60-prompt).
+#
+#   user@host ~/dir (branch) $
+
+_ps_simple_git() {
+    local b
+    b=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) || return
+    printf ' (%s)' "$b"
+}
+
+if [[ "$TERM" == *color* || -n "${COLORTERM-}" ]]; then
+    PS1='\[\e[1;32m\]\u@\h\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\]\[\e[33m\]$(_ps_simple_git)\[\e[0m\] \$ '
+else
+    PS1='\u@\h \w$(_ps_simple_git) \$ '
+fi
+
+# Title bar: user@host: dir
+case "$TERM" in
+    xterm*|rxvt*|screen*|tmux*) PS1="\[\e]0;\u@\h: \w\a\]$PS1" ;;
+esac

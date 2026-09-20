@@ -1,0 +1,331 @@
+#!/usr/bin/env python3
+"""dots -- a small chezmoi-alike that symlinks instead of copying.
+
+The source directory mirrors $HOME.  A source path becomes a target path by
+stripping attribute prefixes from every component:
+
+    dot_         leading "." on the target name
+    private_     chmod go-rwx on the source (the link inherits it)
+    executable_  chmod u+x on the source
+
+    dot_config/git/config         ->  ~/.config/git/config
+    private_dot_ssh/config        ->  ~/.ssh/config          (mode 600)
+    dot_local/bin/executable_hi   ->  ~/.local/bin/hi        (mode u+x)
+
+Directories are created for real; every file is a symlink back into the
+source directory.  Entries whose name starts with "." (.git, .dotsignore)
+are never managed; .dotsignore lists further target paths to skip.
+"""
+
+import argparse
+import fnmatch
+import os
+import shutil
+import stat
+import sys
+import time
+from pathlib import Path
+
+IGNORE_FILE = ".dotsignore"
+
+# ── source state ──────────────────────────────────────────────────────────
+
+
+def source_dir():
+    """Resolve the source directory: $DOTS_SOURCE if set, else ~/.dotfiles, else beside this script."""
+    if os.environ.get("DOTS_SOURCE"):
+        return Path(os.environ["DOTS_SOURCE"]).resolve()
+    default = Path.home() / ".dotfiles"
+    return default.resolve() if default.is_dir() else Path(__file__).resolve().parent
+
+
+def parse_name(name):
+    """Split one source component into (target name, private, executable)."""
+    private = executable = False
+    while True:
+        if name.startswith("private_"):
+            private, name = True, name[len("private_"):]
+        elif name.startswith("executable_"):
+            executable, name = True, name[len("executable_"):]
+        elif name.startswith("dot_"):
+            return "." + name[len("dot_"):], private, executable
+        else:
+            return name, private, executable
+
+
+def load_ignores(src):
+    path = src / IGNORE_FILE
+    if not path.is_file():
+        return []
+    lines = (l.strip() for l in path.read_text().splitlines())
+    return [l for l in lines if l and not l.startswith("#")]
+
+
+def ignored(rel, patterns):
+    """True when the target-relative path or any of its parents matches a pattern."""
+    parts = Path(rel).parts
+    for i in range(1, len(parts) + 1):
+        prefix = "/".join(parts[:i])
+        if any(fnmatch.fnmatch(prefix, p) for p in patterns):
+            return True
+    return False
+
+
+class Entry:
+    """One managed file: where it lives in the source and where its link goes."""
+
+    def __init__(self, src, home, source_rel):
+        self.source = src / source_rel
+        parts, self.private, self.executable = [], False, False
+        self.private_dirs = []          # target directories that get mode 700
+        components = Path(source_rel).parts
+        for component in components:
+            name, private, executable = parse_name(component)
+            parts.append(name)
+            self.private |= private
+            self.executable |= executable
+            if private and len(parts) < len(components):
+                self.private_dirs.append(home.joinpath(*parts))
+        self.rel = "/".join(parts)
+        self.target = home / self.rel
+
+
+def managed_entries(src, home):
+    """Every file under src that should be linked into home, sorted by target."""
+    patterns = load_ignores(src)
+    entries = []
+    for root, dirs, files in os.walk(src):
+        rel_root = Path(root).relative_to(src)
+        dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+        for name in sorted(files):
+            if name.startswith(".") and rel_root == Path("."):
+                continue
+            entry = Entry(src, home, rel_root / name)
+            if not ignored(entry.rel, patterns):
+                entries.append(entry)
+    return sorted(entries, key=lambda e: e.rel)
+
+
+# ── target state ──────────────────────────────────────────────────────────
+
+
+def state(entry, src):
+    """What the target currently is.
+
+    ok          symlink to the source file
+    missing     nothing there
+    stale-link  symlink somewhere else inside the source tree (file was renamed)
+    conflict    a real file, or a symlink to somewhere outside the source tree
+    """
+    target = entry.target
+    if not target.exists() and not target.is_symlink():
+        return "missing"
+    if target.is_symlink():
+        link = os.readlink(target)
+        if link == str(entry.source):
+            return "ok"
+        if link.startswith(str(src) + os.sep):
+            return "stale-link"
+    return "conflict"
+
+
+def set_mode(entry):
+    """Apply private_/executable_ to the source file; the link shows the same bits."""
+    mode = entry.source.stat().st_mode
+    if entry.private:
+        mode &= ~(stat.S_IRWXG | stat.S_IRWXO)
+    if entry.executable:
+        mode |= stat.S_IXUSR
+    os.chmod(entry.source, stat.S_IMODE(mode))
+    for directory in entry.private_dirs:
+        os.chmod(directory, 0o700)
+
+
+def backup(entry, backup_root):
+    """Move whatever sits at the target into the backup tree, keeping its home-relative path."""
+    target, dest = entry.target, backup_root / entry.rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(target), str(dest))
+    return dest
+
+
+# ── commands ──────────────────────────────────────────────────────────────
+
+
+def cmd_apply(args, src, home):
+    entries = [e for e in managed_entries(src, home) if selected(e, args.paths, home)]
+    backup_root = home / ".dotfiles-backup" / time.strftime("%Y%m%d-%H%M%S")
+    changed = 0
+    for entry in entries:
+        current = state(entry, src)
+        if current == "ok":
+            if not args.dry_run:
+                set_mode(entry)
+            continue
+        if current == "conflict" and not args.force:
+            print(f"conflict  {entry.rel}  (use --force to back it up and replace)")
+            continue
+        verb = {"missing": "link", "stale-link": "relink", "conflict": "replace"}[current]
+        print(f"{verb:<9} {entry.rel}  ->  {entry.source}")
+        changed += 1
+        if args.dry_run:
+            continue
+        if current == "conflict":
+            print(f"backup    {entry.rel}  ->  {backup(entry, backup_root)}")
+        elif current == "stale-link":
+            entry.target.unlink()
+        entry.target.parent.mkdir(parents=True, exist_ok=True)
+        os.symlink(entry.source, entry.target)
+        set_mode(entry)
+    print(f"{changed} change(s){' (dry run)' if args.dry_run else ''}")
+    return 0
+
+
+def cmd_status(args, src, home):
+    entries = [e for e in managed_entries(src, home) if selected(e, args.paths, home)]
+    counts = {}
+    for entry in entries:
+        current = state(entry, src)
+        counts[current] = counts.get(current, 0) + 1
+        if current != "ok" or args.all:
+            print(f"{current:<11} {entry.rel}")
+    print("  ".join(f"{k}: {v}" for k, v in sorted(counts.items())) or "nothing managed")
+    return 0 if set(counts) <= {"ok"} else 1
+
+
+def cmd_managed(args, src, home):
+    for entry in managed_entries(src, home):
+        print(entry.source if args.show_source else entry.rel)
+    return 0
+
+
+def cmd_unlink(args, src, home):
+    entries = [e for e in managed_entries(src, home) if selected(e, args.paths, home)]
+    removed = 0
+    for entry in entries:
+        if state(entry, src) == "ok":
+            print(f"unlink    {entry.rel}")
+            removed += 1
+            if not args.dry_run:
+                entry.target.unlink()
+    print(f"{removed} link(s) removed{' (dry run)' if args.dry_run else ''}")
+    return 0
+
+
+def source_name(rel_path, private, executable):
+    """Build the source-relative path for a target path, adding attribute prefixes."""
+    parts = []
+    for i, component in enumerate(Path(rel_path).parts):
+        last = i == len(Path(rel_path).parts) - 1
+        name = "dot_" + component[1:] if component.startswith(".") else component
+        if last and executable:
+            name = "executable_" + name
+        if last and private:
+            name = "private_" + name
+        parts.append(name)
+    return Path(*parts)
+
+
+def cmd_add(args, src, home):
+    """Move real files into the source tree and leave symlinks behind."""
+    for raw in args.paths:
+        target = Path(raw).expanduser().absolute()
+        try:
+            rel = target.relative_to(home)
+        except ValueError:
+            print(f"skip      {target}: not under {home}")
+            continue
+        if target.is_symlink():
+            print(f"skip      {rel}: already a symlink")
+            continue
+        if not target.is_file():
+            print(f"skip      {rel}: not a regular file (add files, not directories)")
+            continue
+        mode = target.stat().st_mode
+        dest = src / source_name(rel, args.private or not mode & stat.S_IRWXO,
+                                 bool(mode & stat.S_IXUSR))
+        if dest.exists():
+            print(f"skip      {rel}: {dest} already exists")
+            continue
+        print(f"add       {rel}  ->  {dest.relative_to(src)}")
+        if args.dry_run:
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(target), str(dest))
+        os.symlink(dest, target)
+    return 0
+
+
+def cmd_forget(args, src, home):
+    """Stop managing targets: the link becomes a real copy, the source file is removed."""
+    wanted = {str(Path(p).expanduser().absolute()) for p in args.paths}
+    for entry in managed_entries(src, home):
+        if str(entry.target) not in wanted:
+            continue
+        print(f"forget    {entry.rel}")
+        if args.dry_run:
+            continue
+        if state(entry, src) == "ok":
+            entry.target.unlink()
+            shutil.copy2(entry.source, entry.target)
+        entry.source.unlink()
+    return 0
+
+
+def selected(entry, paths, home):
+    """Restrict a command to targets under any of the given paths (all when none given)."""
+    if not paths:
+        return True
+    for raw in paths:
+        p = Path(raw).expanduser().absolute()
+        if entry.target == p or p in entry.target.parents:
+            return True
+    return False
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog="dots", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("-S", "--source", help="source directory (default: $DOTS_SOURCE, ~/.dotfiles)")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("apply", help="create or repair the symlinks")
+    p.add_argument("paths", nargs="*", help="only targets under these paths")
+    p.add_argument("-n", "--dry-run", action="store_true")
+    p.add_argument("--force", action="store_true", help="back up and replace real files")
+    p.set_defaults(func=cmd_apply)
+
+    p = sub.add_parser("status", help="show targets that are not linked correctly")
+    p.add_argument("paths", nargs="*")
+    p.add_argument("-a", "--all", action="store_true", help="list every target")
+    p.set_defaults(func=cmd_status)
+
+    p = sub.add_parser("managed", help="list managed target paths")
+    p.add_argument("-s", "--show-source", action="store_true", help="print source paths instead")
+    p.set_defaults(func=cmd_managed)
+
+    p = sub.add_parser("add", help="move files into the source tree and link them back")
+    p.add_argument("paths", nargs="+")
+    p.add_argument("-n", "--dry-run", action="store_true")
+    p.add_argument("--private", action="store_true", help="force the private_ attribute")
+    p.set_defaults(func=cmd_add)
+
+    p = sub.add_parser("forget", help="stop managing targets, leaving real copies in place")
+    p.add_argument("paths", nargs="+")
+    p.add_argument("-n", "--dry-run", action="store_true")
+    p.set_defaults(func=cmd_forget)
+
+    p = sub.add_parser("unlink", help="remove the symlinks (source untouched)")
+    p.add_argument("paths", nargs="*")
+    p.add_argument("-n", "--dry-run", action="store_true")
+    p.set_defaults(func=cmd_unlink)
+
+    args = parser.parse_args(argv)
+    src = Path(args.source).resolve() if args.source else source_dir()
+    if not src.is_dir():
+        sys.exit(f"dots: source directory {src} does not exist")
+    return args.func(args, src, Path.home())
+
+
+if __name__ == "__main__":
+    sys.exit(main())

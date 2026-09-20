@@ -1,0 +1,12 @@
+" ~/.vimrc -- loader only.  Settings live in ~/.vim/rc/NN-name.vim.
+" Turn a module off by renaming it NN-name.vim.off; machine-local overrides
+" go in ~/.vimrc.local (sourced last).
+
+set nocompatible
+for s:f in sort(glob('~/.vim/rc/*.vim', 0, 1))
+  execute 'source' fnameescape(s:f)
+endfor
+
+if filereadable(expand('~/.vimrc.local'))
+  source ~/.vimrc.local
+endif

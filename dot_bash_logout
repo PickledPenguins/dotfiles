@@ -1,0 +1,6 @@
+# ~/.bash_logout -- executed by bash(1) when a login shell exits.
+
+# Clear the console on logout so the next user does not see the scrollback.
+if [[ "$SHLVL" == 1 ]] && command -v clear_console >/dev/null 2>&1; then
+    clear_console -q
+fi

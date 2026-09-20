@@ -1,0 +1,10 @@
+# Global gitignore: editor droppings and OS noise, never project files.
+*~
+*.swp
+*.swo
+.*.sw?
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+**/.claude/settings.local.json
