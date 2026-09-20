@@ -1,0 +1,21 @@
+# ~/.nanorc -- for the times nano is what is there.
+set autoindent
+set tabsize 4
+set tabstospaces
+set linenumbers
+# cursor position always shown
+set constantshow
+# Home goes to the first non-blank first
+set smarthome
+set softwrap
+# wrap at spaces, not mid-word
+set atblanks
+set mouse
+# scrollbar
+set indicator
+# strip trailing spaces on hard-wrap
+set trimblanks
+# Backspace/Delete remove the selection
+set zap
+unset casesensitive
+include "/usr/share/nano/*.nanorc"

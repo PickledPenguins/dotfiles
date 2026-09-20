@@ -1,0 +1,17 @@
+# url.gitconfig -- shorthands for clone/remote URLs.
+#
+#   git clone gh:owner/repo      ->  https://github.com/owner/repo
+#   git clone gh-ssh:owner/repo  ->  git@github.com:owner/repo
+#
+# pushInsteadOf: clone over https, push over ssh, without changing the
+# remote.  Comment it out to push over https too.
+
+[url "https://github.com/"]
+    insteadOf = gh:
+
+[url "git@github.com:"]
+    insteadOf = gh-ssh:
+    pushInsteadOf = https://github.com/
+
+[url "https://gitlab.com/"]
+    insteadOf = gl:

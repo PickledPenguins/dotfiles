@@ -1,0 +1,35 @@
+# diff.gitconfig -- diff algorithm, rename detection, and the tools
+# `git difftool` / `git mergetool` open.
+
+[diff]
+    algorithm = histogram           # better hunks than the default myers
+    colorMoved = default            # moved lines in a different color from changed ones
+    colorMovedWS = allow-indentation-change
+    renames = copies                # detect renames and copies
+    mnemonicPrefix = true           # i/ w/ c/ prefixes instead of a/ b/
+    tool = vimdiff
+
+[difftool]
+    prompt = false
+
+[difftool "vimdiff"]
+    cmd = vim -d "$LOCAL" "$REMOTE"
+
+[merge]
+    tool = vimdiff
+
+[mergetool]
+    prompt = false
+    keepBackup = false              # no .orig files after a merge
+
+[mergetool "vimdiff"]
+    layout = "LOCAL,BASE,REMOTE / MERGED"
+
+# delta, if installed: syntax-highlighted side-by-side diffs
+# [core]
+#     pager = delta
+# [interactive]
+#     diffFilter = delta --color-only
+# [delta]
+#     navigate = true
+#     side-by-side = true

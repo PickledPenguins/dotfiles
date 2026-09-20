@@ -1,0 +1,24 @@
+# ~/.screenrc -- for hosts that have screen but not tmux.
+# no license splash
+startup_message off
+# no visual bell
+vbell off
+defscrollback 10000
+# vim/less restore the screen on exit
+altscreen on
+term screen-256color
+defutf8 on
+# detach on hangup instead of killing the session
+autodetach on
+
+# status line: windows on the left, host and clock on the right
+hardstatus alwayslastline
+hardstatus string '%{= kw}%-w%{= gk} %n %t %{-}%+w %= %{= kw}%H %c'
+
+# tmux-like keys on top of the defaults
+bind | split -v
+bind - split
+bind h focus left
+bind j focus down
+bind k focus up
+bind l focus right

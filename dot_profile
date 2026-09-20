@@ -1,0 +1,14 @@
+# ~/.profile -- login shells that are NOT bash (sh, dash, display managers).
+# Bash reads ~/.bash_profile instead, which sources this file first so PATH
+# is set the same way everywhere.  Keep this POSIX sh: no [[ ]], no arrays.
+
+# Private bin directories first on PATH
+for d in "$HOME/.local/bin" "$HOME/bin"; do
+    if [ -d "$d" ]; then
+        case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
+    fi
+done
+export PATH
+
+# Locale fallback for sessions that arrive without one (ssh, cron, GUI login)
+[ -z "${LANG:-}" ] && export LANG=C.UTF-8

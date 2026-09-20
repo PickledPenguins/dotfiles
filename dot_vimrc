@@ -1,12 +1,26 @@
-" ~/.vimrc -- loader only.  Settings live in ~/.vim/rc/NN-name.vim.
-" Turn a module off by renaming it NN-name.vim.off; machine-local overrides
-" go in ~/.vimrc.local (sourced last).
+" ~/.vimrc -- loader only.  Settings live in ~/.vim/rc/NN-name.vim, one
+" concern per file, each with a "Knobs:" block in its header.
+"
+"   ~/.vimrc.before   sourced FIRST -- set g:dotfiles_* knobs here
+"   ~/.vim/rc/*.vim   the modules, in number order; NN-name.vim.off is skipped
+"   ~/.vimrc.local    sourced LAST  -- machine-local overrides
+"
+" :DotfilesModules lists what was loaded.
 
 set nocompatible
+let g:dotfiles_modules = []
+
+if filereadable(expand('~/.vimrc.before'))
+  source ~/.vimrc.before
+endif
+
 for s:f in sort(glob('~/.vim/rc/*.vim', 0, 1))
   execute 'source' fnameescape(s:f)
+  call add(g:dotfiles_modules, fnamemodify(s:f, ':t:r'))
 endfor
 
 if filereadable(expand('~/.vimrc.local'))
   source ~/.vimrc.local
 endif
+
+command! DotfilesModules echo join(g:dotfiles_modules, "\n")

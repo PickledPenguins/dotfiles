@@ -1,15 +1,79 @@
-# ~/.inputrc -- readline (bash, python, psql, ...).
+# ~/.inputrc -- readline: bash's line editor, also python, psql, gdb, bc ...
+# `bind -v` lists every variable; `bind -p` every binding.
+
+# keep the distribution's key tables
 $include /etc/inputrc
 
-set editing-mode emacs
+# ── completion ────────────────────────────────────────────────────────────
+# Desk<Tab> completes desktop/
 set completion-ignore-case on
-set show-all-if-ambiguous on        # one Tab lists, not two
+# - and _ are the same when completing
+set completion-map-case on
+# one Tab lists, not two
+set show-all-if-ambiguous on
+set show-all-if-unmodified on
+# long common prefixes shown as ...
 set completion-prefix-display-length 3
-set colored-stats on                # ls-style colors in completions
+# ls-style colors in the list
+set colored-stats on
+# the part already typed, highlighted
 set colored-completion-prefix on
+# / after directories, * after executables
+set visible-stats on
+# trailing / on symlinks to directories
 set mark-symlinked-directories on
+set menu-complete-display-prefix on
+# never page a long list through more
+set page-completions off
+# ask before listing more than this many
+set completion-query-items 200
+# completing mid-word does not duplicate the tail
+set skip-completed-text on
+
+# ── editing ───────────────────────────────────────────────────────────────
+# `set editing-mode vi` for vi keys
+set editing-mode emacs
+# no beeping on errors
 set bell-style none
+# ^C is not echoed
+set echo-control-characters off
+# a pasted newline does not run the command
+set enable-bracketed-paste on
+set blink-matching-paren on
+# 8-bit input (accented characters) ...
+set input-meta on
+# ... and output
+set output-meta on
+set convert-meta off
+
+# ── history ───────────────────────────────────────────────────────────────
+set history-preserve-point on
+# edits to history lines are not kept
+set revert-all-at-newline on
 
 # Up/Down search history for what has been typed so far
 "\e[A": history-search-backward
 "\e[B": history-search-forward
+"\eOA": history-search-backward
+"\eOB": history-search-forward
+
+# Ctrl-Left/Right move by word
+"\e[1;5C": forward-word
+"\e[1;5D": backward-word
+"\e[5C": forward-word
+"\e[5D": backward-word
+
+# Tab cycles through completions, Shift-Tab backwards (comment out for plain listing)
+# TAB: menu-complete
+# "\e[Z": menu-complete-backward
+
+# Alt-. inserts the last argument (default, listed for discovery); Alt-Enter
+# runs the command and keeps it on the line
+"\e\C-m": operate-and-get-next
+
+$if Bash
+    # Ctrl-Alt-L clears the screen without touching the current line
+    "\e\C-l": clear-screen
+    # Ctrl-X Ctrl-E edits the current line in $EDITOR (default emacs binding)
+    "\C-x\C-e": edit-and-execute-command
+$endif

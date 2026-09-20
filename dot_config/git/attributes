@@ -1,0 +1,36 @@
+# attributes -- global gitattributes (~/.config/git/attributes).
+#
+# Function-context diffs (`git diff` shows the enclosing function name in
+# hunk headers) and word-level diffs for prose; binary types marked so git
+# never tries to merge them.
+
+*.c        diff=cpp
+*.h        diff=cpp
+*.cpp      diff=cpp
+*.py       diff=python
+*.sh       diff=bash
+*.bash     diff=bash
+*.rs       diff=rust
+*.go       diff=golang
+*.java     diff=java
+*.md       diff=markdown
+*.tex      diff=tex
+*.html     diff=html
+*.css      diff=css
+
+# binary: no text diff, no merge, no eol conversion
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.pdf      binary
+*.zip      binary
+*.gz       binary
+*.tar      binary
+*.h5       binary
+*.npy      binary
+*.pkl      binary
+
+# always LF, regardless of core.autocrlf
+*.sh       text eol=lf
+Makefile   text eol=lf

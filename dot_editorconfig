@@ -1,0 +1,26 @@
+# ~/.editorconfig -- indentation defaults for editors that support it (vim 9+,
+# VS Code, JetBrains ...).  A project's own .editorconfig overrides this
+# because search stops at the first file with root = true.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{py,rs,java,c,cpp,h,sh,bash}]
+indent_size = 4
+
+[{Makefile,makefile,*.mk,*.go}]
+indent_style = tab
+indent_size = 8
+
+[*.md]
+# two trailing spaces are a line break
+trim_trailing_whitespace = false
+
+[*.{yml,yaml,json,toml}]
+indent_size = 2

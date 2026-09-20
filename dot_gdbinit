@@ -1,0 +1,23 @@
+# ~/.gdbinit -- gdb defaults.
+# command history across sessions
+set history save on
+set history filename ~/.cache/gdb_history
+set history size 10000
+# no "Quit anyway?" prompts
+set confirm off
+# never stop for --Type <RET>--
+set pagination off
+# structs one member per line
+set print pretty on
+set print array on
+set print array-indexes on
+# show the real (derived) type
+set print object on
+set print static-members off
+set print frame-arguments all
+set disassembly-flavor intel
+# breakpoints in not-yet-loaded libraries
+set breakpoint pending on
+# trust project .gdbinit files
+set auto-load safe-path /
+# add-auto-load-safe-path ~/work         # narrower alternative to the line above

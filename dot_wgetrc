@@ -1,0 +1,16 @@
+# ~/.wgetrc -- defaults for wget.
+# seconds before a stalled connection is retried
+timeout = 30
+tries = 3
+retry_connrefused = on
+# resume partial downloads (same as 30-aliases `wget -c`)
+continue = on
+# skip files the server has not changed
+timestamping = on
+follow_ftp = on
+# .html on saved pages that lack it
+adjust_extension = on
+# -r ignores robots.txt
+robots = off
+# use_proxy = on
+# http_proxy = http://proxy:3128

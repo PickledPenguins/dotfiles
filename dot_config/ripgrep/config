@@ -1,0 +1,13 @@
+# ripgrep defaults; read because 00-env.sh exports RIPGREP_CONFIG_PATH.
+# One flag per line, no quoting.
+--smart-case
+--hidden
+--glob=!.git/
+--glob=!node_modules/
+--glob=!__pycache__/
+--max-columns=250
+--max-columns-preview
+--colors=match:fg:red
+--colors=match:style:bold
+--colors=path:fg:magenta
+--colors=line:fg:green

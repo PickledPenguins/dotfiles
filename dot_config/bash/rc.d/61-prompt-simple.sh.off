@@ -1,22 +1,28 @@
-# Plain one-line colored prompt; a fallback for machines where the toolkit
-# prompt is unwanted.  Enable by removing the .off suffix (and disabling
-# 60-prompt).
+# 61-prompt-simple.sh -- plain one-line colored prompt with the git branch.
+# Enable by removing .off (and disabling 60-prompt); zero forks except one
+# `git` per prompt inside a repository.
 #
 #   user@host ~/dir (branch) $
+#
+# Knobs (set in ~/.bashrc.before):
+#   DOTFILES_PROMPT_GIT    0 = no branch                 default: 1
+#   DOTFILES_PROMPT_COLOR  0 = no color                  default: auto-detect
 
 _ps_simple_git() {
+    [[ "${DOTFILES_PROMPT_GIT:-1}" == 1 ]] || return
     local b
     b=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) || return
     printf ' (%s)' "$b"
 }
 
-if [[ "$TERM" == *color* || -n "${COLORTERM-}" ]]; then
+_ps_color="${DOTFILES_PROMPT_COLOR-}"
+[[ -z "$_ps_color" && ( "$TERM" == *color* || -n "${COLORTERM-}" ) ]] && _ps_color=1
+
+if [[ "$_ps_color" == 1 ]]; then
+    # \[ \] mark non-printing sequences so readline counts the width right
     PS1='\[\e[1;32m\]\u@\h\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\]\[\e[33m\]$(_ps_simple_git)\[\e[0m\] \$ '
 else
     PS1='\u@\h \w$(_ps_simple_git) \$ '
 fi
-
-# Title bar: user@host: dir
-case "$TERM" in
-    xterm*|rxvt*|screen*|tmux*) PS1="\[\e]0;\u@\h: \w\a\]$PS1" ;;
-esac
+[[ $EUID == 0 ]] && PS1="${PS1/\\$ /# }"        # root gets # not $
+unset _ps_color

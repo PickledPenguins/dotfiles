@@ -1,16 +1,26 @@
 # ~/.bashrc -- loader only.  Everything lives in ~/.config/bash/rc.d/.
 #
-# Each NN-name.sh there is one responsibility.  To turn one off:
-#   everywhere:    git mv rc.d/70-conda.sh rc.d/70-conda.sh.off
-#   this machine:  echo conda >> ~/.config/bash/disabled
-# Machine-local additions go in ~/.bashrc.local (sourced last by 90-local.sh).
-# DOTFILES_DEBUG=1 bash -i   prints each module as it loads, with timing.
+# Each NN-name.sh there has one responsibility and a "Knobs:" block in its
+# header listing the variables that tune it.  Three ways to change behavior,
+# most to least permanent:
+#
+#   1. edit the module (committed, applies everywhere)
+#   2. turn a module off:
+#        everywhere:    git mv rc.d/70-conda.sh rc.d/70-conda.sh.off
+#        this machine:  echo conda >> ~/.config/bash/disabled
+#   3. set knobs and add machine-local settings, never committed:
+#        ~/.bashrc.before   sourced FIRST  -- set DOTFILES_* knobs here
+#        ~/.bashrc.local    sourced LAST   -- overrides, extra aliases, secrets
+#
+# DOTFILES_DEBUG=1 bash -i   prints each module as it loads, with its time.
 
 case $- in *i*) ;; *) return ;; esac            # interactive shells only
 
 DOTFILES_BASH_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/bash"
 DOTFILES_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 export DOTFILES_DIR
+
+[[ -r ~/.bashrc.before ]] && source ~/.bashrc.before
 
 _dotfiles_disabled() {
     # name is disabled when listed in ~/.config/bash/disabled (one per line, # comments)

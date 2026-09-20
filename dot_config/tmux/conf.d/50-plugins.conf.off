@@ -1,0 +1,16 @@
+# 50-plugins.conf -- tpm plugins.  Enable by removing .off, then prefix I.
+#
+#   git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+#
+# Add plugins as `set -g @plugin 'owner/repo'` lines; prefix I installs,
+# prefix U updates.
+
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-sensible'       # widely agreed defaults
+set -g @plugin 'tmux-plugins/tmux-resurrect'      # prefix C-s save / C-r restore sessions
+set -g @plugin 'tmux-plugins/tmux-yank'           # copy to the system clipboard (replaces 30-copy pipes)
+
+set -g @resurrect-capture-pane-contents 'on'
+
+# keep this line last
+if "test -d ~/.tmux/plugins/tpm" "run -b '~/.tmux/plugins/tpm/tpm'"

@@ -1,13 +1,24 @@
-# ~/.gitconfig -- loader only.  Each include is one concern; comment one out
-# to drop it.  Identity (name, email, signing key) lives in ~/.gitconfig.local,
-# which is never committed:
+# ~/.gitconfig -- loader only.  One include per concern; comment a line out
+# to drop that concern.  Later includes override earlier ones, so the local
+# file goes last.
+#
+# Identity is NOT here.  Create ~/.gitconfig.local (never committed):
 #
 #   [user]
 #       name = Your Name
 #       email = you@example.com
+#       # signingkey = ABCDEF1234567890      (see signing.gitconfig)
+#
+# Per-directory identities (work vs personal) also go there:
+#
+#   [includeIf "gitdir:~/work/"]
+#       path = ~/.gitconfig.work
 
 [include]
     path = ~/.config/git/core.gitconfig
     path = ~/.config/git/color.gitconfig
     path = ~/.config/git/aliases.gitconfig
+    path = ~/.config/git/diff.gitconfig
+    path = ~/.config/git/url.gitconfig
+    # path = ~/.config/git/signing.gitconfig
     path = ~/.gitconfig.local

@@ -1,17 +1,30 @@
+# color.gitconfig -- colors.  `auto` means only when writing to a terminal.
+
 [color]
     ui = auto
 
 [color "branch"]
     current = green bold
+    local = white
     remote = cyan
+    upstream = cyan dim
 
 [color "diff"]
     meta = yellow
     frag = magenta bold
+    func = magenta
     old = red
     new = green
+    whitespace = red reverse
 
 [color "status"]
     added = green
     changed = yellow
     untracked = red
+    branch = green bold
+
+[color "decorate"]
+    branch = green bold
+    remoteBranch = cyan
+    tag = yellow bold
+    HEAD = red bold

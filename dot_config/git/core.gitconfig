@@ -1,46 +1,68 @@
+# core.gitconfig -- how git behaves: editor, pager, push/pull/fetch defaults,
+# merge and rebase behavior.  Nothing here is about display (color.gitconfig)
+# or diff tools (diff.gitconfig).
+
 [core]
     editor = vim
-    pager = less -FRX
-    whitespace = trailing-space,space-before-tab
-    # global ignore is ~/.config/git/ignore -- git reads it without being told
+    pager = less -FRXi
+    whitespace = trailing-space,space-before-tab   # git diff highlights these
+    autocrlf = input                # commit LF even when a file arrives with CRLF
+    # attributesfile / excludesfile: ~/.config/git/attributes and ignore are
+    # read automatically, no setting needed
 
 [init]
     defaultBranch = main
 
 [push]
-    default = current            # `git push` pushes the current branch to its namesake
-    autoSetupRemote = true       # ... creating the upstream on first push
+    default = current               # `git push` pushes the current branch to its namesake
+    autoSetupRemote = true          # ... creating the upstream on first push
+    followTags = true               # push annotated tags that point at pushed commits
 
 [pull]
-    rebase = true                # no merge bubbles from `git pull`
+    rebase = true                   # `git pull` rebases; no merge bubbles
 
 [fetch]
-    prune = true                 # drop remote-tracking branches deleted upstream
+    prune = true                    # drop remote-tracking branches deleted upstream
+    pruneTags = true
 
 [rebase]
-    autoStash = true
-    autoSquash = true
+    autoStash = true                # stash dirty tree, rebase, unstash
+    autoSquash = true               # fixup!/squash! commits land in the right place
+    updateRefs = true               # stacked branches move with the rebase
 
 [merge]
-    conflictStyle = zdiff3       # show the base in conflict markers
+    conflictStyle = zdiff3          # show the common base inside conflict markers
+    # ff = only                     # uncomment: `git merge` refuses non-fast-forward; use --no-ff explicitly
 
-[diff]
-    algorithm = histogram
-    colorMoved = default
-    renames = true
+[commit]
+    verbose = true                  # the diff is in the editor while writing the message
 
 [rerere]
-    enabled = true               # remember conflict resolutions
-    autoupdate = true
+    enabled = true                  # remember how a conflict was resolved ...
+    autoupdate = true               # ... and re-apply it silently
 
 [status]
     showStash = true
+    showUntrackedFiles = all        # list files in new directories, not just the directory
 
 [log]
-    date = iso
+    date = iso                      # 2026-09-20 15:04:05 +0000
+    abbrevCommit = true
 
 [branch]
-    sort = -committerdate
+    sort = -committerdate           # `git branch` lists most recent first
+
+[tag]
+    sort = version:refname          # v1.10 after v1.9
+
+[column]
+    ui = auto                       # `git branch` in columns when it fits
 
 [help]
-    autocorrect = prompt
+    autocorrect = prompt            # `git stauts` asks before running status
+
+[transfer]
+    fsckObjects = true              # refuse corrupt objects on fetch and push
+
+[credential]
+    helper = cache --timeout=3600   # remember https passwords for an hour

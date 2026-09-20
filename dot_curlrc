@@ -1,0 +1,17 @@
+# ~/.curlrc -- defaults for every curl call.  A flag on the command line wins.
+# follow redirects
+--location
+# give up connecting after 15 s
+--connect-timeout 15
+# ... and transferring after 5 min
+--max-time 300
+# retry transient errors
+--retry 3
+--retry-delay 2
+# with -s, still print errors
+--show-error
+# a bar instead of the stats table
+--progress-bar
+# --silent                    # no progress at all
+# --user-agent "curl"         # some servers block the default UA string
+# --proxy http://proxy:3128   # site proxy; or set http_proxy in ~/.bashrc.local

@@ -1,20 +1,69 @@
+# aliases.gitconfig -- `git aliases` lists them.  Shell aliases (g, gs, gl)
+# are in ~/.config/bash/rc.d/30-aliases.sh.
+
 [alias]
-    st = status -sb
+    # ── status and staging ────────────────────────────────────────────────
+    st = status -sb                   # short, with branch line
+    a = add
+    aa = add --all
+    ap = add --patch                  # stage hunk by hunk
+    unstage = reset HEAD --
+    discard = checkout --             # discard working-tree changes to a path
+
+    # ── commit ────────────────────────────────────────────────────────────
+    cm = commit
+    cma = commit --all
+    ca = commit --amend --no-edit     # fold staged changes into the last commit
+    cae = commit --amend              # ... and edit its message
+    fixup = commit --fixup            # git fixup SHA, then git rebase -i --autosquash
+    undo = reset --soft HEAD~1        # uncommit, keep the changes staged
+    wip = !git add --all && git commit -m wip --no-verify
+
+    # ── branches ──────────────────────────────────────────────────────────
     co = checkout
     sw = switch
+    cob = checkout -b
     br = branch -av
     brdel = branch -D
-    cm = commit
-    ca = commit --amend --no-edit
-    cp = cherry-pick
+    brclean = !git branch --merged | grep -vE '^\\*|main|master' | xargs -r git branch -d   # delete merged branches
+    default = !git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'  # main or master
+
+    # ── history ───────────────────────────────────────────────────────────
+    lg = log --graph --pretty=format:'%C(red)%h%C(reset) -%C(yellow)%d%C(reset) %s %C(green)(%cr) %C(bold blue)<%an>%C(reset)'
+    lga = lg --all
+    last = log -1 HEAD --stat
+    hist = log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short
+    who = shortlog -sn --no-merges    # commits per author
+    fl = log -u --                    # file log with diffs:  git fl PATH
+    contains = branch -a --contains   # which branches contain SHA
+    root = rev-parse --show-toplevel
+
+    # ── diff ──────────────────────────────────────────────────────────────
     df = diff
     dfs = diff --staged
-    unstage = reset HEAD --
-    undo = reset --soft HEAD~1
-    last = log -1 HEAD --stat
-    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
-    lga = lg --all
-    hist = log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short
-    who = shortlog -sn --no-merges
-    root = rev-parse --show-toplevel
+    dfw = diff --word-diff
+    dfn = diff --name-only
+    dfst = diff --stat
+
+    # ── remote ────────────────────────────────────────────────────────────
+    f = fetch --all --prune
+    pl = pull
+    ps = push
+    psf = push --force-with-lease     # the safe force push
+    pst = push --tags
+    up = !git pull --rebase --prune && git submodule update --init --recursive
+
+    # ── stash ─────────────────────────────────────────────────────────────
+    sl = stash list
+    sp = stash pop
+    ss = stash push --include-untracked
+
+    # ── misc ──────────────────────────────────────────────────────────────
     aliases = !git config --get-regexp '^alias\\.' | sed 's/^alias\\.\\([^ ]*\\) /\\1\\t= /' | sort
+    ignored = ls-files --others --ignored --exclude-standard
+    tags = tag -l --sort=-version:refname
+    cp = cherry-pick
+    rb = rebase
+    rbi = rebase --interactive
+    rbc = rebase --continue
+    rba = rebase --abort

@@ -1,0 +1,61 @@
+! ~/.Xresources -- xterm and friends.  Load with `xrdb -merge ~/.Xresources`
+! (display managers do it at login).  Lines start with the program name.
+
+! ── xterm ─────────────────────────────────────────────────────────────────
+XTerm*termName:           xterm-256color
+XTerm*locale:             true
+XTerm*utf8:               1
+XTerm*faceName:           DejaVu Sans Mono
+XTerm*faceSize:           11
+XTerm*renderFont:         true
+XTerm*scrollBar:          false
+XTerm*saveLines:          10000
+! do not jump to the bottom on output ...
+XTerm*scrollTtyOutput:    false
+! ... but do on a keypress
+XTerm*scrollKey:          true
+XTerm*bellIsUrgent:       true
+XTerm*visualBell:         false
+! Alt works as Meta in bash/vim
+XTerm*metaSendsEscape:    true
+XTerm*eightBitInput:      false
+! Backspace sends ^? not ^H
+XTerm*backarrowKey:       false
+XTerm*ttyModes:           erase ^?
+! mouse selection goes to the CLIPBOARD too
+XTerm*selectToClipboard:  true
+XTerm*cursorBlink:        false
+XTerm*allowWindowOps:     false
+! Ctrl-Shift-C/V copy and paste
+XTerm*VT100.translations: #override \n\
+    Ctrl Shift <Key>C: copy-selection(CLIPBOARD) \n\
+    Ctrl Shift <Key>V: insert-selection(CLIPBOARD) \n\
+    Ctrl <Key>plus:    larger-vt-font() \n\
+    Ctrl <Key>minus:   smaller-vt-font()
+
+! colors: a dark scheme; change the sixteen below for another palette
+XTerm*background:  #1c1c1c
+XTerm*foreground:  #d0d0d0
+XTerm*cursorColor: #d0d0d0
+XTerm*color0:  #1c1c1c
+XTerm*color1:  #d75f5f
+XTerm*color2:  #87af5f
+XTerm*color3:  #d7af5f
+XTerm*color4:  #5f87d7
+XTerm*color5:  #af87d7
+XTerm*color6:  #5fafaf
+XTerm*color7:  #d0d0d0
+XTerm*color8:  #626262
+XTerm*color9:  #ff8787
+XTerm*color10: #afd787
+XTerm*color11: #ffd787
+XTerm*color12: #87afff
+XTerm*color13: #d7afff
+XTerm*color14: #87d7d7
+XTerm*color15: #eeeeee
+
+! ── urxvt, if used ────────────────────────────────────────────────────────
+URxvt*font:            xft:DejaVu Sans Mono:size=11
+URxvt*scrollBar:       false
+URxvt*saveLines:       10000
+URxvt*termName:        rxvt-unicode-256color

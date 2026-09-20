@@ -1,0 +1,29 @@
+# ~/.ssh/config -- defaults for every host.  Host entries go in
+# ~/.ssh/config.local (never committed); it is read first, so a Host block
+# there wins over the defaults below (ssh uses the first value it finds).
+#
+#   Host work
+#       HostName login.cluster.example.edu
+#       User charris
+#       IdentityFile ~/.ssh/id_ed25519_work
+#       ForwardAgent yes
+
+Include ~/.ssh/config.local
+Include ~/.ssh/config.d/*
+
+Host *
+    AddKeysToAgent yes            # first use adds the key to the agent; no more passphrase prompts
+    IdentitiesOnly yes            # offer only the configured key, not everything in the agent
+    ServerAliveInterval 60        # keepalive through NAT and idle timeouts ...
+    ServerAliveCountMax 3         # ... give up after 3 missed replies
+    TCPKeepAlive yes
+    ControlMaster auto            # multiplex: the second ssh/scp to a host reuses the first connection
+    ControlPath ~/.ssh/sockets/%r@%h-%p
+    ControlPersist 10m            # keep the master open 10 min after the last session
+    HashKnownHosts no             # readable known_hosts (grep-able); yes for privacy
+    StrictHostKeyChecking ask
+    VisualHostKey no
+    Compression no                # slower on a LAN; yes over a slow link
+    ForwardAgent no               # opt in per host; a compromised host could use the agent
+    ForwardX11 no
+    # ProxyJump bastion           # per-host in config.local

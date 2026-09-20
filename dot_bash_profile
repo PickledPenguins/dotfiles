@@ -1,6 +1,12 @@
-# ~/.bash_profile -- login shells.  Sets nothing itself; ~/.bashrc has it all.
-# Login-only work (ssh-agent, one-time PATH exports for non-interactive
-# children) belongs in ~/.config/bash/profile.d/*.sh, if that directory exists.
+# ~/.bash_profile -- bash login shells (ssh, console, `bash -l`).
+#
+# Order:  ~/.profile  ->  ~/.config/bash/profile.d/*.sh  ->  ~/.bashrc
+#
+# Put login-only work in profile.d: things that should run once per session
+# and be inherited by every child process (ssh-agent start, one-time exports,
+# `umask`).  Interactive settings belong in rc.d, which ~/.bashrc loads.
+
+[[ -r ~/.profile ]] && source ~/.profile
 
 for _p in "${XDG_CONFIG_HOME:-$HOME/.config}"/bash/profile.d/*.sh; do
     [[ -r "$_p" ]] && source "$_p"

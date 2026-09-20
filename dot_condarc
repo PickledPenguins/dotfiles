@@ -1,0 +1,13 @@
+# ~/.condarc -- conda defaults.
+auto_activate_base: false         # a new shell stays on the system python; `conda activate` when wanted
+changeps1: false                  # the prompt shows the env itself (@conda segment / $CONDA_DEFAULT_ENV)
+channel_priority: strict
+channels:
+  - conda-forge
+  - defaults
+always_yes: false
+show_channel_urls: true
+envs_dirs:
+  - ~/.conda/envs
+# pkgs_dirs:                      # move the package cache off a small $HOME
+#   - /scratch/$USER/conda/pkgs

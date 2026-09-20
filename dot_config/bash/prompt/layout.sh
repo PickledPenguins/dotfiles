@@ -10,14 +10,16 @@
 # Every built-in segment is silent when it does not apply, so an unused
 # @token costs one function call per prompt and nothing on screen.
 # Comment out any prompt_segment line to skip even that.
+#
+# Knob (set in ~/.bashrc.before):
+#   DOTFILES_PROMPT_LAYOUT   box (default) | hpc | minimal   -- see the bottom
 
 # ── Custom segments ───────────────────────────────────────────────────────
 
-# Colored user@host instead of the plain built-in
+# Colored user@host instead of the plain built-in; red user when root
 _my_user_host() {
-    printf '%s%s%s@%s%s%s' \
-        "$PS_BGREEN" "$USER"           "$PS_R" \
-        "$PS_BCYAN"  "${HOSTNAME%%.*}" "$PS_R"
+    local uc="$PS_BGREEN"; [[ $EUID == 0 ]] && uc="$PS_BRED"
+    printf '%s%s%s@%s%s%s' "$uc" "$USER" "$PS_R" "$PS_BCYAN" "${HOSTNAME%%.*}" "$PS_R"
 }
 
 # ── Segments ──────────────────────────────────────────────────────────────
@@ -68,21 +70,27 @@ prompt_row status   '     @git_status  @git_stash  @git_conflicts'
 prompt_row hpc      '  @pbs_job  @pbs_queue  @pbs_nodes  @slurm_job  @slurm_queue  @slurm_nodes  @modules  @gpu'
 prompt_row cmd      '─[@exit] @cmd_time \$ '
 prompt_row footer   '─[@exit]@fill[ @time ]─'
+prompt_row line1    '[ @user_host ] ⎇ @git_branch @git_ahead_behind @pwd'
+prompt_row line2    '[@exit] @cmd_time \$ '
 
-# ── Layout: uncomment exactly one ─────────────────────────────────────────
+# ── Layouts ───────────────────────────────────────────────────────────────
 
-# A: env header, git below (default)
-#   ╭─[ chris@devbox ]────────────────────[ ~/projects/myapp ]─╮
-#   │  ⇄ ssh  ⧉ proj:2.1  (py311)                              │
-#   │  ⎇  feature/auth  →  origin/feature/auth  ↑3 ↓1          │
-#   │     +2 ~5 ?3  ⚑1                                          │
-#   ╰─[✓] 5s $
-prompt_layout --box rounded  top  env  git  status  cmd
-
-# B: with the HPC row, closed box, cursor on its own line
-# prompt_layout --box rounded --closed  top  env  git  status  hpc  footer
-
-# C: minimal, no box
-# prompt_row line1  '[ @user_host ] ⎇ @git_branch @git_ahead_behind @pwd'
-# prompt_row line2  '[@exit] @cmd_time \$ '
-# prompt_layout  line1  line2
+case "${DOTFILES_PROMPT_LAYOUT:-box}" in
+    box)
+        # ╭─[ chris@devbox ]────────────────────[ ~/projects/myapp ]─╮
+        # │  ⇄ ssh  ⧉ proj:2.1  (py311)                              │
+        # │  ⎇  feature/auth  →  origin/feature/auth  ↑3 ↓1          │
+        # │     +2 ~5 ?3  ⚑1                                          │
+        # ╰─[✓] 5s $
+        prompt_layout --box rounded  top  env  git  status  cmd ;;
+    hpc)
+        # Same box plus the scheduler row, closed, cursor on its own line
+        prompt_layout --box rounded --closed  top  env  git  status  hpc  footer ;;
+    minimal)
+        # [ chris@devbox ] ⎇ main ✓ ~/projects/myapp
+        # [✓] $
+        prompt_layout  line1  line2 ;;
+    *)
+        echo "layout.sh: unknown DOTFILES_PROMPT_LAYOUT '$DOTFILES_PROMPT_LAYOUT'" >&2
+        prompt_layout --box rounded  top  env  git  status  cmd ;;
+esac

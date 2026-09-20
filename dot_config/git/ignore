@@ -1,10 +1,32 @@
-# Global gitignore: editor droppings and OS noise, never project files.
+# ignore -- global gitignore (~/.config/git/ignore is read by every repo).
+# Editor and OS droppings only; project artifacts belong in the project's
+# own .gitignore so clones get them too.
+
+# editors
 *~
 *.swp
 *.swo
 .*.sw?
-.DS_Store
-Thumbs.db
+.netrwhist
+tags
 .idea/
 .vscode/
+*.sublime-workspace
+
+# OS
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+
+# environments and tooling
+.env.local
+.direnv/
+.venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# agents
 **/.claude/settings.local.json

@@ -1,16 +1,33 @@
-" vim-plug plugins.  Enable by removing .off, then :PlugInstall.
-" Install vim-plug first:
+" 60-plugins.vim -- vim-plug plugins.  Enable by removing .off, then
+" :PlugInstall.  vim-plug itself installs with:
+"
 "   curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
 "     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+"
+" Knobs (set in ~/.vimrc.before):
+"   g:dotfiles_plugins   list of extra 'owner/repo' strings   default: []
 
 if empty(glob('~/.vim/autoload/plug.vim'))
+  echomsg 'dotfiles: vim-plug missing, see ~/.vim/rc/60-plugins.vim'
   finish
 endif
 
 call plug#begin('~/.vim/plugged')
-Plug 'tpope/vim-commentary'       " gcc to comment a line
-Plug 'tpope/vim-surround'         " cs"' to change surrounding quotes
-Plug 'tpope/vim-fugitive'         " :Git
+Plug 'tpope/vim-commentary'       " gcc comments a line, gc a motion
+Plug 'tpope/vim-surround'         " cs"' ds( ysiw]
+Plug 'tpope/vim-repeat'           " . repeats the two above
+Plug 'tpope/vim-fugitive'         " :Git blame  :Gdiffsplit
 Plug 'airblade/vim-gitgutter'     " changed lines in the sign column
-Plug 'junegunn/fzf.vim'           " :Files :Rg :Buffers
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'           " :Files :Rg :Buffers :History
+Plug 'editorconfig/editorconfig-vim'   " only needed before vim 9.0.1799
+for s:p in get(g:, 'dotfiles_plugins', [])
+  Plug s:p
+endfor
 call plug#end()
+
+" plugin settings
+nnoremap <leader>f :Files<CR>
+nnoremap <leader>r :Rg<CR>
+nnoremap <leader>g :Git<CR>
+let g:gitgutter_map_keys = 0

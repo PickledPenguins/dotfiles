@@ -1,0 +1,16 @@
+# ~/.ctags.d/default.ctags -- universal-ctags defaults (`ctags -R` in a project).
+--recurse=yes
+--tag-relative=yes
+# qualified tags: Class.method
+--extras=+q
+# inheritance, access, language, signature
+--fields=+ialS
+--exclude=.git
+--exclude=.venv
+--exclude=node_modules
+--exclude=__pycache__
+--exclude=build
+--exclude=dist
+--exclude=*.min.js
+--exclude=*.map
+--languages=-json,-sql
