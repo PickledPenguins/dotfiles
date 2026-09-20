@@ -26,3 +26,5 @@ if target.is_symlink(): ||| if False and target.is_symlink():
 wanted.discard(str(entry.target)) ||| pass
 return 1 if wanted else 0 ||| return 0
 if entry.target == p or p in entry.target.parents: ||| if entry.target == p:
+if not link.startswith(str(src) + os.sep) or os.path.exists(link): ||| if not link.startswith(str(src) + os.sep):
+if root.is_dir() and not root.is_symlink(): ||| if False:

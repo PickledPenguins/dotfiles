@@ -9,7 +9,13 @@ link      .config/app2/settings  ->  SRC/dot_config/app2/settings
 3 change(s)
 exit 0
 600
---- dangling links dots no longer knows about:
+--- dangling links apply no longer knows about:
 HOME/.config/app/keys
 HOME/.config/app/settings
 HOME/.obsolete
+3 dangling link(s) removed (dry run)
+prune     .config/app/keys  ->  SRC/dot_config/app/keys
+prune     .config/app/settings  ->  SRC/dot_config/app/settings
+prune     .obsolete  ->  SRC/dot_obsolete
+3 dangling link(s) removed
+0

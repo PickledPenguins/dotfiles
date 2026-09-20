@@ -21,7 +21,7 @@ temporary `HOME` through the `home` fixture.
 
 - fast: 108 tests, 1.7 s.  long: 141 tests, 21.5 s.
 - coverage of `dots`: 100% lines (242), 100% branches (102); floor 95.
-- mutation: 24 mutants, 24 caught, 0 survivors.  The list is hand-written
+- mutation: 26 mutants, 26 caught, 0 survivors.  The list is hand-written
   (no mutmut here), one mutant per decision in the script: each attribute
   prefix, the ignore matching, the root-dotfile skip, the home-directory
   guard, each state classification, each mode bit, the force/dry-run

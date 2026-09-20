@@ -321,7 +321,7 @@ def test_add_and_forget_require_a_path(home, src):
 def test_help_lists_every_subcommand(home, src):
     proc = run_subprocess(home, src, "--help")
     assert proc.returncode == 0
-    assert "{apply,status,managed,add,forget,unlink}" in proc.stdout
+    assert "{apply,status,managed,add,forget,unlink,prune}" in proc.stdout
     assert "dot_config/git/config" in proc.stdout           # the naming spec from the docstring
 
 
@@ -359,3 +359,59 @@ def test_exit_status_propagates_from_main(home, src):
     assert run_subprocess(home, src, "status").returncode == 1
     assert run_subprocess(home, src, "apply").returncode == 1
     assert run_subprocess(home, src, "apply", "--force").returncode == 0
+
+
+# ── prune ─────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def reorganized(run, src, home):
+    """A linked home after the source moved a directory and deleted a file."""
+    run("apply")
+    shutil.move(str(src / "dot_config" / "app"), str(src / "dot_config" / "app2"))
+    (src / "dot_bashrc").unlink()
+    return home
+
+
+def test_prune_removes_dangling_links_into_the_source_tree(run, src, reorganized):
+    home = reorganized
+    code, out, _ = run("prune")
+    assert code == 0
+    assert out.splitlines() == [
+        f"prune     .bashrc  ->  {src / 'dot_bashrc'}",
+        f"prune     .config/app/settings.ini  ->  {src / 'dot_config/app/settings.ini'}",
+        "2 dangling link(s) removed",
+    ]
+    assert not (home / ".bashrc").is_symlink() and not (home / ".config/app/settings.ini").is_symlink()
+    assert (home / ".ssh" / "config").is_symlink()             # still a valid target
+
+
+def test_prune_dry_run(run, src, reorganized):
+    home = reorganized
+    code, out, _ = run("prune", "-n")
+    assert code == 0 and out.endswith("2 dangling link(s) removed (dry run)\n")
+    assert (home / ".bashrc").is_symlink()
+
+
+def test_prune_leaves_links_that_resolve_or_point_elsewhere(run, src, home):
+    run("apply")
+    (src / "README.md").write_text("docs\n")                    # ignored, but someone linked it by hand
+    os.symlink(src / "README.md", home / "README-link")
+    os.symlink(home / "gone", home / ".config" / "broken-foreign")   # dangling, not ours
+    code, out, _ = run("prune")
+    assert (code, out) == (0, "0 dangling link(s) removed\n")
+    assert (home / "README-link").is_symlink() and (home / ".config" / "broken-foreign").is_symlink()
+
+
+def test_prune_does_not_descend_into_unmanaged_top_level_directories(run, src, home):
+    run("apply")
+    (home / ".cache").mkdir()
+    os.symlink(src / "nope", home / ".cache" / "stale")
+    assert run("prune")[1] == "0 dangling link(s) removed\n"
+    assert (home / ".cache" / "stale").is_symlink()
+
+
+def test_prune_with_nothing_managed(run, tmp_path, home):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert run("prune", source=empty) == (0, "0 dangling link(s) removed\n", "")

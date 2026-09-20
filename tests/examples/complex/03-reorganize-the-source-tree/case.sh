@@ -14,5 +14,8 @@ git -C "$SRC" rm -q dot_obsolete                     # deleted: no longer a targ
 dots status; echo "exit $?"
 dots apply; echo "exit $?"
 stat -c '%a' "$SRC/private_dot_bashrc"
-echo "--- dangling links dots no longer knows about:"
+echo "--- dangling links apply no longer knows about:"
 find ~ -xtype l | sed "s|$HOME|HOME|" | sort
+dots prune -n | tail -1
+dots prune
+find ~ -xtype l | wc -l

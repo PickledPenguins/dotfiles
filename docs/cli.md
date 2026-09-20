@@ -21,7 +21,8 @@ makes `./dots` work from a fresh clone anywhere.
 ## Commands
 
 Paths given to `apply`, `status` and `unlink` restrict them to targets equal
-to or below those paths; `add` and `forget` require paths.  Paths are made
+to or below those paths; `add` and `forget` require paths; `managed` and
+`prune` take none.  Paths are made
 absolute lexically (`~` expanded, `..` collapsed, symlinks not followed).
 
 ### `dots apply [-n] [--force] [paths...]`
@@ -88,6 +89,24 @@ the source file; the source file is removed.  `forget  target` per path;
 | `-n`, `--dry-run` | print what would be forgotten |
 
 Exit 0, or 1 when any path was not managed.
+
+### `dots prune [-n]`
+
+Remove dangling symlinks into the source tree: links left behind when a
+source path was moved or deleted, which are no longer targets and so
+invisible to `apply` and `unlink`.  Looks at the symlinks directly in
+`$HOME` and everything under the top-level directories that hold managed
+targets (`~/.config`, `~/.vim`, ...); a link is removed only when it
+points inside the source tree **and** its file is gone.  A link into the
+tree that still resolves, or a broken link to anywhere else, is left
+alone.  `prune  target  ->  link` per removal, then
+`N dangling link(s) removed`.
+
+| Flag | Effect |
+|------|--------|
+| `-n`, `--dry-run` | print the removals, change nothing |
+
+Exit 0.
 
 ### `dots unlink [-n] [paths...]`
 

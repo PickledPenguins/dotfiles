@@ -46,6 +46,14 @@ only links whose state is `ok`.
   state is left alone and only the source is removed.  Unmanaged paths are
   reported and give exit 1.
 
+## `dots prune`
+
+Collects the symlinks directly in `$HOME` plus every symlink under each
+top-level directory that contains a managed target (walking without
+following links), and removes those whose link text starts with the
+source tree path and whose referent does not exist.  Everything else --
+valid links, broken links elsewhere, files -- is untouched.
+
 ## A bash shell
 
 1. bash reads `~/.bash_profile` (login) or `~/.bashrc` (interactive

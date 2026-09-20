@@ -99,8 +99,8 @@ Renaming a file to change an attribute (`git mv dot_bashrc private_dot_bashrc`)
 keeps the target; `apply` reports `relink` and tightens the mode.  Moving a
 directory or deleting a file changes or removes targets: `apply` links the
 new ones, and the old links in `$HOME` are left dangling because they are
-no longer targets.  Find them with `find ~ -xtype l` (see
-[future-work F.1.a](future-work.md#f1-dots)).
+no longer targets.  `dots prune -n` lists them, `dots prune` removes them;
+only broken links into the source tree qualify.
 
 ## In scripts
 
@@ -127,4 +127,4 @@ Each of these is a case in `tests/examples/failures/`, with the exact text.
 | `dots: ignoring dot_: maps to '.'` on stderr | a source file named only by a prefix | rename it; it would target `~` itself |
 | `dots: error: the following arguments are required: cmd`, exit 2 | no subcommand | `dots --help` |
 | `PermissionError: ... '.dotsignore'`, exit 1 | unreadable ignore file | `chmod 644 .dotsignore`; dots never guesses the ignore list |
-| a `~/.config/app/x` link pointing nowhere | the source was moved or deleted | `find ~ -xtype l` and remove by hand |
+| a `~/.config/app/x` link pointing nowhere | the source was moved or deleted | `dots prune` |

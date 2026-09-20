@@ -31,13 +31,13 @@ CLAUDE.md                       instructions for the coding agent
 
 ## `dots`
 
-One file, ~340 lines, in four bands:
+One file, ~370 lines, in four bands:
 
 | Band | Functions | Responsibility |
 |------|-----------|----------------|
 | source state | `source_dir`, `parse_name`, `load_ignores`, `ignored`, `Entry`, `managed_entries` | turn the source tree into a sorted list of entries with targets and attributes |
 | target state | `state`, `set_mode`, `backup` | classify one target; apply modes; move a conflict aside |
-| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `source_name`, `cmd_add`, `cmd_forget`, `selected` | one function per subcommand, each printing its own report and returning the exit code |
+| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `cmd_prune`, `source_name`, `cmd_add`, `cmd_forget`, `selected` | one function per subcommand, each printing its own report and returning the exit code |
 | entry | `main` | argparse, source resolution, dispatch |
 
 Dependency direction: commands call the state bands; nothing calls a
@@ -73,7 +73,8 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
   silently replaced; only links into our own source tree are relinked.
 - **Nothing is ever deleted.**  Conflicts move to a timestamped backup
   tree; `forget` copies before it removes; `unlink` touches only links in
-  state `ok`.
+  state `ok`; `prune` removes only symlinks that point into the source tree
+  at a path that no longer exists -- nothing with content.
 - **Modes on the source file.**  A symlink has no mode; `private_` and
   `executable_` are applied to the source and re-asserted on every
   `apply`, so a `chmod` drift is repaired.
@@ -108,8 +109,8 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
 ## Limitations
 
 - No templating; a file that must differ per machine is a hook file.
-- No orphan cleanup: links left by a moved or deleted source path stay
-  until removed by hand (F.1.a).
+- `prune` removes only broken links into the source tree; a link into the
+  tree that still resolves is assumed deliberate.
 - `add` takes files only (F.1.b).
 - Linux/GNU assumed by the bash aliases (`ls --color`, `rm -I`, `ss`);
   the BSD branch only sets `CLICOLOR`.

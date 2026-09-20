@@ -7,14 +7,13 @@ here is scheduled; an item is cited by its label.  Back to the
 
 ## F.1 dots
 
-- **F.1.a  Orphan cleanup.**  After a source directory is moved or a file
-  deleted, the old links in `$HOME` stay, pointing into the source tree at
-  paths that no longer exist (`tests/examples/complex/03`).  A `dots prune
-  [-n]` walking only the directories that contain managed targets, listing
-  symlinks into the source tree that are not current targets, and removing
-  them on request.  Cheap to add; not built because it needs a rule for
-  links into the source tree that are *deliberately* not targets (a
-  `.dotsignore`d path someone linked by hand), and no such case exists yet.
+- **F.1.a  Orphan cleanup.**  Built as `dots prune` (2026-09-20).  The
+  rule that unblocked it: remove only links into the source tree whose
+  referent is gone; a link into the tree that still resolves (a
+  `.dotsignore`d file someone linked by hand) is left.  Still open inside
+  it: `prune` walks the top-level directories that hold targets in full,
+  so a huge `~/.config` costs a directory walk; acceptable for a command
+  run by hand.
 - **F.1.b  `add -r DIR`.**  `add` refuses directories; importing a tree is
   `find DIR -type f | xargs dots add`.  A recursive flag is a few lines; not
   built because the refusal makes the user look at each file's mode before
@@ -28,7 +27,7 @@ here is scheduled; an item is cited by its label.  Back to the
   edit-the-live-file property that symlinks give.
 - **F.1.e  chezmoi in symlink mode.**  Rejected.  It would give `add`,
   `diff` and templating for the cost of a Go binary on every login node;
-  the whole of `dots` is 340 lines of stdlib Python and python3 is already
+  the whole of `dots` is ~370 lines of stdlib Python and python3 is already
   there.
 
 ## F.2 configuration

@@ -37,6 +37,10 @@ What `dots status` and `dots apply` find at a target:
 | `stale-link` | a symlink to some other path inside the source tree (renamed source) |
 | `conflict`   | anything else: a real file, a directory, a symlink to outside        |
 
+A **dangling link** is a symlink into the source tree at a path that no
+longer exists -- what a moved or deleted source file leaves behind; it is
+not a target, so only `dots prune` deals with it.
+
 `apply` links `missing`, relinks `stale-link`, and refuses `conflict` unless
 `--force`, which moves the conflicting thing into the **backup tree**
 `~/.dotfiles-backup/<YYYYmmdd-HHMMSS>/` under its home-relative path.

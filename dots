@@ -223,6 +223,34 @@ def cmd_unlink(args, src, home):
     return 0
 
 
+def cmd_prune(args, src, home):
+    """Remove symlinks into the source tree whose file no longer exists.
+
+    A moved or deleted source path leaves its old link behind, and that link
+    is no longer a target, so apply and unlink never see it.  Only links that
+    point inside the source tree AND are broken are removed; a link into the
+    tree that still resolves is someone's deliberate choice and stays.
+    """
+    entries = managed_entries(src, home)
+    roots = {home / e.rel.split("/")[0] for e in entries}
+    candidates = [p for p in home.iterdir() if p.is_symlink()]
+    for root in sorted(roots):
+        if root.is_dir() and not root.is_symlink():
+            for dirpath, _, files in os.walk(root):
+                candidates += [Path(dirpath) / f for f in files if (Path(dirpath) / f).is_symlink()]
+    removed = 0
+    for path in sorted(set(candidates)):
+        link = os.readlink(path)
+        if not link.startswith(str(src) + os.sep) or os.path.exists(link):
+            continue
+        print(f"prune     {path.relative_to(home)}  ->  {link}")
+        removed += 1
+        if not args.dry_run:
+            path.unlink()
+    print(f"{removed} dangling link(s) removed{' (dry run)' if args.dry_run else ''}")
+    return 0
+
+
 def source_name(rel_path, private, executable):
     """Build the source-relative path for a target path, adding attribute prefixes."""
     parts = []
@@ -333,6 +361,10 @@ def main(argv=None):
     p.add_argument("paths", nargs="*", help="only targets under these paths")
     p.add_argument("-n", "--dry-run", action="store_true", help="print the removals, change nothing")
     p.set_defaults(func=cmd_unlink)
+
+    p = sub.add_parser("prune", help="remove dangling symlinks into the source tree")
+    p.add_argument("-n", "--dry-run", action="store_true", help="print the removals, change nothing")
+    p.set_defaults(func=cmd_prune)
 
     args = parser.parse_args(argv)
     src = Path(args.source).resolve() if args.source else source_dir()
