@@ -305,12 +305,12 @@ def main(argv=None):
 
     p = sub.add_parser("apply", help="create or repair the symlinks")
     p.add_argument("paths", nargs="*", help="only targets under these paths")
-    p.add_argument("-n", "--dry-run", action="store_true")
+    p.add_argument("-n", "--dry-run", action="store_true", help="print the plan, change nothing")
     p.add_argument("--force", action="store_true", help="back up and replace real files")
     p.set_defaults(func=cmd_apply)
 
     p = sub.add_parser("status", help="show targets that are not linked correctly")
-    p.add_argument("paths", nargs="*")
+    p.add_argument("paths", nargs="*", help="only targets under these paths")
     p.add_argument("-a", "--all", action="store_true", help="list every target")
     p.set_defaults(func=cmd_status)
 
@@ -319,19 +319,19 @@ def main(argv=None):
     p.set_defaults(func=cmd_managed)
 
     p = sub.add_parser("add", help="move files into the source tree and link them back")
-    p.add_argument("paths", nargs="+")
-    p.add_argument("-n", "--dry-run", action="store_true")
+    p.add_argument("paths", nargs="+", help="regular files under $HOME")
+    p.add_argument("-n", "--dry-run", action="store_true", help="print the moves, change nothing")
     p.add_argument("--private", action="store_true", help="force the private_ attribute")
     p.set_defaults(func=cmd_add)
 
     p = sub.add_parser("forget", help="stop managing targets, leaving real copies in place")
-    p.add_argument("paths", nargs="+")
-    p.add_argument("-n", "--dry-run", action="store_true")
+    p.add_argument("paths", nargs="+", help="managed target paths")
+    p.add_argument("-n", "--dry-run", action="store_true", help="print what would be forgotten")
     p.set_defaults(func=cmd_forget)
 
     p = sub.add_parser("unlink", help="remove the symlinks (source untouched)")
-    p.add_argument("paths", nargs="*")
-    p.add_argument("-n", "--dry-run", action="store_true")
+    p.add_argument("paths", nargs="*", help="only targets under these paths")
+    p.add_argument("-n", "--dry-run", action="store_true", help="print the removals, change nothing")
     p.set_defaults(func=cmd_unlink)
 
     args = parser.parse_args(argv)

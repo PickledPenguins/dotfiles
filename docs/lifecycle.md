@@ -1,0 +1,94 @@
+# Lifecycle
+
+What happens in what order.  Back to the [README](../README.md).
+
+## `dots apply`
+
+1. **Resolve the source tree**: `-S DIR`, else `$DOTS_SOURCE`, else
+   `~/.dotfiles` (symlinks resolved), else the directory holding the `dots`
+   script.  A source that does not exist stops here with exit 2.
+2. **Read `.dotsignore`** from the source root.  Unreadable is a hard error
+   (a traceback), not a silent apply of everything.
+3. **Walk the source tree**, skipping root entries whose name starts with
+   `.`, dropping ignored targets, and refusing any entry whose target would
+   have an empty, `.` or `..` component (a file named just `dot_` would map
+   to `~` itself) with a warning on stderr.  Entries are sorted by target.
+4. **Restrict to the paths given**, if any: only targets equal to or below
+   them.
+5. For each entry, **classify the target** (`ok`, `missing`, `stale-link`,
+   `conflict`) and act:
+   - `ok`: re-assert the modes (`private_`, `executable_`); nothing printed.
+   - `missing`: create the parent directories, symlink, set modes; `link`.
+   - `stale-link`: remove the old link, symlink; `relink`.
+   - `conflict` without `--force`: print `conflict` and count it.
+   - `conflict` with `--force`: move the target into
+     `~/.dotfiles-backup/<timestamp>/<home-relative path>` (`backup`), then
+     symlink; `replace`.
+   With `-n`/`--dry-run` the verbs are printed and nothing is written.
+6. **Summarize**: `N change(s)`, plus `, M conflict(s) left` when any were
+   refused -- and then the exit status is 1.
+
+Nothing is deleted at any step: a conflict is moved, never removed; a
+stale link is replaced by a link to the same source tree; `unlink` removes
+only links whose state is `ok`.
+
+## `dots add`, `dots forget`
+
+- `add FILE`: the path is made absolute lexically (`..` collapsed, symlinks
+  not followed) and must be a regular file under `$HOME` that is not a
+  symlink and whose source name is free.  The file is **moved** into the
+  source tree under its attribute name (`private_` when it has no
+  permission bits for others or `--private` was given, `executable_` when
+  the owner can execute it) and a symlink is left behind.  Order of the
+  arguments is the order of the moves.
+- `forget FILE`: if the target is our link, it is replaced by a **copy** of
+  the source file; then the source file is removed.  A target in any other
+  state is left alone and only the source is removed.  Unmanaged paths are
+  reported and give exit 1.
+
+## A bash shell
+
+1. bash reads `~/.bash_profile` (login) or `~/.bashrc` (interactive
+   non-login).  `~/.bash_profile` sources `~/.profile` (PATH and locale, in
+   POSIX sh), then `~/.config/bash/profile.d/*.sh` if the directory exists,
+   then `~/.bashrc`.
+2. `~/.bashrc` returns immediately for a non-interactive shell.
+3. It sets `DOTFILES_BASH_DIR` (`~/.config/bash`) and exports `DOTFILES_DIR`
+   (the source tree, found by resolving `~/.bashrc` itself).
+4. It sources **`~/.bashrc.before`** if present -- this is where knobs go.
+5. It sources `rc.d/*.sh` in name order, skipping any whose module name is
+   in **`~/.config/bash/disabled`** (`.off` files are not matched by the
+   glob at all).  With `DOTFILES_DEBUG=1` each module's name and load time
+   go to stderr.
+6. The last module, `90-local.sh`, sources **`~/.bashrc.local`** if present.
+7. On each prompt, `PROMPT_COMMAND` runs: `prompt_build` (the toolkit
+   prompt, which sets `PS1`), then whatever the modules chained -- the
+   title update (`65-title`), `history -a` (`10-options`), the venv
+   auto-activation if enabled (`75-python`).
+
+## vim
+
+`~/.vimrc`: `set nocompatible`, source `~/.vimrc.before` if present, source
+`~/.vim/rc/*.vim` in sorted order (recording each in `g:dotfiles_modules`),
+source `~/.vimrc.local` if present, define `:DotfilesModules`.
+`40-files.vim` creates `~/.vim/tmp/{swap,backup,undo}` on first load.
+
+## tmux
+
+`~/.tmux.conf`: `source-file -q ~/.config/tmux/conf.d/*.conf` (glob, sorted
+by tmux), then `source-file -q ~/.tmux.conf.local`.  `-q` means a missing
+file is not an error.  `prefix r` re-reads the whole chain.
+
+## git
+
+`~/.gitconfig` is only `[include]` lines, read in order: `core`, `color`,
+`aliases`, `diff`, `url`, (`signing`, commented out), then
+`~/.gitconfig.local`.  Later files override earlier keys, so identity and
+per-machine overrides in the local file win.  `~/.config/git/ignore` and
+`~/.config/git/attributes` are read by git without any setting.
+
+## ssh
+
+`~/.ssh/config` starts with `Include ~/.ssh/config.local` and
+`Include ~/.ssh/config.d/*`, then `Host *` defaults.  ssh takes the first
+value it finds for each option, so a `Host` block in the local file wins.

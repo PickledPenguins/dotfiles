@@ -8,3 +8,4 @@ run-tests.sh
 tests
 docs
 reviews
+__pycache__

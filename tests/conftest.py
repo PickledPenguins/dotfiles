@@ -23,6 +23,7 @@ def pytest_configure(config):
 
 
 def load_dots():
+    sys.dont_write_bytecode = True      # or the loader drops __pycache__/ into the source root
     spec = importlib.util.spec_from_loader("dots", importlib.machinery.SourceFileLoader("dots", str(DOTS)))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
