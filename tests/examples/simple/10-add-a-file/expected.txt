@@ -1,0 +1,3 @@
+add       .vimrc  ->  dot_vimrc
+set nu
+~/.vimrc is a link

@@ -1,0 +1,12 @@
+11
+bashrc: skip title
+bashrc: skip conda
+bashrc: skip hpc
+alias ll='ls -la --color=never'
+bash: alias: rm: not found
+HOME/tools
+shiftwidth=4
+scrolloff=3
+history-limit 7
+Me
+simple

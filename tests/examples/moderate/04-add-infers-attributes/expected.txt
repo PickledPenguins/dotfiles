@@ -1,0 +1,4 @@
+add       .netrc  ->  private_dot_netrc
+add       .vimrc  ->  dot_vimrc
+add       .local/bin/tool  ->  dot_local/bin/executable_tool
+add       .shared  ->  private_dot_shared

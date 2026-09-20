@@ -1,0 +1,4 @@
+unlink    .bashrc
+1 link(s) removed
+link gone
+# bashrc

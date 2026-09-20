@@ -1,0 +1,4 @@
+link      .bashrc  ->  SRC/dot_bashrc
+1 change(s)
+SRC/dot_bashrc
+# bashrc

@@ -1,0 +1,6 @@
+conflict  .bashrc  (use --force to back it up and replace)
+0 change(s), 1 conflict(s) left
+exit 1
+backup is the old link
+# old scheme
+SRC/dot_bashrc

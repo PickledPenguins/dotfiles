@@ -1,0 +1,4 @@
+link      .ssh/config  ->  SRC/private_dot_ssh/config
+1 change(s)
+700 HOME/.ssh
+600 SRC/private_dot_ssh/config

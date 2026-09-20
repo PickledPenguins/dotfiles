@@ -1,0 +1,3 @@
+usage: dots [-h] [-S SOURCE] {apply,status,managed,add,forget,unlink} ...
+dots: error: unrecognized arguments: --frobnicate
+exit 2

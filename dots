@@ -15,6 +15,10 @@ stripping attribute prefixes from every component:
 Directories are created for real; every file is a symlink back into the
 source directory.  Entries whose name starts with "." (.git, .dotsignore)
 are never managed; .dotsignore lists further target paths to skip.
+
+Exit status: 0 on success; 1 when apply leaves conflicts, status finds
+anything not ok, or forget names an unmanaged path; 2 for usage errors and
+a missing source directory.
 """
 
 import argparse
@@ -84,7 +88,8 @@ class Entry:
             parts.append(name)
             self.private |= private
             self.executable |= executable
-            if private and len(parts) < len(components):
+            # a private_ directory and everything below it is 700
+            if self.private and len(parts) < len(components):
                 self.private_dirs.append(home.joinpath(*parts))
         self.rel = "/".join(parts)
         self.target = home / self.rel
@@ -101,6 +106,10 @@ def managed_entries(src, home):
             if name.startswith(".") and rel_root == Path("."):
                 continue
             entry = Entry(src, home, rel_root / name)
+            if any(part in ("", ".", "..") for part in entry.rel.split("/")):
+                # "dot_" alone would map to ~/. -- the home directory itself
+                print(f"dots: ignoring {rel_root / name}: maps to '{entry.rel}'", file=sys.stderr)
+                continue
             if not ignored(entry.rel, patterns):
                 entries.append(entry)
     return sorted(entries, key=lambda e: e.rel)
@@ -155,7 +164,7 @@ def backup(entry, backup_root):
 def cmd_apply(args, src, home):
     entries = [e for e in managed_entries(src, home) if selected(e, args.paths, home)]
     backup_root = home / ".dotfiles-backup" / time.strftime("%Y%m%d-%H%M%S")
-    changed = 0
+    changed = conflicts = 0
     for entry in entries:
         current = state(entry, src)
         if current == "ok":
@@ -164,6 +173,7 @@ def cmd_apply(args, src, home):
             continue
         if current == "conflict" and not args.force:
             print(f"conflict  {entry.rel}  (use --force to back it up and replace)")
+            conflicts += 1
             continue
         verb = {"missing": "link", "stale-link": "relink", "conflict": "replace"}[current]
         print(f"{verb:<9} {entry.rel}  ->  {entry.source}")
@@ -177,8 +187,9 @@ def cmd_apply(args, src, home):
         entry.target.parent.mkdir(parents=True, exist_ok=True)
         os.symlink(entry.source, entry.target)
         set_mode(entry)
-    print(f"{changed} change(s){' (dry run)' if args.dry_run else ''}")
-    return 0
+    print(f"{changed} change(s){' (dry run)' if args.dry_run else ''}"
+          + (f", {conflicts} conflict(s) left" if conflicts else ""))
+    return 1 if conflicts else 0
 
 
 def cmd_status(args, src, home):
@@ -229,7 +240,7 @@ def source_name(rel_path, private, executable):
 def cmd_add(args, src, home):
     """Move real files into the source tree and leave symlinks behind."""
     for raw in args.paths:
-        target = Path(raw).expanduser().absolute()
+        target = Path(os.path.abspath(os.path.expanduser(raw)))
         try:
             rel = target.relative_to(home)
         except ValueError:
@@ -258,10 +269,11 @@ def cmd_add(args, src, home):
 
 def cmd_forget(args, src, home):
     """Stop managing targets: the link becomes a real copy, the source file is removed."""
-    wanted = {str(Path(p).expanduser().absolute()) for p in args.paths}
+    wanted = {str(Path(os.path.abspath(os.path.expanduser(p)))) for p in args.paths}
     for entry in managed_entries(src, home):
         if str(entry.target) not in wanted:
             continue
+        wanted.discard(str(entry.target))
         print(f"forget    {entry.rel}")
         if args.dry_run:
             continue
@@ -269,7 +281,9 @@ def cmd_forget(args, src, home):
             entry.target.unlink()
             shutil.copy2(entry.source, entry.target)
         entry.source.unlink()
-    return 0
+    for path in sorted(wanted):
+        print(f"skip      {path}: not managed")
+    return 1 if wanted else 0
 
 
 def selected(entry, paths, home):
@@ -277,7 +291,7 @@ def selected(entry, paths, home):
     if not paths:
         return True
     for raw in paths:
-        p = Path(raw).expanduser().absolute()
+        p = Path(os.path.abspath(os.path.expanduser(raw)))
         if entry.target == p or p in entry.target.parents:
             return True
     return False
@@ -323,7 +337,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     src = Path(args.source).resolve() if args.source else source_dir()
     if not src.is_dir():
-        sys.exit(f"dots: source directory {src} does not exist")
+        print(f"dots: source directory {src} does not exist", file=sys.stderr)
+        return 2
     return args.func(args, src, Path.home())
 
 

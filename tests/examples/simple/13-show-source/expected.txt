@@ -1,0 +1,2 @@
+SRC/dot_bashrc
+SRC/dot_config/app/rc

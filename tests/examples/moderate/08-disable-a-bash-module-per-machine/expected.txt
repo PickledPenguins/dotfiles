@@ -1,0 +1,15 @@
+bashrc: env
+bashrc: options
+bashrc: path
+bashrc: aliases
+bashrc: skip functions
+bashrc: dirs
+bashrc: completion
+bashrc: prompt
+bashrc: title
+bashrc: conda
+bashrc: python
+bashrc: tools
+bashrc: hpc
+bashrc: local
+mkcd: not defined

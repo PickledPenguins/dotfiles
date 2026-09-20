@@ -1,0 +1,6 @@
+usage: dots add [-h] [-n] [--private] paths [paths ...]
+dots add: error: the following arguments are required: paths
+exit 2
+usage: dots forget [-h] [-n] paths [paths ...]
+dots forget: error: the following arguments are required: paths
+exit 2

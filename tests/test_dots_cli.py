@@ -1,0 +1,361 @@
+"""Interface tests: every subcommand's output, state change and exit code.
+
+Most call main() in-process through the `run` fixture; the argparse and
+process-level behavior (usage errors, --help, $DOTS_SOURCE) run the script
+as a subprocess.
+"""
+
+import os
+import shutil
+import stat
+
+import pytest
+
+from conftest import run_subprocess
+
+# ── managed ───────────────────────────────────────────────────────────────
+
+
+def test_managed_lists_targets_in_order(run, home):
+    code, out, err = run("managed")
+    assert code == 0 and err == ""
+    assert out.splitlines() == [".bashrc", ".config/app/settings.ini", ".local/bin/hello", ".ssh/config"]
+
+
+def test_managed_show_source(run, src, home):
+    code, out, _ = run("managed", "--show-source")
+    assert code == 0
+    assert out.splitlines()[0] == str(src / "dot_bashrc")
+    assert out.splitlines()[-1] == str(src / "private_dot_ssh" / "config")
+
+
+# ── apply ─────────────────────────────────────────────────────────────────
+
+
+def test_apply_links_everything_and_reports_count(run, src, home):
+    code, out, _ = run("apply")
+    assert code == 0
+    assert out.splitlines() == [
+        f"link      .bashrc  ->  {src / 'dot_bashrc'}",
+        f"link      .config/app/settings.ini  ->  {src / 'dot_config/app/settings.ini'}",
+        f"link      .local/bin/hello  ->  {src / 'dot_local/bin/executable_hello'}",
+        f"link      .ssh/config  ->  {src / 'private_dot_ssh/config'}",
+        "4 change(s)",
+    ]
+    assert os.readlink(home / ".bashrc") == str(src / "dot_bashrc")
+    assert (home / ".config" / "app").is_dir() and not (home / ".config" / "app").is_symlink()
+    assert stat.S_IMODE((home / ".ssh").stat().st_mode) == 0o700
+    assert stat.S_IMODE((src / "private_dot_ssh" / "config").stat().st_mode) & 0o077 == 0
+    assert (src / "dot_local" / "bin" / "executable_hello").stat().st_mode & stat.S_IXUSR
+
+
+def test_apply_second_run_changes_nothing(run, home):
+    run("apply")
+    code, out, _ = run("apply")
+    assert (code, out) == (0, "0 change(s)\n")
+
+
+def test_apply_dry_run_prints_plan_and_touches_nothing(run, home):
+    code, out, _ = run("apply", "--dry-run")
+    assert code == 0
+    assert out.startswith("link      .bashrc  ->  ")
+    assert out.endswith("4 change(s) (dry run)\n")
+    assert list(home.iterdir()) == []
+
+
+def test_apply_conflict_without_force_is_reported_and_exits_1(run, home):
+    (home / ".bashrc").write_text("mine\n")
+    code, out, _ = run("apply")
+    assert code == 1
+    assert "conflict  .bashrc  (use --force to back it up and replace)" in out
+    assert out.endswith("3 change(s), 1 conflict(s) left\n")
+    assert (home / ".bashrc").read_text() == "mine\n"
+
+
+def test_apply_force_backs_up_then_links(run, src, home):
+    (home / ".bashrc").write_text("mine\n")
+    code, out, _ = run("apply", "--force")
+    assert code == 0
+    lines = out.splitlines()
+    assert lines[0] == f"replace   .bashrc  ->  {src / 'dot_bashrc'}"
+    assert lines[1].startswith(f"backup    .bashrc  ->  {home / '.dotfiles-backup'}/")
+    assert lines[1].endswith("/.bashrc")
+    assert os.readlink(home / ".bashrc") == str(src / "dot_bashrc")
+    backups = list((home / ".dotfiles-backup").glob("*/.bashrc"))
+    assert len(backups) == 1 and backups[0].read_text() == "mine\n"
+
+
+def test_apply_force_dry_run_shows_replace_but_keeps_file(run, home):
+    (home / ".bashrc").write_text("mine\n")
+    code, out, _ = run("apply", "--force", "-n")
+    assert code == 0
+    assert "replace   .bashrc" in out and "backup" not in out
+    assert (home / ".bashrc").read_text() == "mine\n"
+
+
+def test_apply_foreign_symlink_is_a_conflict_and_the_link_is_what_gets_backed_up(run, src, home):
+    (home / "elsewhere").write_text("other\n")
+    os.symlink(home / "elsewhere", home / ".bashrc")
+    code, out, _ = run("apply")
+    assert code == 1 and "conflict  .bashrc" in out
+    code, _, _ = run("apply", "--force")
+    assert code == 0
+    assert os.readlink(home / ".bashrc") == str(src / "dot_bashrc")
+    assert (home / "elsewhere").read_text() == "other\n"
+    backed = next((home / ".dotfiles-backup").glob("*/.bashrc"))
+    assert backed.is_symlink() and os.readlink(backed) == str(home / "elsewhere")
+
+
+def test_apply_relinks_a_stale_link(run, src, home):
+    run("apply")
+    shutil.move(str(src / "dot_bashrc"), str(src / "dot_bashrc.old"))
+    (src / "dot_bashrc").write_text("# new\n")
+    os.remove(home / ".bashrc")
+    os.symlink(src / "dot_bashrc.old", home / ".bashrc")
+    code, out, _ = run("apply")
+    assert code == 0
+    assert out.splitlines()[0] == f"relink    .bashrc  ->  {src / 'dot_bashrc'}"
+    assert os.readlink(home / ".bashrc") == str(src / "dot_bashrc")
+
+
+def test_apply_restricted_to_paths(run, home):
+    code, out, _ = run("apply", str(home / ".config"), str(home / ".ssh/config"))
+    assert code == 0 and out.endswith("2 change(s)\n")
+    assert (home / ".config" / "app" / "settings.ini").is_symlink()
+    assert (home / ".ssh" / "config").is_symlink()
+    assert not (home / ".bashrc").exists()
+
+
+def test_apply_reasserts_modes_on_already_linked_files(run, src, home):
+    run("apply")
+    os.chmod(src / "private_dot_ssh" / "config", 0o644)
+    run("apply")
+    assert stat.S_IMODE((src / "private_dot_ssh" / "config").stat().st_mode) == 0o600
+
+
+# ── status ────────────────────────────────────────────────────────────────
+
+
+def test_status_lists_problems_with_summary_and_exit_1(run, home):
+    (home / ".bashrc").write_text("mine\n")
+    code, out, _ = run("status")
+    assert code == 1
+    assert out.splitlines() == [
+        "conflict    .bashrc",
+        "missing     .config/app/settings.ini",
+        "missing     .local/bin/hello",
+        "missing     .ssh/config",
+        "conflict: 1  missing: 3",
+    ]
+
+
+def test_status_all_ok_is_one_line_and_exit_0(run, home):
+    run("apply")
+    assert run("status") == (0, "ok: 4\n", "")
+
+
+def test_status_all_flag_lists_ok_targets_too(run, home):
+    run("apply")
+    code, out, _ = run("status", "--all")
+    assert code == 0
+    assert out.splitlines()[:2] == ["ok          .bashrc", "ok          .config/app/settings.ini"]
+
+
+def test_status_nothing_managed(run, tmp_path, home):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert run("status", source=empty) == (0, "nothing managed\n", "")
+
+
+def test_status_restricted_to_a_path(run, home):
+    assert run("status", str(home / ".ssh")) == (1, "missing     .ssh/config\nmissing: 1\n", "")
+
+
+# ── unlink ────────────────────────────────────────────────────────────────
+
+
+def test_unlink_removes_only_our_links(run, src, home):
+    run("apply")
+    (home / "elsewhere").write_text("other\n")
+    os.remove(home / ".bashrc")
+    os.symlink(home / "elsewhere", home / ".bashrc")
+    code, out, _ = run("unlink")
+    assert code == 0
+    assert out.splitlines() == [
+        "unlink    .config/app/settings.ini",
+        "unlink    .local/bin/hello",
+        "unlink    .ssh/config",
+        "3 link(s) removed",
+    ]
+    assert (home / ".bashrc").is_symlink()
+    assert not (home / ".ssh" / "config").exists() and (home / ".ssh").is_dir()
+    assert (src / "private_dot_ssh" / "config").exists()
+
+
+def test_unlink_dry_run(run, home):
+    run("apply")
+    code, out, _ = run("unlink", "-n", str(home / ".bashrc"))
+    assert (code, out) == (0, "unlink    .bashrc\n1 link(s) removed (dry run)\n")
+    assert (home / ".bashrc").is_symlink()
+
+
+# ── add ───────────────────────────────────────────────────────────────────
+
+
+def test_add_moves_files_and_infers_attributes(run, src, home):
+    (home / ".config" / "tool").mkdir(parents=True)
+    (home / ".config" / "tool" / "rc").write_text("x\n")
+    (home / ".secret").write_text("s\n")
+    os.chmod(home / ".secret", 0o600)
+    (home / ".local" / "bin").mkdir(parents=True)
+    (home / ".local" / "bin" / "tool").write_text("#!/bin/sh\n")
+    os.chmod(home / ".local" / "bin" / "tool", 0o755)
+    code, out, _ = run("add", str(home / ".config/tool/rc"), str(home / ".secret"),
+                       str(home / ".local/bin/tool"))
+    assert code == 0
+    assert out.splitlines() == [
+        "add       .config/tool/rc  ->  dot_config/tool/rc",
+        "add       .secret  ->  private_dot_secret",
+        "add       .local/bin/tool  ->  dot_local/bin/executable_tool",
+    ]
+    assert (src / "dot_config" / "tool" / "rc").read_text() == "x\n"
+    assert os.readlink(home / ".config" / "tool" / "rc") == str(src / "dot_config" / "tool" / "rc")
+    assert (home / ".secret").is_symlink() and (home / ".local/bin/tool").is_symlink()
+    code, out, _ = run("status")
+    assert code == 1 and out.endswith("missing: 4  ok: 3\n")
+
+
+def test_add_private_flag_forces_the_attribute(run, src, home):
+    (home / ".token").write_text("t\n")          # 644: would not be private on its own
+    code, out, _ = run("add", "--private", str(home / ".token"))
+    assert (code, out) == (0, "add       .token  ->  private_dot_token\n")
+    assert (src / "private_dot_token").exists()
+
+
+def test_add_dry_run_moves_nothing(run, src, home):
+    (home / ".token").write_text("t\n")
+    code, out, _ = run("add", "-n", str(home / ".token"))
+    assert (code, out) == (0, "add       .token  ->  dot_token\n")
+    assert not (home / ".token").is_symlink() and not (src / "dot_token").exists()
+
+
+def test_add_relative_path_is_resolved_against_cwd(run, src, home, monkeypatch):
+    (home / ".token").write_text("t\n")
+    monkeypatch.chdir(home)
+    assert run("add", ".token") == (0, "add       .token  ->  dot_token\n", "")
+
+
+def test_add_skips_symlinks_directories_outsiders_and_existing(run, src, home, tmp_path):
+    run("apply")
+    (home / "dir").mkdir()
+    outside = tmp_path / "outside"
+    outside.write_text("o\n")
+    (home / ".bashrc.new").write_text("n\n")
+    (src / "dot_bashrc.new").write_text("already\n")
+    code, out, _ = run("add", str(home / ".bashrc"), str(home / "dir"), str(outside),
+                       str(home / ".bashrc.new"))
+    assert code == 0
+    assert out.splitlines() == [
+        "skip      .bashrc: already a symlink",
+        "skip      dir: not a regular file (add files, not directories)",
+        f"skip      {outside}: not under {home}",
+        f"skip      .bashrc.new: {src / 'dot_bashrc.new'} already exists",
+    ]
+    assert (src / "dot_bashrc.new").read_text() == "already\n"
+
+
+# ── forget ────────────────────────────────────────────────────────────────
+
+
+def test_forget_leaves_a_real_copy_and_removes_the_source(run, src, home):
+    run("apply")
+    code, out, _ = run("forget", str(home / ".bashrc"))
+    assert (code, out) == (0, "forget    .bashrc\n")
+    assert not (home / ".bashrc").is_symlink()
+    assert (home / ".bashrc").read_text() == "# bashrc\n"
+    assert not (src / "dot_bashrc").exists()
+    assert ".bashrc" not in run("managed")[1]
+
+
+def test_forget_unlinked_target_just_drops_the_source(run, src, home):
+    code, out, _ = run("forget", str(home / ".bashrc"))
+    assert (code, out) == (0, "forget    .bashrc\n")
+    assert not (home / ".bashrc").exists() and not (src / "dot_bashrc").exists()
+
+
+def test_forget_dry_run(run, src, home):
+    run("apply")
+    code, out, _ = run("forget", "-n", str(home / ".bashrc"))
+    assert (code, out) == (0, "forget    .bashrc\n")
+    assert (home / ".bashrc").is_symlink() and (src / "dot_bashrc").exists()
+
+
+def test_forget_unmanaged_path_is_skipped_with_exit_1(run, src, home):
+    code, out, _ = run("forget", str(home / ".nope"), str(home / ".bashrc"))
+    assert code == 1
+    assert out == f"forget    .bashrc\nskip      {home / '.nope'}: not managed\n"
+
+
+# ── process-level behavior ────────────────────────────────────────────────
+
+
+def test_no_subcommand_is_a_usage_error(home, src):
+    proc = run_subprocess(home, src)
+    assert proc.returncode == 2
+    assert "usage: dots" in proc.stderr and "required: cmd" in proc.stderr
+
+
+def test_unknown_subcommand(home, src):
+    proc = run_subprocess(home, src, "frobnicate")
+    assert proc.returncode == 2
+    assert "invalid choice: 'frobnicate'" in proc.stderr
+
+
+def test_add_and_forget_require_a_path(home, src):
+    for cmd in ("add", "forget"):
+        proc = run_subprocess(home, src, cmd)
+        assert proc.returncode == 2, cmd
+        assert "the following arguments are required: paths" in proc.stderr
+
+
+def test_help_lists_every_subcommand(home, src):
+    proc = run_subprocess(home, src, "--help")
+    assert proc.returncode == 0
+    assert "{apply,status,managed,add,forget,unlink}" in proc.stdout
+    assert "dot_config/git/config" in proc.stdout           # the naming spec from the docstring
+
+
+def test_missing_source_directory_in_process(dots, home, tmp_path, capsys):
+    assert dots.main(["-S", str(tmp_path / "nope"), "managed"]) == 2
+    assert capsys.readouterr().err == f"dots: source directory {tmp_path / 'nope'} does not exist\n"
+
+
+def test_missing_source_directory_exits_2(home, tmp_path):
+    proc = run_subprocess(home, tmp_path / "nope", "managed")
+    assert proc.returncode == 2
+    assert proc.stderr == f"dots: source directory {tmp_path / 'nope'} does not exist\n"
+
+
+def test_dots_source_env_selects_the_source(home, src):
+    proc = run_subprocess(home, src, "managed")
+    assert proc.returncode == 0 and proc.stdout.splitlines()[0] == ".bashrc"
+
+
+def test_home_dotfiles_symlink_is_the_default_source(home, src):
+    os.symlink(src, home / ".dotfiles")
+    proc = run_subprocess(home, src, "managed", "--show-source", env={"DOTS_SOURCE": ""})
+    assert proc.returncode == 0
+    assert proc.stdout.splitlines()[0] == str(src / "dot_bashrc")     # resolved through the link
+
+
+def test_script_directory_is_the_last_resort_source(home, tmp_path):
+    proc = run_subprocess(home, tmp_path, "managed", env={"DOTS_SOURCE": ""})
+    assert proc.returncode == 0
+    assert ".bashrc" in proc.stdout.splitlines()       # the repository's own tree
+
+
+def test_exit_status_propagates_from_main(home, src):
+    (home / ".bashrc").write_text("mine\n")
+    assert run_subprocess(home, src, "status").returncode == 1
+    assert run_subprocess(home, src, "apply").returncode == 1
+    assert run_subprocess(home, src, "apply", "--force").returncode == 0

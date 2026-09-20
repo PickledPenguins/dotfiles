@@ -1,0 +1,17 @@
+dots: ignoring dot_: maps to '.'
+dots: ignoring private_: maps to ''
+link      .config/.hidden-below-root  ->  SRC/dot_config/.hidden-below-root
+link      .config/odd dir/it's "quoted" file  ->  SRC/dot_config/odd dir/it's "quoted" file
+replace   .empty  ->  SRC/dot_empty
+backup    .empty  ->  HOME/.dotfiles-backup/TS/.empty
+link      .ssh/keys/id  ->  SRC/private_dot_ssh/keys/id
+4 change(s)
+exit 0
+keep me
+700 HOME/.ssh
+700 HOME/.ssh/keys
+600
+s
+hidden below root: linked
+.config/skip: not created
+0

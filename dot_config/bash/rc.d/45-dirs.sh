@@ -28,8 +28,10 @@ jump()   { cd -P -- "$DOTFILES_MARKS_DIR/${1:?jump NAME}" || return; }
 _jump_complete() { mapfile -t COMPREPLY < <(compgen -W "$(command ls "$DOTFILES_MARKS_DIR" 2>/dev/null)" -- "${COMP_WORDS[1]}"); }
 complete -F _jump_complete jump unmark
 
-# cd looks here when a bare name is not under the current directory
-CDPATH=".:$HOME${DOTFILES_CDPATH:+:$DOTFILES_CDPATH}"
+# cd looks here when a bare name is not under the current directory.  The
+# leading empty entry is the current directory: spelled "." bash would echo
+# the new path after every relative cd.
+CDPATH=":$HOME${DOTFILES_CDPATH:+:$DOTFILES_CDPATH}"
 
 # pushd stack shortcuts: `d` lists, `2` goes to entry 2
 for _i in 1 2 3 4 5 6 7 8 9; do alias "$_i"="cd +$_i"; done

@@ -1,0 +1,4 @@
+add       .vimrc  ->  dot_vimrc
+?? dot_vimrc
+add vimrc
+ok: 1

@@ -1,0 +1,15 @@
+stale-link  .bashrc
+missing     .config/app2/keys
+missing     .config/app2/settings
+missing: 2  stale-link: 1
+exit 1
+relink    .bashrc  ->  SRC/private_dot_bashrc
+link      .config/app2/keys  ->  SRC/dot_config/app2/keys
+link      .config/app2/settings  ->  SRC/dot_config/app2/settings
+3 change(s)
+exit 0
+600
+--- dangling links dots no longer knows about:
+HOME/.config/app/keys
+HOME/.config/app/settings
+HOME/.obsolete

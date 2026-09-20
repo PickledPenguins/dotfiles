@@ -1,0 +1,24 @@
+add       .bashrc  ->  dot_bashrc
+add       .vimrc  ->  dot_vimrc
+add       .config/git/config  ->  dot_config/git/config
+add       .config/git/ignore  ->  dot_config/git/ignore
+add       .config/tmux/tmux.conf  ->  dot_config/tmux/tmux.conf
+add       .ssh/config  ->  dot_ssh/private_config
+add       .netrc  ->  private_dot_netrc
+add       .local/bin/hi  ->  dot_local/bin/executable_hi
+dot_bashrc
+dot_config/git/config
+dot_config/git/ignore
+dot_config/tmux/tmux.conf
+dot_local/bin/executable_hi
+dot_ssh/private_config
+dot_vimrc
+private_dot_netrc
+forget    .netrc
+ D private_dot_netrc
+.netrc is a regular file again
+600 SRC/dot_ssh/private_config
+755 SRC/dot_local/bin/executable_hi
+hi
+ok: 7
+exit 0

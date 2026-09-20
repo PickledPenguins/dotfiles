@@ -1,0 +1,11 @@
+# coverage configuration for run-tests.sh cov; kept out of the root.
+[run]
+branch = True
+include = */dots
+data_file = .build/coverage
+
+[report]
+fail_under = 95
+show_missing = True
+exclude_lines =
+    if __name__ == "__main__":

@@ -1,0 +1,8 @@
+unlink    .config/git/config
+unlink    .config/tmux/tmux.conf
+2 link(s) removed
+missing     .config/git/config
+missing     .config/tmux/tmux.conf
+missing: 2  ok: 1
+exit 1
+2 change(s)

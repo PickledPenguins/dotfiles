@@ -1,0 +1,455 @@
+"""The shipped configuration, applied into a temporary HOME and read by the
+real programs: bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python.
+
+Each test asserts a setting that only the module under test provides, so a
+module that silently fails to load is caught.  Programs not installed on
+the test machine skip their tests by name.
+"""
+
+import os
+import shutil
+import subprocess
+
+import pytest
+
+from conftest import REPO, run_subprocess
+
+pytestmark = pytest.mark.long
+
+BASH_MODULES = ["env", "options", "path", "aliases", "functions", "dirs", "completion",
+                "prompt", "title", "conda", "python", "tools", "hpc", "local"]
+VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
+               "35-folding", "40-files", "45-filetypes", "50-keys", "55-netrw"]
+
+
+@pytest.fixture
+def linked(home):
+    proc = run_subprocess(home, REPO, "apply")
+    assert proc.returncode == 0, proc.stdout
+    return home
+
+
+def bash(home, script, env=None, before=None, local=None):
+    if before is not None:
+        (home / ".bashrc.before").write_text(before)
+    if local is not None:
+        (home / ".bashrc.local").write_text(local)
+    environment = dict(os.environ, HOME=str(home), TERM="xterm-256color", PATH=os.environ["PATH"])
+    for var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "PROMPT_COMMAND"):
+        environment.pop(var, None)
+    environment.update(env or {})
+    proc = subprocess.run(["bash", "--rcfile", str(home / ".bashrc"), "-i", "-c", script],
+                          env=environment, capture_output=True, text=True, cwd=str(home), errors="replace")
+    proc.stderr = "\n".join(l for l in proc.stderr.splitlines()
+                            if "job control" not in l and "process group" not in l)
+    return proc
+
+
+def needs(program):
+    return pytest.mark.skipif(shutil.which(program) is None, reason=f"{program} not installed")
+
+
+# ── bash ──────────────────────────────────────────────────────────────────
+
+
+def test_bashrc_loads_every_module_in_order(linked):
+    proc = bash(linked, "true", env={"DOTFILES_DEBUG": "1"})
+    names = [l.split()[1] for l in proc.stderr.splitlines() if l.startswith("bashrc:")]
+    assert names == BASH_MODULES
+
+
+def test_bashrc_loads_silently_without_debug(linked):
+    proc = bash(linked, "echo ok")
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, "ok\n", "")
+
+
+def test_bashrc_non_interactive_shell_loads_nothing(linked):
+    proc = subprocess.run(["bash", "--rcfile", str(linked / ".bashrc"), "-c", "type -t mkcd || echo none"],
+                          env=dict(os.environ, HOME=str(linked)), capture_output=True, text=True)
+    assert proc.stdout == "none\n"
+
+
+def test_disabled_file_skips_named_modules(linked):
+    (linked / ".config" / "bash" / "disabled").write_text("functions  # none\n\ndirs\n")
+    proc = bash(linked, "type -t mkcd || echo no-mkcd; type -t mark || echo no-mark", env={"DOTFILES_DEBUG": "1"})
+    assert proc.stdout == "no-mkcd\nno-mark\n"
+    assert "bashrc: skip functions" in proc.stderr and "bashrc: skip dirs" in proc.stderr
+
+
+def test_off_suffix_module_is_linked_but_not_loaded(linked):
+    assert (linked / ".config/bash/rc.d/61-prompt-simple.sh.off").is_symlink()
+    proc = bash(linked, "type -t _ps_simple_git || echo absent")
+    assert proc.stdout == "absent\n"
+
+
+def test_before_sets_knobs_and_local_overrides(linked):
+    proc = bash(linked, "echo $HISTSIZE; alias ll; shopt autocd | cut -f2",
+                before="DOTFILES_HISTSIZE=123\nDOTFILES_AUTOCD=0\n", local="alias ll='echo local'\n")
+    assert proc.stdout == "123\nalias ll='echo local'\noff\n"
+
+
+def test_env_module_sets_editor_pager_and_xdg(linked):
+    proc = bash(linked, 'echo "$EDITOR $PAGER $LESS $XDG_CONFIG_HOME $RIPGREP_CONFIG_PATH"')
+    assert proc.stdout == f"vim less -FRXi {linked}/.config {linked}/.config/ripgrep/config\n"
+
+
+def test_env_module_editor_knob(linked):
+    assert bash(linked, 'echo $EDITOR', before="DOTFILES_EDITOR=nano\n").stdout == "nano\n"
+
+
+def test_options_module_history_and_shopts(linked):
+    proc = bash(linked, "echo $HISTCONTROL; shopt globstar histappend cdspell | awk '{print $2}'; "
+                        "[[ $PROMPT_COMMAND == *'history -a'* ]] && echo shared")
+    assert proc.stdout == "ignoreboth:erasedups\non\non\non\nshared\n"
+
+
+def test_options_module_opinionated_knobs_default_off(linked):
+    proc = bash(linked, "set -o | grep -E '^(noclobber|pipefail)' | awk '{print $2}'; shopt dotglob | awk '{print $2}'")
+    assert proc.stdout == "off\noff\noff\n"
+    proc = bash(linked, "set -o | grep -E '^noclobber' | awk '{print $2}'", before="DOTFILES_NOCLOBBER=1\n")
+    assert proc.stdout == "on\n"
+
+
+def test_path_module_prepends_private_bins_once_and_adds_dotfiles(linked):
+    (linked / ".local" / "bin").mkdir(parents=True, exist_ok=True)
+    (linked / "bin").mkdir(exist_ok=True)
+    proc = bash(linked, 'tr : "\\n" <<<"$PATH"', env={"PATH": f"{linked}/.local/bin:{os.environ['PATH']}"})
+    entries = proc.stdout.splitlines()
+    assert entries[:2] == [f"{linked}/.local/bin", f"{linked}/bin"]
+    assert entries.count(f"{linked}/.local/bin") == 1
+    assert str(REPO) in entries
+
+
+def test_path_helpers_are_idempotent_and_skip_missing_dirs(linked):
+    proc = bash(linked, 'path_prepend /usr; path_prepend /usr; path_append /nope/x; tr : "\\n" <<<"$PATH" | grep -c "^/usr$"; '
+                        '[[ $PATH == */nope/x* ]] || echo skipped')
+    assert proc.stdout == "1\nskipped\n"
+
+
+def test_path_knobs(linked):
+    (linked / "k1").mkdir()
+    (linked / "k2").mkdir()
+    proc = bash(linked, 'tr : "\\n" <<<"$PATH" | head -1; tr : "\\n" <<<"$PATH" | tail -1',
+                before=f"DOTFILES_PATH_PREPEND={linked}/k1\nDOTFILES_PATH_APPEND={linked}/k2\n")
+    assert proc.stdout == f"{linked}/k1\n{linked}/k2\n"
+
+
+def test_aliases_module(linked):
+    proc = bash(linked, "alias ll la .. rm gs | cut -d= -f2-")
+    assert proc.stdout == "'ls -alFh'\n'ls -A'\n'cd ..'\n'rm -I'\n'git status -sb'\n"
+
+
+def test_aliases_safe_rm_knob(linked):
+    proc = bash(linked, "alias rm cp mv 2>&1 | head -1", before="DOTFILES_SAFE_RM=0\n")
+    assert "not found" in proc.stdout
+
+
+def test_functions_module_mkcd_up_extract_bak(linked):
+    proc = bash(linked, "mkcd a/b/c && pwd && up 2 && pwd && echo x > f && bak f && ls f.*.bak | wc -l && "
+                        "tar czf t.tgz f && command mkdir o && cd o && extract ../t.tgz && cat f")
+    assert proc.stdout == f"{linked}/a/b/c\n{linked}/a\n1\nx\n"
+
+
+def test_functions_use_command_to_bypass_verbose_aliases(linked):
+    proc = bash(linked, "mkcd q >/dev/null; echo done")
+    assert proc.stdout == "done\n"          # no 'mkdir: created directory' from the -pv alias
+
+
+def test_functions_extract_unknown_extension(linked):
+    proc = bash(linked, "touch f.xyz; extract f.xyz; echo $?")
+    assert proc.stderr == "extract: don't know how to extract 'f.xyz'" and proc.stdout == "1\n"
+
+
+def test_dirs_module_marks(linked):
+    proc = bash(linked, "command mkdir -p p/q; cd p/q; mark pq; cd; marks; jump pq; pwd; unmark pq; marks | wc -l")
+    assert proc.stdout == f"pq               -> {linked}/p/q\n{linked}/p/q\n0\n"
+
+
+def test_dirs_module_cdpath_includes_home(linked):
+    proc = bash(linked, 'echo "$CDPATH"', before=f"DOTFILES_CDPATH=/opt\n")
+    assert proc.stdout == f":{linked}:/opt\n"
+
+
+def test_prompt_module_builds_ps1_with_the_toolkit(linked):
+    proc = bash(linked, "type -t prompt_build; prompt_build; echo \"$PS1\" | head -1")
+    assert proc.stdout.splitlines()[0] == "function"
+    assert "╭" in proc.stdout.splitlines()[1]
+
+
+@pytest.mark.parametrize("layout, marker", [("minimal", "[ "), ("hpc", "╭"), ("box", "╭")])
+def test_prompt_layout_knob(linked, layout, marker):
+    proc = bash(linked, "prompt_build; echo \"$PS1\" | head -1", before=f"DOTFILES_PROMPT_LAYOUT={layout}\n")
+    assert marker in proc.stdout
+    assert proc.stderr == ""
+
+
+def test_prompt_layout_knob_unknown_value_warns_and_falls_back(linked):
+    proc = bash(linked, "prompt_build; echo \"$PS1\" | head -1", before="DOTFILES_PROMPT_LAYOUT=nope\n")
+    assert proc.stderr == "layout.sh: unknown DOTFILES_PROMPT_LAYOUT 'nope'"
+    assert "╭" in proc.stdout
+
+
+def test_simple_prompt_module_when_enabled(linked):
+    (linked / ".config" / "bash" / "disabled").write_text("prompt\n")
+    off = linked / ".config/bash/rc.d/61-prompt-simple.sh.off"
+    os.symlink(os.readlink(off), linked / ".config/bash/rc.d/61-prompt-simple.sh")
+    proc = bash(linked, r'echo "$PS1"')
+    assert proc.stdout.startswith(r"\[\e[1;32m\]\u@\h")
+    proc = bash(linked, r'echo "$PS1"', before="DOTFILES_PROMPT_COLOR=0\n")
+    assert proc.stdout == r"\u@\h \w$(_ps_simple_git) \$ " + "\n"
+
+
+def test_title_module_only_on_a_tty(linked):
+    proc = bash(linked, "[[ $PROMPT_COMMAND == *_title_prompt* ]] && echo title || echo no-title")
+    assert proc.stdout == "no-title\n"          # stdout is a pipe here
+    proc = bash(linked, "type -t _title_prompt || echo absent", env={"TERM": "dumb"})
+    assert proc.stdout == "absent\n"
+
+
+def test_conda_module_silent_without_conda(linked):
+    proc = bash(linked, "type -t conda || echo none", before="DOTFILES_CONDA_ROOT=/nonexistent\n",
+                env={"PATH": "/usr/bin:/bin"})
+    assert proc.stdout in ("none\n", "function\n")     # function only when a system conda exists
+
+
+def test_python_module_venv_function(linked):
+    proc = bash(linked, "venv && echo \"${VIRTUAL_ENV##*/}\" && deactivate && echo \"${VIRTUAL_ENV:-none}\"")
+    assert proc.stdout == ".venv\nnone\n"
+
+
+def test_hpc_module_defines_nothing_without_a_scheduler(linked):
+    proc = bash(linked, "alias qs sq ml 2>&1 | grep -c 'not found'", env={"PATH": "/usr/bin:/bin"})
+    assert proc.stdout == "3\n"
+
+
+def test_hpc_module_with_fake_schedulers(linked, tmp_path):
+    fake = tmp_path / "fakebin"
+    fake.mkdir()
+    for name in ("qstat", "squeue"):
+        (fake / name).write_text("#!/bin/sh\necho $0 $*\n")
+        os.chmod(fake / name, 0o755)
+    proc = bash(linked, "alias qs sq | cut -d= -f2-; qs", env={"PATH": f"{fake}:/usr/bin:/bin"})
+    lines = proc.stdout.splitlines()
+    assert lines[0] == "'qstat -u \"$USER\"'"
+    assert lines[1].startswith("'squeue -u \"$USER\"")
+    assert lines[2] == f"{fake}/qstat -u {os.environ.get('USER', '')}".rstrip()
+
+
+def test_profile_and_bash_profile_chain(linked):
+    (linked / ".config" / "bash" / "profile.d").mkdir()
+    (linked / ".config" / "bash" / "profile.d" / "x.sh").write_text("export FROM_PROFILE_D=1\n")
+    proc = subprocess.run(["bash", "-l", "-i", "-c", 'echo "$FROM_PROFILE_D $LANG"; type -t mkcd'],
+                          env={"HOME": str(linked), "PATH": os.environ["PATH"], "TERM": "dumb"},
+                          capture_output=True, text=True)
+    assert proc.stdout == "1 C.UTF-8\nfunction\n"
+
+
+@needs("dash")
+def test_profile_is_posix_sh(linked):
+    proc = subprocess.run(["dash", "-c", f". {linked}/.profile; echo $LANG"],
+                          env={"HOME": str(linked), "PATH": "/usr/bin:/bin"}, capture_output=True, text=True)
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, "C.UTF-8\n", "")
+
+
+# ── vim ───────────────────────────────────────────────────────────────────
+
+
+def vim(home, *commands, before=None):
+    if before is not None:
+        (home / ".vimrc.before").write_text(before)
+    # -es prints :set queries on stdout; anything else needs :verbose, which
+    # writes to stderr.  One line per command, stripped, "Last set from" dropped.
+    cmds = [c for command in commands
+            for c in ("-c", command if command.startswith("set ") else "verbose " + command)]
+    proc = subprocess.run(["vim", "-es", "-u", str(home / ".vimrc"), *cmds, "-c", "qall!"],
+                          env=dict(os.environ, HOME=str(home), TERM="xterm-256color"),
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=30,
+                          errors="replace")
+    lines = [l.strip() for l in proc.stdout.splitlines() if l.strip() and "Last set from" not in l]
+    return "\n".join(lines)
+
+
+@needs("vim")
+def test_vimrc_loads_every_module(linked):
+    assert vim(linked, "DotfilesModules").splitlines() == VIM_MODULES
+
+
+@needs("vim")
+def test_vim_modules_each_leave_a_setting(linked):
+    out = vim(linked, *("set %s?" % o for o in "hidden shiftwidth hlsearch wildmode foldmethod undofile mouse laststatus".split()))
+    assert out.splitlines() == ["hidden", "shiftwidth=2", "hlsearch", "wildmode=longest:full,full",
+                           "foldmethod=indent", "undofile", "mouse=a", "laststatus=2"]
+    assert (linked / ".vim" / "tmp" / "undo").is_dir()
+
+
+@needs("vim")
+def test_vim_knobs_from_vimrc_before(linked):
+    out = vim(linked, "set shiftwidth?", "set expandtab?", "set relativenumber?", "set foldmethod?",
+              before="let g:dotfiles_indent = 4\nlet g:dotfiles_tabs = 1\nlet g:dotfiles_relativenumber = 1\n"
+                     "let g:dotfiles_foldmethod = 'marker'\n")
+    assert out.splitlines() == ["shiftwidth=4", "noexpandtab", "relativenumber", "foldmethod=marker"]
+
+
+@needs("vim")
+def test_vim_keys_map_leader_and_have_no_trailing_comment_garbage(linked):
+    out = vim(linked, "nmap <leader>w", "nmap <C-h>", "xmap J")
+    assert out.splitlines() == ["n  <Space>w    * :write<CR>", "n  <C-H>       * <C-W>h", "x  J           * :move '>+1<CR>gv=gv"]
+
+
+@needs("vim")
+def test_vim_local_override_wins(linked):
+    (linked / ".vimrc.local").write_text("set shiftwidth=7\n")
+    assert vim(linked, "set shiftwidth?") == "shiftwidth=7"
+
+
+@needs("vim")
+def test_vim_off_module_is_not_sourced(linked):
+    assert "60-plugins" not in vim(linked, "DotfilesModules")
+
+
+@needs("vim")
+def test_vim_filetype_module_maps_pbs_scripts_to_sh(linked):
+    (linked / "job.pbs").write_text("#!/bin/bash\n")
+    assert vim(linked, f"edit {linked}/job.pbs", "set filetype?").endswith("filetype=sh")
+
+
+# ── tmux ──────────────────────────────────────────────────────────────────
+
+
+def tmux(home, *args):
+    sock = f"dots-{os.getpid()}"
+    env = dict(os.environ, HOME=str(home))
+    env.pop("TMUX", None)
+    return subprocess.run(["tmux", "-L", sock, "-f", str(home / ".tmux.conf"), "start-server", ";",
+                           *args, ";", "kill-server"], env=env, capture_output=True, text=True, timeout=30)
+
+
+@needs("tmux")
+def test_tmux_conf_parses_and_each_module_sets_something(linked):
+    proc = tmux(linked, "show", "-g", "mouse", ";", "show", "-g", "status-left", ";",
+                "list-keys", "-T", "copy-mode-vi", "y", ";", "list-keys", "-T", "root", "F12", ";",
+                "list-keys", "-T", "prefix", "|")
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stderr == ""
+    lines = proc.stdout.splitlines()
+    assert lines[0] == "mouse on"
+    assert lines[1].startswith('status-left "#[fg=colour114,bold] #S')
+    assert "copy-pipe-and-cancel" in lines[2]
+    assert "set-option key-table off" in lines[3]
+    assert 'split-window -h -c "#{pane_current_path}"' in lines[4]
+
+
+@needs("tmux")
+def test_tmux_local_override_and_off_module(linked):
+    (linked / ".tmux.conf.local").write_text("set -g history-limit 7\n")
+    proc = tmux(linked, "show", "-g", "history-limit", ";", "show", "-g", "@plugin")
+    assert proc.stdout.splitlines()[0] == "history-limit 7"
+    assert "@plugin" not in proc.stdout             # 50-plugins.conf.off not read
+
+
+# ── git ───────────────────────────────────────────────────────────────────
+
+
+def git_config(home, *args):
+    env = dict(os.environ, HOME=str(home))
+    env.pop("GIT_CONFIG_GLOBAL", None)
+    return subprocess.run(["git", "config", "--includes", "--global", *args], env=env,
+                          capture_output=True, text=True).stdout.strip()
+
+
+def test_gitconfig_every_include_contributes(linked):
+    assert git_config(linked, "push.default") == "current"          # core
+    assert git_config(linked, "color.branch.current") == "green bold"   # color
+    assert git_config(linked, "alias.st") == "status -sb"           # aliases
+    assert git_config(linked, "diff.algorithm") == "histogram"      # diff
+    assert git_config(linked, "url.https://github.com/.insteadof") == "gh:"   # url
+    assert git_config(linked, "commit.gpgsign") == ""               # signing is commented out
+
+
+def test_gitconfig_local_wins(linked):
+    (linked / ".gitconfig.local").write_text("[user]\n\tname = Tester\n[push]\n\tdefault = simple\n")
+    assert git_config(linked, "user.name") == "Tester"
+    assert git_config(linked, "push.default") == "simple"
+
+
+def test_git_global_ignore_and_attributes_are_read(linked, tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    env = dict(os.environ, HOME=str(linked))
+    subprocess.run(["git", "init", "-q"], cwd=repo, env=env, check=True)
+    (repo / "a.swp").write_text("")
+    (repo / "x.py").write_text("")
+    out = subprocess.run(["git", "status", "--porcelain"], cwd=repo, env=env, capture_output=True, text=True).stdout
+    assert out == "?? x.py\n"
+    out = subprocess.run(["git", "check-attr", "diff", "x.py"], cwd=repo, env=env, capture_output=True, text=True).stdout
+    assert out == "x.py: diff: python\n"
+
+
+# ── the rest ──────────────────────────────────────────────────────────────
+
+
+def test_inputrc_is_read_by_readline(linked):
+    proc = bash(linked, "bind -v | grep -E '^set (completion-ignore-case|show-all-if-ambiguous|bell-style)'",
+                env={"INPUTRC": str(linked / ".inputrc")})
+    assert proc.stdout == "set completion-ignore-case on\nset show-all-if-ambiguous on\nset bell-style none\n"
+
+
+@needs("ssh")
+def test_ssh_config_parses_and_local_include_wins(linked):
+    (linked / ".ssh" / "config.local").write_text("Host box\n    HostName box.example\n    ServerAliveInterval 5\n")
+    proc = subprocess.run(["ssh", "-F", str(linked / ".ssh" / "config"), "-G", "box"],
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    settings = dict(l.split(" ", 1) for l in proc.stdout.splitlines() if " " in l)
+    assert settings["hostname"] == "box.example"
+    assert settings["serveraliveinterval"] == "5"
+    assert settings["controlmaster"] == "auto"
+    assert settings["addkeystoagent"] in ("yes", "true")
+
+
+@needs("gdb")
+def test_gdbinit_parses(linked):
+    proc = subprocess.run(["gdb", "-batch", "-nx", "-x", str(linked / ".gdbinit"), "-ex", "show print pretty"],
+                          env=dict(os.environ, HOME=str(linked)), capture_output=True, text=True, timeout=30)
+    assert proc.stderr == "" and proc.stdout.strip() == "Pretty formatting of structures is on."
+
+
+@needs("curl")
+def test_curlrc_parses(linked):
+    proc = subprocess.run(["curl", "--config", str(linked / ".curlrc"), "--max-time", "1", "http://127.0.0.1:1/"],
+                          capture_output=True, text=True, timeout=30)
+    assert "Warning" not in proc.stderr and "error" not in proc.stderr.lower().replace("connection refused", "")
+    assert proc.returncode == 7                        # couldn't connect: the config itself was fine
+
+
+@needs("wget")
+def test_wgetrc_parses(linked):
+    proc = subprocess.run(["wget", "-q", "--tries=1", "--timeout=1", "http://127.0.0.1:1/"],
+                          env=dict(os.environ, HOME=str(linked)), capture_output=True, text=True, timeout=30)
+    assert "wgetrc" not in proc.stderr and "Error" not in proc.stderr
+
+
+@needs("dircolors")
+def test_dircolors_parses(linked):
+    proc = subprocess.run(["dircolors", "-b", str(linked / ".dircolors")], capture_output=True, text=True)
+    assert proc.returncode == 0 and proc.stdout.startswith("LS_COLORS=")
+
+
+def test_pythonrc_imports_and_history(linked):
+    env = dict(os.environ, HOME=str(linked), PYTHONSTARTUP=str(linked / ".config/python/pythonrc.py"))
+    proc = subprocess.run(["python3", "-i"], input="print(pp.__name__, Path.__name__, json.__name__)\n",
+                          env=env, capture_output=True, text=True, timeout=30)
+    assert "pprint Path json" in proc.stdout
+
+
+@needs("xrdb")
+def test_xresources_parses(linked):
+    proc = subprocess.run(["xrdb", "-n", str(linked / ".Xresources")], capture_output=True, text=True)
+    assert proc.returncode == 0 and "XTerm*scrollTtyOutput:\tfalse" in proc.stdout
+
+
+@needs("nano")
+def test_nanorc_has_no_unknown_options(linked):
+    proc = subprocess.run(["nano", "--rcfile", str(linked / ".nanorc"), "--version"],
+                          capture_output=True, text=True, timeout=10)
+    assert "Unknown" not in proc.stderr and "Error" not in proc.stderr

@@ -1,0 +1,3 @@
+forget    .vimrc
+ D dot_vimrc
+~/.vimrc is a regular file

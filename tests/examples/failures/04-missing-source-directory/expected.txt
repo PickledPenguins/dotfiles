@@ -1,0 +1,2 @@
+dots: source directory SRC/nope does not exist
+exit 2

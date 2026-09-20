@@ -1,0 +1,9 @@
+conflict  .bashrc  (use --force to back it up and replace)
+0 change(s), 1 conflict(s) left
+exit 1
+replace   .bashrc  ->  SRC/dot_bashrc
+backup    .bashrc  ->  HOME/.dotfiles-backup/TS/.bashrc
+1 change(s)
+exit 0
+# mine
+# theirs

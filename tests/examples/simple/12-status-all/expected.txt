@@ -1,0 +1,4 @@
+ok          .bashrc
+missing     .vimrc
+missing: 1  ok: 1
+exit 1

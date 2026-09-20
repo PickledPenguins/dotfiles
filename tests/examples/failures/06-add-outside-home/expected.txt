@@ -1,0 +1,4 @@
+skip      TMP/outside: not under HOME
+skip      TMP/outside: not under HOME
+exit 0
+x

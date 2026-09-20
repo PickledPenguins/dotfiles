@@ -1,0 +1,4 @@
+link      .a  ->  SRC/dot_a
+conflict  .b  (use --force to back it up and replace)
+1 change(s), 1 conflict(s) left
+exit 1

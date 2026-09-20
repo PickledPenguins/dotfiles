@@ -1,0 +1,3 @@
+skip      .config/app: not a regular file (add files, not directories)
+skip      .rc-link: already a symlink
+exit 0

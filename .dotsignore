@@ -1,6 +1,10 @@
 # Target paths (relative to $HOME) that dots never links.  Glob patterns;
 # a match on any leading directory skips everything under it.
 README.md
+CLAUDE.md
 LICENSE
 dots
+run-tests.sh
 tests
+docs
+reviews

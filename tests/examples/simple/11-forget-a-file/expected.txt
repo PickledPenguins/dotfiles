@@ -1,0 +1,5 @@
+forget    .vimrc
+regular file
+set nu
+source removed
+0

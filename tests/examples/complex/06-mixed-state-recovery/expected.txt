@@ -1,0 +1,26 @@
+conflict    .dir
+conflict    .foreign
+missing     .missing
+conflict    .real
+stale-link  .stale
+conflict: 3  missing: 1  ok: 1  stale-link: 1
+exit 1
+conflict  .dir  (use --force to back it up and replace)
+conflict  .foreign  (use --force to back it up and replace)
+link      .missing  ->  SRC/dot_missing
+conflict  .real  (use --force to back it up and replace)
+relink    .stale  ->  SRC/dot_stale
+2 change(s), 3 conflict(s) left
+exit 1
+replace   .dir  ->  SRC/dot_dir
+replace   .foreign  ->  SRC/dot_foreign
+replace   .real  ->  SRC/dot_real
+3 change(s)
+exit 0
+ok: 6
+exit 0
+--- backup:
+.dir/file
+.foreign
+.real
+elsewhere

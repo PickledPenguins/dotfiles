@@ -1,0 +1,9 @@
+link      .config/git/config  ->  SRC/dot_config/git/config
+link      .config/tmux/tmux.conf  ->  SRC/dot_config/tmux/tmux.conf
+2 change(s)
+ok: 2
+exit 0
+missing     .bashrc
+missing     .vimrc
+missing: 2  ok: 2
+exit 1
