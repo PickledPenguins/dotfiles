@@ -1,6 +1,15 @@
-# ~/.bash_logout -- executed by bash(1) when a login shell exits.
+# ~/.bash_logout -- run by bash when a login shell exits.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
 
-# Clear the console on logout so the next user does not see the scrollback.
+# Clear the console on logout from its top-level shell, so the next person
+# at the machine does not see your scrollback (Debian's clear_console).
 if [[ "$SHLVL" == 1 ]] && command -v clear_console >/dev/null 2>&1; then
     clear_console -q
 fi
+
+# Clear the screen on any login shell's exit, where clear_console is missing
+# (macOS, other distributions).
+#clear

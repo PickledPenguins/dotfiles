@@ -1,79 +1,181 @@
-# ~/.inputrc -- readline: bash's line editor, also python, psql, gdb, bc ...
-# `bind -v` lists every variable; `bind -p` every binding.
+# ~/.inputrc -- readline, the line editor of bash and of python, gdb, psql,
+# bc and others.  `bind -v` lists every variable, `bind -p` every key.
+# Comments must be on their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# Ctrl-X Ctrl-R re-reads this file in a running shell.
 
-# keep the distribution's key tables
+# The distribution's key definitions first (Home, End, Delete ...).
 $include /etc/inputrc
 
-# ── completion ────────────────────────────────────────────────────────────
-# Desk<Tab> completes desktop/
+# ── Editing mode ──────────────────────────────────────────────────────────
+
+# emacs keys: Ctrl-A start, Ctrl-E end, Alt-B/Alt-F by word ...
+set editing-mode emacs
+
+# vi keys instead: Esc for normal mode, then hjkl, w, b, dd, / ...  In every
+# readline program, not just bash.
+#set editing-mode vi
+
+# In vi mode, the prompt starts with (ins) or (cmd) to show the mode.
+#set show-mode-in-prompt on
+
+# In vi mode, the cursor is a bar while inserting and a block otherwise,
+# instead of the (ins)/(cmd) text.  Needs show-mode-in-prompt on.
+#set vi-ins-mode-string "\1\e[6 q\2"
+#set vi-cmd-mode-string "\1\e[2 q\2"
+
+# How long readline waits after Esc for the rest of a key sequence, in ms
+# (default 500): shorter makes vi mode's Esc feel instant.
+#set keyseq-timeout 50
+
+# ── Completion ────────────────────────────────────────────────────────────
+
+# Desk<Tab> completes desktop/, and - and _ count as the same.
 set completion-ignore-case on
-# - and _ are the same when completing
 set completion-map-case on
-# one Tab lists, not two
+
+# One Tab lists the matches, not two; also when nothing can be completed.
 set show-all-if-ambiguous on
 set show-all-if-unmodified on
-# long common prefixes shown as ...
+
+# A long common prefix is shown as ... after 3 characters in the list.
 set completion-prefix-display-length 3
-# ls-style colors in the list
+
+# The list in ls colors, with the typed part highlighted.
 set colored-stats on
-# the part already typed, highlighted
 set colored-completion-prefix on
-# / after directories, * after executables
+
+# / after directories, * after executables, @ after links, in the list.
 set visible-stats on
-# trailing / on symlinks to directories
+
+# A trailing / on links to directories.
 set mark-symlinked-directories on
+
+# Menu completion (below) shows the common prefix before cycling.
 set menu-complete-display-prefix on
-# never page a long list through more
+
+# A long list is printed at once, not paged through more.
 set page-completions off
-# ask before listing more than this many
+
+# Ask before listing more than 200 matches.
 set completion-query-items 200
-# completing mid-word does not duplicate the tail
+
+# Completing inside a word does not repeat the text after the cursor.
 set skip-completed-text on
 
-# ── editing ───────────────────────────────────────────────────────────────
-# `set editing-mode vi` for vi keys
-set editing-mode emacs
-# no beeping on errors
+# Names starting with . are only completed after a . is typed.
+#set match-hidden-files off
+
+# Matches listed across rows instead of down columns.
+#set print-completions-horizontally on
+
+# Matches listed one per line.
+#set completion-display-width 0
+
+# Tab cycles through the matches one at a time, Shift-Tab backwards,
+# instead of listing them.
+#TAB: menu-complete
+#"\e[Z": menu-complete-backward
+
+# ── Display ───────────────────────────────────────────────────────────────
+
+# No beeping or flashing on errors.
 set bell-style none
-# ^C is not echoed
+
+# Ctrl-C is not printed as ^C.
 set echo-control-characters off
-# a pasted newline does not run the command
+
+# Pasted text is inserted as it is: a pasted newline does not run anything.
 set enable-bracketed-paste on
+
+# Typing a closing bracket briefly jumps to the one it matches.
 set blink-matching-paren on
-# 8-bit input (accented characters) ...
+
+# Accented and other 8-bit characters are typed and shown as themselves.
 set input-meta on
-# ... and output
 set output-meta on
 set convert-meta off
 
-# ── history ───────────────────────────────────────────────────────────────
+# A history line you edited is marked with * at its start.
+#set mark-modified-lines on
+
+# ~ is expanded to your home directory while completing.
+#set expand-tilde on
+
+# A long line scrolls sideways instead of wrapping onto the next line.
+#set horizontal-scroll-mode on
+
+# ── History ───────────────────────────────────────────────────────────────
+
+# Moving through history keeps the cursor's column.
 set history-preserve-point on
-# edits to history lines are not kept
+
+# Edits to recalled history lines are undone after Enter, so history keeps
+# what was really run.
 set revert-all-at-newline on
 
-# Up/Down search history for what has been typed so far
+# Up and Down search the history for lines starting with what is typed.
 "\e[A": history-search-backward
 "\e[B": history-search-forward
 "\eOA": history-search-backward
 "\eOB": history-search-forward
 
-# Ctrl-Left/Right move by word
+# Ctrl-P and Ctrl-N do the same prefix search (default: plain previous/next).
+#"\C-p": history-search-backward
+#"\C-n": history-search-forward
+
+# Ctrl-R and the other history searches ignore case (readline 8.3+, bash 5.3).
+#set search-ignore-case on
+
+# ── Keys ──────────────────────────────────────────────────────────────────
+
+# Ctrl-Left and Ctrl-Right move by word.
 "\e[1;5C": forward-word
 "\e[1;5D": backward-word
 "\e[5C": forward-word
 "\e[5D": backward-word
 
-# Tab cycles through completions, Shift-Tab backwards (comment out for plain listing)
-# TAB: menu-complete
-# "\e[Z": menu-complete-backward
+# Ctrl-Delete deletes the word after the cursor.
+"\e[3;5~": kill-word
 
-# Alt-. inserts the last argument (default, listed for discovery); Alt-Enter
-# runs the command and keeps it on the line
+# Alt-Enter runs the line and brings the next history line up (repeat a
+# sequence of commands).  Alt-. inserts the last argument (the default).
 "\e\C-m": operate-and-get-next
 
+# Ctrl-W deletes back to the previous / (a path component) instead of the
+# previous space.  Needs the terminal's own Ctrl-W switched off, as here.
+#set bind-tty-special-chars off
+#"\C-w": unix-filename-rubout
+
+# Ctrl-Backspace deletes the word before the cursor, in terminals where it
+# sends ^H.  In terminals where Backspace itself sends ^H it breaks Backspace.
+#"\C-h": backward-kill-word
+
 $if Bash
-    # Ctrl-Alt-L clears the screen without touching the current line
+    # Ctrl-Alt-L clears the screen and keeps the line being typed.
     "\e\C-l": clear-screen
-    # Ctrl-X Ctrl-E edits the current line in $EDITOR (default emacs binding)
+
+    # Ctrl-X Ctrl-E edits the line in $EDITOR, then runs it.
     "\C-x\C-e": edit-and-execute-command
+
+    # Alt-S puts sudo in front of the line.
+    "\es": "\C-asudo \C-e"
+
+    # Alt-L lists the directory without disturbing the line (replaces
+    # Alt-L's lowercase-word).
+    #"\el": "\C-a\C-kls\C-m\C-y"
+$endif
+
+$if mode=vi
+    # jj in insert mode is Esc (vi mode only).
+    #set keymap vi-insert
+    #"jj": vi-movement-mode
+
+    # gg and G go to the first and last history line in normal mode.
+    #set keymap vi-command
+    #"gg": beginning-of-history
+    #"G": end-of-history
 $endif

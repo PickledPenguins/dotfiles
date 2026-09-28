@@ -1,26 +1,38 @@
 " ~/.vimrc -- loader only.  Settings live in ~/.vim/rc/NN-name.vim, one
-" concern per file, each with a "Knobs:" block in its header.
+" concern per file.
 "
-"   ~/.vimrc.before   sourced FIRST -- set g:dotfiles_* knobs here
-"   ~/.vim/rc/*.vim   the modules, in number order; NN-name.vim.off is skipped
-"   ~/.vimrc.local    sourced LAST  -- machine-local overrides
+" Each setting has its description in the comment above it.  A setting with
+" " directly in front of it ("set cursorcolumn) is off: delete that " to turn
+" it on, or add one to turn a setting off.  `dots options WORD` searches
+" every file.  Ways to change things, most to least permanent:
+"
+"   1. edit the module (committed, every machine)
+"   2. turn a whole module off: rename NN-name.vim to NN-name.vim.off
+"   3. this machine only, never committed:
+"        ~/.vimrc.before   read FIRST -- g:dotfiles_* knobs (each module's header lists its own)
+"        ~/.vimrc.local    read LAST  -- any setting line, overrides
 "
 " :DotfilesModules lists what was loaded.
 
+" Vim defaults, not vi's.
 set nocompatible
-let g:dotfiles_modules = []
 
+" This machine's knobs, before any module reads them.
+let g:dotfiles_modules = []
 if filereadable(expand('~/.vimrc.before'))
   source ~/.vimrc.before
 endif
 
+" Every ~/.vim/rc/*.vim in number order; .vim.off files are not matched.
 for s:f in sort(glob('~/.vim/rc/*.vim', 0, 1))
   execute 'source' fnameescape(s:f)
   call add(g:dotfiles_modules, fnamemodify(s:f, ':t:r'))
 endfor
 
+" This machine's overrides, after everything else.
 if filereadable(expand('~/.vimrc.local'))
   source ~/.vimrc.local
 endif
 
+" :DotfilesModules prints the modules loaded, in order.
 command! DotfilesModules echo join(g:dotfiles_modules, "\n")

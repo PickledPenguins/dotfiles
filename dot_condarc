@@ -1,13 +1,61 @@
-# ~/.condarc -- conda defaults.
-auto_activate_base: false         # a new shell stays on the system python; `conda activate` when wanted
-changeps1: false                  # the prompt shows the env itself (@conda segment / $CONDA_DEFAULT_ENV)
+# ~/.condarc -- conda defaults.  `conda config --describe KEY` explains any
+# key; `conda config --show` prints what applies.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# A new shell stays on the system python; `conda activate NAME` when wanted.
+# Newer conda also calls this auto_activate; this name works in every version.
+auto_activate_base: false
+
+# conda does not add (env) to the prompt: the bash prompt shows the
+# environment itself.
+changeps1: false
+
+# conda-forge first, and packages only from the highest-priority channel
+# that has them, so builds from different channels do not mix.
 channel_priority: strict
 channels:
   - conda-forge
   - defaults
+
+# conda asks before changing an environment.
 always_yes: false
+
+# Package listings show which channel each package came from.
 show_channel_urls: true
+
+# New named environments go under ~/.conda/envs.
 envs_dirs:
   - ~/.conda/envs
-# pkgs_dirs:                      # move the package cache off a small $HOME
-#   - /scratch/$USER/conda/pkgs
+
+# The package cache on a bigger disk than $HOME (a cluster's scratch).  The
+# path is an example.
+#pkgs_dirs:
+  #- /scratch/$USER/conda/pkgs
+
+# No "A newer version of conda exists" warning after every command.
+#notify_outdated_conda: false
+
+# conda never updates itself when updating other packages in base.
+#auto_update_conda: false
+
+# Every new environment starts with pip and ipykernel (Jupyter sees it).
+#create_default_packages:
+  #- pip
+  #- ipykernel
+
+# Download packages over several connections.
+#default_threads: 4
+
+# How the environment appears in the prompt, if changeps1 is turned on.
+#env_prompt: '({name}) '
+
+# conda does not send error reports.
+#report_errors: false
+
+# A site proxy for every download.
+#proxy_servers:
+  #http: http://proxy.example.com:3128
+  #https: http://proxy.example.com:3128

@@ -1,16 +1,45 @@
-# ~/.wgetrc -- defaults for wget.
-# seconds before a stalled connection is retried
+# ~/.wgetrc -- defaults for wget; an option on the command line wins.
+# Comments must be on their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# A stalled connection is retried after 30 s, 3 tries in all, also when the
+# connection is refused.
 timeout = 30
 tries = 3
 retry_connrefused = on
-# resume partial downloads (same as 30-aliases `wget -c`)
+
+# Resume a partial download instead of starting again.
 continue = on
-# skip files the server has not changed
+
+# Skip files the server has not changed since the local copy.
 timestamping = on
+
+# Follow links to FTP servers from HTML pages when recursing.
 follow_ftp = on
-# .html on saved pages that lack it
+
+# Save web pages with an .html extension when their URL lacks one.
 adjust_extension = on
-# -r ignores robots.txt
+
+# wget -r ignores robots.txt.  Be polite on sites that ask not to be
+# crawled: turn this off, or add a wait below.
 robots = off
-# use_proxy = on
-# http_proxy = http://proxy:3128
+
+# Wait 1 s between requests when recursing, to spare the server.
+#wait = 1
+
+# Recursion never climbs above the starting directory.
+#no_parent = on
+
+# Keep wget's HSTS list in ~/.cache instead of ~/.wget-hsts.
+#hsts_file = ~/.cache/wget-hsts
+
+# A browser-like User-Agent, for servers that block wget's.
+#user_agent = Mozilla/5.0
+
+# A proxy for every request (or set http_proxy in ~/.bashrc.local).
+#use_proxy = on
+#http_proxy = http://proxy.example.com:3128
+#https_proxy = http://proxy.example.com:3128

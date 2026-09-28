@@ -1,10 +1,24 @@
-# ~/.ctags.d/default.ctags -- universal-ctags defaults (`ctags -R` in a project).
+# ~/.ctags.d/default.ctags -- universal-ctags defaults, for `ctags` in a
+# project.  Comments must be on their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# `ctags` alone indexes the whole tree below the current directory, with
+# paths relative to the tags file.
 --recurse=yes
 --tag-relative=yes
-# qualified tags: Class.method
+
+# Qualified tags (Class.method) as well as plain ones.
 --extras=+q
-# inheritance, access, language, signature
+
+# Inheritance, access, language and signature in each tag, for editors
+# that show them.
 --fields=+ialS
+
+# Never index version control, virtualenvs, dependencies, caches, build
+# output, or minified and map files.
 --exclude=.git
 --exclude=.venv
 --exclude=node_modules
@@ -13,4 +27,9 @@
 --exclude=dist
 --exclude=*.min.js
 --exclude=*.map
+
+# JSON and SQL files are not indexed (big, and rarely worth jumping into).
 --languages=-json,-sql
+
+# Markdown headings are not indexed either.
+#--languages=-markdown

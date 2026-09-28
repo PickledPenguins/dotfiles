@@ -65,7 +65,18 @@ Modes live on the source file, since a symlink has none of its own.
 - **module name** -- the file name without its number and extension:
   `70-conda.sh` is `conda`.  Used by the disabled list and by
   `DOTFILES_DEBUG=1`.
-- **knob** -- a variable a module reads at load time with a default:
+- **setting** or **option** -- one thing a configuration file does, with
+  its **description**: the comment lines directly above it.  A setting is
+  **on** when its code is live and **off** when each of its lines starts
+  with the file's comment character directly followed by the code
+  (`#shopt -s histverify`); **switching** it is deleting or adding that one
+  character.  `dots options` lists them (`Option` in the code; see
+  [the options format](configuration.md#the-options-format)).
+- **`Needs:` line** -- a description line naming what a setting that is
+  off requires (`# Needs: delta`); the switch-on test skips it while that
+  is missing.
+- **knob** -- a variable a module reads at load time with a default, for
+  a value that differs between machines:
   `${DOTFILES_HISTSIZE:-50000}` in bash, `get(g:, 'dotfiles_indent', 2)` in
   vim.  Every module lists its knobs in a `Knobs:` block in its header.
 - **hook file** -- a machine-local, never-committed file a loader reads:

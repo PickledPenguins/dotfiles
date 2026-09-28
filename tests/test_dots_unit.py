@@ -238,3 +238,89 @@ def test_source_dir_prefers_env_then_home_then_script(dots, home, monkeypatch, t
     assert dots.source_dir() == real                                # symlink resolved
     (home / ".dotfiles").unlink()
     assert dots.source_dir() == Path(dots.__file__).resolve().parent
+
+
+# ── the options format ────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("rel, marker", [
+    (".vimrc", '"'), (".vim/rc/10-ui.vim", '"'), (".vim/rc/60-plugins.vim.off", '"'), (".Xresources", "!"),
+    (".bashrc", "#"), (".config/git/core.gitconfig", "#"), (".vimrc.local", "#"), ("vim", "#"),
+])
+def test_comment_marker(dots, rel, marker):
+    assert dots.comment_marker(rel) == marker
+
+
+def options(dots, text, marker="#"):
+    return [(o.line, o.state, o.doc, o.code) for o in dots.parse_options(text, marker)]
+
+
+def test_parse_options_description_attaches_to_the_code_below(dots):
+    text = "# Append, never overwrite.\n#   Details.\nshopt -s histappend\n"
+    assert options(dots, text) == [(3, "on", ["Append, never overwrite.", "Details."], ["shopt -s histappend"])]
+
+
+def test_parse_options_marker_then_code_is_off_marker_then_space_is_description(dots):
+    text = "# Verify expansions.\n#shopt -s histverify\n"
+    assert options(dots, text) == [(2, "off", ["Verify expansions."], ["#shopt -s histverify"])]
+
+
+def test_parse_options_multi_line_setting_keeps_its_indented_lines(dots):
+    text = "# A function.\n#f() {\n    #echo hi\n#}\n\n# On.\nif x; then\n    y\nfi\n"
+    assert options(dots, text) == [
+        (2, "off", ["A function."], ["#f() {", "    #echo hi", "#}"]),
+        (7, "on", ["On."], ["if x; then", "    y", "fi"]),
+    ]
+
+
+def test_parse_options_blank_line_ends_an_option_and_drops_a_dangling_description(dots):
+    text = "# Section header.\n\n# Real.\nset a\n\nset b\n"
+    assert options(dots, text) == [(4, "on", ["Real."], ["set a"]), (6, "on", [], ["set b"])]
+
+
+def test_parse_options_state_change_without_description_starts_an_undescribed_option(dots):
+    text = "# On.\nset a\n#set b\nset c\n"
+    assert options(dots, text) == [(2, "on", ["On."], ["set a"]), (3, "off", [], ["#set b"]),
+                                   (4, "on", [], ["set c"])]
+
+
+def test_parse_options_description_between_two_settings_starts_a_new_one(dots):
+    text = "[merge]\n    # Base in conflicts.\n    conflictStyle = zdiff3\n    # Refuse non-ff.\n    #ff = only\n"
+    assert options(dots, text) == [(1, "on", [], ["[merge]"]),
+                                   (3, "on", ["Base in conflicts."], ["    conflictStyle = zdiff3"]),
+                                   (5, "off", ["Refuse non-ff."], ["    #ff = only"])]
+
+
+def test_parse_options_bare_and_doubled_markers_are_description_and_shebang_is_skipped(dots):
+    text = "#!/bin/bash\n#\n## Heading\n# Text.\ncode\n"
+    assert options(dots, text) == [(5, "on", ["", "# Heading", "Text."], ["code"])]
+
+
+def test_parse_options_shebang_only_counts_on_the_first_line(dots):
+    assert options(dots, "# A bang.\n#!x\n") == [(2, "off", ["A bang."], ["#!x"])]
+
+
+def test_parse_options_other_markers(dots):
+    assert options(dots, '" Relative.\n"set rnu\n', '"') == [(2, "off", ["Relative."], ['"set rnu'])]
+    assert options(dots, "! Size.\n!XTerm*faceSize: 12\n#define X 1\n", "!") == [
+        (2, "off", ["Size."], ["!XTerm*faceSize: 12"]), (3, "on", [], ["#define X 1"])]
+
+
+def test_option_summary_skips_blank_and_needs_lines(dots):
+    option = dots.Option(1, ["", "Needs: delta", "Use delta.", "More."], "off")
+    assert option.summary == "Use delta."
+    assert dots.Option(1, ["", "Needs: delta"], "off").summary == ""
+    assert dots.Option(1, ["Needs: x"], "off").summary == ""
+
+
+@pytest.mark.parametrize("doc, summary", [
+    (["Append.  More here."], "Append."),
+    (["Wraps across", "two lines.  Then more."], "Wraps across two lines."),
+    ([".. ... go up one to four directories."], ".. ... go up one to four directories."),
+    (["Reads ~/.inputrc (vim's 10-ui.vim, bat) as well."], "Reads ~/.inputrc (vim's 10-ui.vim, bat) as well."),
+    (["No full stop at all"], "No full stop at all"),
+    (["Ends in a bracket (like this).", "Next."], "Ends in a bracket (like this)."),
+    (["word " * 30], ("word " * 19).strip() + "..."),
+])
+def test_option_summary_is_the_first_sentence(dots, doc, summary):
+    assert dots.Option(1, doc, "on").summary == summary

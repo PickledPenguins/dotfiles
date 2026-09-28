@@ -1,3 +1,3 @@
 500
-bash: alias: rm: not found
+nano
 [ 

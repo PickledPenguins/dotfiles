@@ -1,39 +1,75 @@
-! ~/.Xresources -- xterm and friends.  Load with `xrdb -merge ~/.Xresources`
-! (display managers do it at login).  Lines start with the program name.
+! ~/.Xresources -- xterm, urxvt and X font settings.  Load with
+! `xrdb -merge ~/.Xresources` (display managers do it at login).  Each line
+! starts with the program it is for.  Comments must be on their own lines.
+!
+! Each setting has its description in the comment above it.  A setting with
+! "!" directly in front of it is off: delete that "!" to turn it on, or add
+! one to turn a setting off.  `dots options WORD` searches every file.
+
+! ── Fonts for every X program ─────────────────────────────────────────────
+
+! Font rendering: antialiasing, light hinting, subpixel order for a common
+! LCD, at 96 dpi.  Change Xft.dpi to scale everything on a high-DPI screen.
+!Xft.antialias: true
+!Xft.hinting: true
+!Xft.hintstyle: hintslight
+!Xft.rgba: rgb
+!Xft.dpi: 96
 
 ! ── xterm ─────────────────────────────────────────────────────────────────
+
+! TERM=xterm-256color, UTF-8 as the locale says.
 XTerm*termName:           xterm-256color
 XTerm*locale:             true
 XTerm*utf8:               1
+
+! DejaVu Sans Mono at 11 points, drawn with Xft; Ctrl-+ and Ctrl-- resize.
 XTerm*faceName:           DejaVu Sans Mono
 XTerm*faceSize:           11
 XTerm*renderFont:         true
+
+! No scroll bar; 10000 lines of scrollback.
 XTerm*scrollBar:          false
 XTerm*saveLines:          10000
-! do not jump to the bottom on output ...
+
+! Output does not jump the view to the bottom while you read scrollback ...
 XTerm*scrollTtyOutput:    false
-! ... but do on a keypress
+
+! ... but a key press does.
 XTerm*scrollKey:          true
+
+! A bell marks the window urgent instead of beeping or flashing.
 XTerm*bellIsUrgent:       true
 XTerm*visualBell:         false
-! Alt works as Meta in bash/vim
+
+! Alt works as Meta in bash and vim (Alt-B, Alt-F).
 XTerm*metaSendsEscape:    true
 XTerm*eightBitInput:      false
-! Backspace sends ^? not ^H
+
+! Backspace sends ^? rather than ^H.
 XTerm*backarrowKey:       false
 XTerm*ttyModes:           erase ^?
-! mouse selection goes to the CLIPBOARD too
+
+! Selecting with the mouse also copies to the CLIPBOARD, not only PRIMARY.
 XTerm*selectToClipboard:  true
+
+! A steady cursor; programs may not resize or move the window.
 XTerm*cursorBlink:        false
 XTerm*allowWindowOps:     false
-! Ctrl-Shift-C/V copy and paste
+
+! Double-click selects a whole URL or path: ! $ % & . / : ; = ? @ _ ~ and
+! the like count as word characters.
+!XTerm*charClass: 33:48,36-47:48,58-59:48,61:48,63-64:48,95:48,126:48
+
+! Ctrl-Shift-C and Ctrl-Shift-V copy and paste; Ctrl-+ and Ctrl-- change the
+! font size.
 XTerm*VT100.translations: #override \n\
     Ctrl Shift <Key>C: copy-selection(CLIPBOARD) \n\
     Ctrl Shift <Key>V: insert-selection(CLIPBOARD) \n\
     Ctrl <Key>plus:    larger-vt-font() \n\
     Ctrl <Key>minus:   smaller-vt-font()
 
-! colors: a dark scheme; change the sixteen below for another palette
+! A dark scheme: background, text, cursor, then the sixteen ANSI colors.
 XTerm*background:  #1c1c1c
 XTerm*foreground:  #d0d0d0
 XTerm*cursorColor: #d0d0d0
@@ -54,7 +90,14 @@ XTerm*color13: #d7afff
 XTerm*color14: #87d7d7
 XTerm*color15: #eeeeee
 
-! ── urxvt, if used ────────────────────────────────────────────────────────
+! A light scheme instead: dark text on off-white (later lines win).
+!XTerm*background:  #fdf6e3
+!XTerm*foreground:  #444444
+!XTerm*cursorColor: #444444
+
+! ── urxvt ─────────────────────────────────────────────────────────────────
+
+! urxvt: the same font, no scroll bar, 10000 lines, its 256-color TERM.
 URxvt*font:            xft:DejaVu Sans Mono:size=11
 URxvt*scrollBar:       false
 URxvt*saveLines:       10000

@@ -1,8 +1,14 @@
-# ignore -- global gitignore (~/.config/git/ignore is read by every repo).
-# Editor and OS droppings only; project artifacts belong in the project's
-# own .gitignore so clones get them too.
+# ignore -- the global gitignore (~/.config/git/ignore), read by every
+# repository.  Editor and OS leftovers only: a project's own build output
+# belongs in its .gitignore, so everyone who clones it gets that too.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# A pattern here hides matching files in every repository, including files
+# a project meant to commit.
 
-# editors
+# Editors: vim swap, backup and netrw files, tags, IDE project folders.
 *~
 *.swp
 *.swo
@@ -13,13 +19,14 @@ tags
 .vscode/
 *.sublime-workspace
 
-# OS
+# Operating systems: macOS Finder and resource files, Windows thumbnails.
 .DS_Store
 ._*
 Thumbs.db
 desktop.ini
 
-# environments and tooling
+# Environments and tool caches: local .env overrides, direnv, virtualenvs,
+# python caches.
 .env.local
 .direnv/
 .venv/
@@ -28,5 +35,33 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 
-# agents
+# Coding agents' per-user settings.
 **/.claude/settings.local.json
+
+# Merge and patch leftovers: *.orig from mergetool, *.rej from a failed patch.
+#*.orig
+#*.rej
+
+# Jupyter's checkpoint copies.
+#.ipynb_checkpoints/
+
+# direnv's .envrc itself, when it holds secrets or machine paths.
+#.envrc
+
+# Python packaging output: egg-info, dist.
+#*.egg-info/
+#dist/
+
+# Coverage data and tox environments.
+#.coverage
+#.tox/
+
+# C and C++ tool state: clangd's cache, compile_commands.json.
+#.cache/clangd/
+#compile_commands.json
+
+# node dependencies (usually already in the project's .gitignore).
+#node_modules/
+
+# Log files anywhere.
+#*.log

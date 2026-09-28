@@ -1,68 +1,196 @@
-# core.gitconfig -- how git behaves: editor, pager, push/pull/fetch defaults,
-# merge and rebase behavior.  Nothing here is about display (color.gitconfig)
-# or diff tools (diff.gitconfig).
+# core.gitconfig -- how git behaves: editor, pager, push, pull, fetch,
+# merge and rebase, status and log.  Display is color.gitconfig; diff tools
+# are diff.gitconfig.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# For one machine only, put the line in ~/.gitconfig.local instead.
 
 [core]
+    # Commit messages and interactive rebases open in vim.
     editor = vim
+
+    # The same pager options as $LESS: quit if one screen, colors, no clear,
+    # case-insensitive search.
     pager = less -FRXi
-    whitespace = trailing-space,space-before-tab   # git diff highlights these
-    autocrlf = input                # commit LF even when a file arrives with CRLF
-    # attributesfile / excludesfile: ~/.config/git/attributes and ignore are
-    # read automatically, no setting needed
+
+    # git diff marks whitespace errors: trailing spaces, spaces before tabs.
+    whitespace = trailing-space,space-before-tab
+
+    # Line endings: commit LF even when a file arrives with CRLF; check out
+    # as committed.  On Windows use true (check out CRLF).
+    autocrlf = input
+
+    # File names with accents or other non-ASCII letters are shown as they
+    # are, not as octal escapes like "\303\251".
+    #quotePath = false
+
+    # A background daemon watches the working tree, so git status is fast in
+    # huge repositories (git 2.37+ on macOS and Windows; Linux needs a hook).
+    #fsmonitor = true
+
+    # git status caches which directories hold untracked files: faster in
+    # big trees.
+    #untrackedCache = true
+
+    # Hooks from one directory for every repository, instead of each
+    # repository's .git/hooks (which is then ignored).
+    #hooksPath = ~/.config/git/hooks
+
+    # The ssh command git uses, e.g. to pick a key for every git remote.
+    #sshCommand = ssh -i ~/.ssh/id_ed25519_git -o IdentitiesOnly=yes
 
 [init]
+    # New repositories start on main.
     defaultBranch = main
 
 [push]
-    default = current               # `git push` pushes the current branch to its namesake
-    autoSetupRemote = true          # ... creating the upstream on first push
-    followTags = true               # push annotated tags that point at pushed commits
+    # git push pushes the current branch to the branch of the same name,
+    # creating the upstream on the first push, with the annotated tags that
+    # point at the pushed commits.
+    default = current
+    autoSetupRemote = true
+    followTags = true
+
+    # push --force-with-lease also refuses when the remote has commits you
+    # fetched but never looked at (git 2.30+).
+    #useForceIfIncludes = true
 
 [pull]
-    rebase = true                   # `git pull` rebases; no merge bubbles
+    # git pull rebases your commits onto the fetched ones: no merge bubbles.
+    rebase = true
+
+    # git pull only ever fast-forwards and stops otherwise, so you choose
+    # merge or rebase yourself.  Instead of the rebase line above.
+    #ff = only
 
 [fetch]
-    prune = true                    # drop remote-tracking branches deleted upstream
+    # Remove remote-tracking branches and tags deleted on the remote.
+    prune = true
     pruneTags = true
 
+    # git fetch fetches every remote, not just origin.
+    #all = true
+
+    # Write the commit-graph file on fetch: faster log and merge-base in
+    # big histories.
+    #writeCommitGraph = true
+
 [rebase]
-    autoStash = true                # stash dirty tree, rebase, unstash
-    autoSquash = true               # fixup!/squash! commits land in the right place
-    updateRefs = true               # stacked branches move with the rebase
+    # Stash a dirty working tree before a rebase and restore it after.
+    autoStash = true
+
+    # fixup! and squash! commits move next to the commit they fix.
+    autoSquash = true
+
+    # Branches stacked on the rebased one move with it.
+    updateRefs = true
+
+    # An interactive rebase refuses to continue when a line was deleted by
+    # mistake (drop commits with "drop" instead).
+    #missingCommitsCheck = error
 
 [merge]
-    conflictStyle = zdiff3          # show the common base inside conflict markers
-    # ff = only                     # uncomment: `git merge` refuses non-fast-forward; use --no-ff explicitly
+    # Conflict markers show the common ancestor as well as both sides.
+    conflictStyle = zdiff3
+
+    # git merge refuses anything but a fast-forward; merge commits then need
+    # an explicit --no-ff.  Surprising on a plain git merge.
+    #ff = only
+
+    # Stash a dirty working tree before a merge and restore it after.
+    #autoStash = true
 
 [commit]
-    verbose = true                  # the diff is in the editor while writing the message
+    # The diff being committed is shown below the message in the editor.
+    verbose = true
+
+    # Start every commit message from this file.
+    #template = ~/.config/git/message
 
 [rerere]
-    enabled = true                  # remember how a conflict was resolved ...
-    autoupdate = true               # ... and re-apply it silently
+    # Remember how each conflict was resolved and apply it again next time.
+    enabled = true
+    autoupdate = true
 
 [status]
+    # git status shows the stash count, and every file inside new
+    # directories rather than just the directory.
     showStash = true
-    showUntrackedFiles = all        # list files in new directories, not just the directory
+    showUntrackedFiles = all
+
+    # Submodules' new commits are summarized in git status.
+    #submoduleSummary = true
+
+[submodule]
+    # checkout, pull and switch update submodules too.  Slower, and a
+    # surprise in repositories whose submodules you never touch.
+    #recurse = true
 
 [log]
-    date = iso                      # 2026-09-20 15:04:05 +0000
+    # Dates as 2026-09-20 15:04:05 +0000 and short commit hashes.
+    date = iso
     abbrevCommit = true
 
+    # git log FILE follows the file through renames.
+    #follow = true
+
 [branch]
-    sort = -committerdate           # `git branch` lists most recent first
+    # git branch lists the most recently committed branches first.
+    sort = -committerdate
 
 [tag]
-    sort = version:refname          # v1.10 after v1.9
+    # Version tags sort as numbers: v1.10 after v1.9.
+    sort = version:refname
 
 [column]
-    ui = auto                       # `git branch` in columns when it fits
+    # git branch and git tag print in columns when they fit.
+    ui = auto
 
 [help]
-    autocorrect = prompt            # `git stauts` asks before running status
+    # A mistyped command (git stauts) asks before running the likely one.
+    autocorrect = prompt
 
 [transfer]
-    fsckObjects = true              # refuse corrupt objects on fetch and push
+    # Refuse corrupt objects on fetch and push.
+    fsckObjects = true
 
 [credential]
-    helper = cache --timeout=3600   # remember https passwords for an hour
+    # https passwords are remembered in memory for an hour.
+    helper = cache --timeout=3600
+
+    # https passwords are kept by the desktop keyring (GNOME, KDE) instead.
+    # Needs: git-credential-libsecret
+    #helper = libsecret
+
+    # https passwords saved in plain text in ~/.git-credentials: remembered
+    # forever, readable by anything that can read your files.
+    #helper = store
+
+[advice]
+    # No explanation printed when checking out a commit instead of a branch.
+    #detachedHead = false
+
+[interactive]
+    # git add -p takes y/n/s without Enter.
+    #singleKey = true
+
+[grep]
+    # git grep prints line numbers and takes Perl regular expressions.
+    #lineNumber = true
+    #patternType = perl
+
+[safe]
+    # Trust repositories owned by other users (shared group directories on a
+    # cluster).  Their hooks and config can then run as you.
+    #directory = *
+
+[filter "lfs"]
+    # Git LFS, as `git lfs install` would write it: large files stored
+    # outside the repository.
+    # Needs: git-lfs
+    #clean = git-lfs clean -- %f
+    #smudge = git-lfs smudge -- %f
+    #process = git-lfs filter-process
+    #required = true

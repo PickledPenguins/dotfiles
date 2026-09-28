@@ -48,20 +48,40 @@ dots status ~/.config/tmux              # ok: N
 dots unlink ~/.config/tmux ~/.tmux.conf # and back
 ```
 
+## Finding and switching one setting
+
+Every setting is in a file with its description above it, and one that is
+off has its comment character directly in front
+([the options format](configuration.md#the-options-format)).  Find it,
+then add or delete that one character:
+
+```sh
+dots options history                  # every setting that mentions history
+dots options --off vim                # what the vim files offer that is off
+dots options -f histverify            # one setting in full, with its code
+vim +57 ~/.config/bash/rc.d/10-options.sh    # delete the # in front
+```
+
+For one machine only, leave the module alone and put the setting's line,
+switched on, in `~/.bashrc.local` (or `~/.vimrc.local`,
+`~/.tmux.conf.local`, `~/.gitconfig.local`); a setting that is on is undone
+there with its opposite (`unalias rm cp mv`, `shopt -u autocd`,
+`set nonumber`).
+
 ## Turning things off
 
-Three levels, most to least permanent (`docs/configuration.md` has the
+Whole modules, most to least permanent (`docs/configuration.md` has the
 tables):
 
 ```sh
 git mv ~/.dotfiles/dot_config/bash/rc.d/70-conda.sh{,.off}   # everywhere, committed
 echo conda >> ~/.config/bash/disabled                          # this machine only
-echo 'DOTFILES_SAFE_RM=0' >> ~/.bashrc.before                  # one behavior inside a module
+printf 'unalias rm cp mv\n' >> ~/.bashrc.local                 # one setting, this machine
 ```
 
-Vim: rename `~/.vim/rc/NN-name.vim` to `.vim.off`, or `let g:dotfiles_x` in
-`~/.vimrc.before`.  tmux: rename `NN-name.conf` to `.conf.off`.  git:
-comment out the `path =` line in `~/.gitconfig`.
+Vim: rename `~/.vim/rc/NN-name.vim` to `.vim.off`.  tmux: rename
+`NN-name.conf` to `.conf.off`.  git: put `#` in front of the `path =` line
+in `~/.gitconfig`.
 
 ## Per-machine settings, all at once
 

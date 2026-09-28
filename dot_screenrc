@@ -1,24 +1,51 @@
-# ~/.screenrc -- for hosts that have screen but not tmux.
-# no license splash
+# ~/.screenrc -- for hosts that have GNU screen but not tmux.  Comments must
+# be on their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# No license splash at start.
 startup_message off
-# no visual bell
+
+# No visual bell flash.
 vbell off
+
+# 10000 lines of scrollback per window.
 defscrollback 10000
-# vim/less restore the screen on exit
+
+# vim and less restore the screen when they exit.
 altscreen on
+
+# 256 colors and UTF-8 inside screen.
 term screen-256color
 defutf8 on
-# detach on hangup instead of killing the session
+
+# A hangup (closed terminal, dropped ssh) detaches instead of killing the session.
 autodetach on
 
-# status line: windows on the left, host and clock on the right
+# A status line: windows at the left, host and clock at the right.
 hardstatus alwayslastline
 hardstatus string '%{= kw}%-w%{= gk} %n %t %{-}%+w %= %{= kw}%H %c'
 
-# tmux-like keys on top of the defaults
+# | splits side by side, - one above the other; h j k l move between
+# regions, as in tmux here.
 bind | split -v
 bind - split
 bind h focus left
 bind j focus down
 bind k focus up
 bind l focus right
+
+# Ctrl-B as the command key, like tmux, instead of Ctrl-A (bash's start of line).
+#escape ^Bb
+
+# The mouse selects regions.
+#mousetrack on
+
+# Windows number from 1.
+#bind c screen 1
+#bind ^c screen 1
+
+# New windows run login shells (read ~/.bash_profile).
+#shell -$SHELL

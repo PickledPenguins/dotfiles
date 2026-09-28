@@ -1,69 +1,183 @@
-# aliases.gitconfig -- `git aliases` lists them.  Shell aliases (g, gs, gl)
-# are in ~/.config/bash/rc.d/30-aliases.sh.
+# aliases.gitconfig -- git aliases; `git aliases` lists them.  An alias only
+# adds a command, so they are all on.  Shell aliases (g, gs, gl) are in
+# ~/.config/bash/rc.d/30-aliases.sh.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# For one machine only, put the line in ~/.gitconfig.local instead.
 
 [alias]
-    # ── status and staging ────────────────────────────────────────────────
-    st = status -sb                   # short, with branch line
+    # ── Status and staging ────────────────────────────────────────────────
+
+    # st: short status with the branch line.
+    st = status -sb
+
+    # a add, aa add everything, ap add hunk by hunk.
     a = add
     aa = add --all
-    ap = add --patch                  # stage hunk by hunk
-    unstage = reset HEAD --
-    discard = checkout --             # discard working-tree changes to a path
+    ap = add --patch
 
-    # ── commit ────────────────────────────────────────────────────────────
+    # unstage PATH: take it out of the index, keeping the change.
+    unstage = reset HEAD --
+
+    # discard PATH: throw away its working-tree changes (no undo).
+    discard = checkout --
+
+    # staged: the diff of what is staged.
+    staged = diff --staged
+
+    # conflicts: files that still have merge conflicts.
+    conflicts = diff --name-only --diff-filter=U
+
+    # ── Commit ────────────────────────────────────────────────────────────
+
+    # cm commit, cma commit every tracked change.
     cm = commit
     cma = commit --all
-    ca = commit --amend --no-edit     # fold staged changes into the last commit
-    cae = commit --amend              # ... and edit its message
-    fixup = commit --fixup            # git fixup SHA, then git rebase -i --autosquash
-    undo = reset --soft HEAD~1        # uncommit, keep the changes staged
+
+    # ca: fold what is staged into the last commit, same message; cae: and
+    # edit the message.
+    ca = commit --amend --no-edit
+    cae = commit --amend
+
+    # fixup SHA: a fixup! commit, which rebase --autosquash folds into SHA.
+    fixup = commit --fixup
+
+    # undo: uncommit the last commit, keeping its changes staged.
+    undo = reset --soft HEAD~1
+
+    # wip: commit everything as "wip" without running hooks.
     wip = !git add --all && git commit -m wip --no-verify
 
-    # ── branches ──────────────────────────────────────────────────────────
+    # ── Branches ──────────────────────────────────────────────────────────
+
+    # co checkout, sw switch, cob new branch, br every branch with its last
+    # commit, brdel force-delete one.
     co = checkout
     sw = switch
     cob = checkout -b
     br = branch -av
     brdel = branch -D
-    brclean = !git branch --merged | grep -vE '^\\*|main|master' | xargs -r git branch -d   # delete merged branches
-    default = !git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'  # main or master
 
-    # ── history ───────────────────────────────────────────────────────────
+    # brclean: delete local branches already merged (not main or master).
+    brclean = "!git branch --merged | grep -vE '^\\*|main|master' | xargs -r git branch -d"
+
+    # gone: delete local branches whose remote branch was deleted.
+    gone = "!git fetch --prune && git branch -vv | awk '/: gone]/ {print $1}' | xargs -r git branch -D"
+
+    # recent: branches by their last commit, newest first, with its age.
+    recent = branch --sort=-committerdate --format='%(committerdate:relative)%09%(refname:short)'
+
+    # default: the remote's default branch (main or master).
+    default = "!git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'"
+
+    # pr N: fetch GitHub pull request N into the branch pr-N and switch to it.
+    pr = "!f() { git fetch origin \"pull/$1/head:pr-$1\" && git switch \"pr-$1\"; }; f"
+
+    # ── History ───────────────────────────────────────────────────────────
+
+    # lg: one line per commit with the graph, refs, age and author; lga: all branches.
     lg = log --graph --pretty=format:'%C(red)%h%C(reset) -%C(yellow)%d%C(reset) %s %C(green)(%cr) %C(bold blue)<%an>%C(reset)'
     lga = lg --all
+
+    # last: the last commit with the files it changed.
     last = log -1 HEAD --stat
+
+    # hist: one line per commit with its date and the graph.
     hist = log --pretty=format:'%h %ad | %s%d [%an]' --graph --date=short
-    who = shortlog -sn --no-merges    # commits per author
-    fl = log -u --                    # file log with diffs:  git fl PATH
-    contains = branch -a --contains   # which branches contain SHA
+
+    # who: commits per author.
+    who = shortlog -sn --no-merges
+
+    # fl PATH: every commit that touched PATH, with its diff.
+    fl = log -u --
+
+    # contains SHA: which branches contain SHA.
+    contains = branch -a --contains
+
+    # root: the repository's top directory.
     root = rev-parse --show-toplevel
 
-    # ── diff ──────────────────────────────────────────────────────────────
+    # outgoing / incoming: commits you would push / would pull.
+    outgoing = log --oneline @{upstream}..
+    incoming = "!git fetch --quiet && git log --oneline ..@{upstream}"
+
+    # standup: your commits since yesterday, on every branch.
+    standup = "!git log --all --since=yesterday --author=\"$(git config user.email)\" --oneline"
+
+    # find TEXT: commits whose changes add or remove TEXT (the pickaxe).
+    find = log --oneline -S
+
+    # blame ignoring whitespace and following moved and copied lines.
+    bl = blame -w -C -C -C
+
+    # ── Diff ──────────────────────────────────────────────────────────────
+
+    # df diff, dfs staged, dfw by word, dfn names only, dfst summary.
     df = diff
     dfs = diff --staged
     dfw = diff --word-diff
     dfn = diff --name-only
     dfst = diff --stat
 
-    # ── remote ────────────────────────────────────────────────────────────
+    # ── Remote ────────────────────────────────────────────────────────────
+
+    # f fetch every remote and prune, pl pull, ps push, pst push tags.
     f = fetch --all --prune
     pl = pull
     ps = push
-    psf = push --force-with-lease     # the safe force push
     pst = push --tags
+
+    # psf: the safe force push, refused when the remote has commits you
+    # have not fetched.
+    psf = push --force-with-lease
+
+    # up: pull with rebase, prune, and update submodules.
     up = !git pull --rebase --prune && git submodule update --init --recursive
 
-    # ── stash ─────────────────────────────────────────────────────────────
+    # ── Stash ─────────────────────────────────────────────────────────────
+
+    # sl list, sp pop, ss stash everything including untracked files.
     sl = stash list
     sp = stash pop
     ss = stash push --include-untracked
 
-    # ── misc ──────────────────────────────────────────────────────────────
-    aliases = !git config --get-regexp '^alias\\.' | sed 's/^alias\\.\\([^ ]*\\) /\\1\\t= /' | sort
+    # snapshot: stash everything and apply it straight back, a restore point.
+    snapshot = "!git stash push --include-untracked -m \"snapshot $(date +%F_%T)\" && git stash apply --quiet"
+
+    # ── Conflicts ─────────────────────────────────────────────────────────
+
+    # ours / theirs PATH: take that side of a conflicted file.
+    ours = checkout --ours --
+    theirs = checkout --theirs --
+
+    # ── Other ─────────────────────────────────────────────────────────────
+
+    # aliases: this list, one alias per line.
+    aliases = "!git config --get-regexp '^alias\\.' | sed 's/^alias\\.\\([^ ]*\\) /\\1\\t= /' | sort"
+
+    # ignored: files git is ignoring here.
     ignored = ls-files --others --ignored --exclude-standard
+
+    # ignore PATTERN...: add patterns to this repository's .gitignore.
+    ignore = "!f() { for p in \"$@\"; do echo \"$p\" >> \"$(git rev-parse --show-toplevel)/.gitignore\"; done; }; f"
+
+    # assume / unassume PATH: stop / resume noticing local changes to a
+    # tracked file; assumed lists them.
+    assume = update-index --assume-unchanged
+    unassume = update-index --no-assume-unchanged
+    assumed = "!git ls-files -v | grep '^h' | cut -c3-"
+
+    # tags: tags, newest version first.
     tags = tag -l --sort=-version:refname
+
+    # cp cherry-pick; rb rebase, rbi interactive, rbc continue, rba abort.
     cp = cherry-pick
     rb = rebase
     rbi = rebase --interactive
     rbc = rebase --continue
     rba = rebase --abort
+
+    # whoami: the name and email commits here would carry.
+    whoami = "!echo \"$(git config user.name) <$(git config user.email)>\""

@@ -1,27 +1,51 @@
 # 25-ssh-agent.sh -- one ssh-agent per machine, shared by every shell.
-# Off by default: desktops usually run an agent already (gnome-keyring,
-# KDE wallet, 1Password).  Enable on headless boxes and ssh-only hosts.
 #
-# The agent's environment is saved to ~/.ssh/agent.env; a new shell reads it
-# and only starts a fresh agent when that one is gone.  Keys are added on
-# first use by `AddKeysToAgent yes` in ~/.ssh/config, so nothing prompts
-# for a passphrase at login.
+# Off: desktops usually run an agent already (gnome-keyring, KDE wallet,
+# 1Password).  Turn it on for headless boxes and hosts reached only by ssh:
+# drop the .off suffix, or copy it to 25-ssh-agent.sh on that machine.
+#
+# The agent's environment is saved in ~/.ssh/agent.env; a new shell reads it
+# and starts a fresh agent only when that one is gone.  Keys are added the
+# first time they are used (AddKeysToAgent in ~/.ssh/config), so logging in
+# asks for no passphrase.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
 #
 # Knobs (set in ~/.bashrc.before):
 #   DOTFILES_SSH_AGENT_ENV   where to keep the agent env   default: ~/.ssh/agent.env
 #   DOTFILES_SSH_AGENT_KEYS  keys to add at start          default: none (added on use)
 
+# Use keychain instead: it starts one agent per machine and asks for each
+# key's passphrase once, at the first login after boot.  The agent code
+# below then finds that agent alive and does nothing.
+# Needs: keychain
+#eval "$(keychain --eval --quiet --noask)"
+
+# Use gpg-agent as the ssh agent: one agent for gpg and ssh, or ssh keys on
+# a smartcard or YubiKey.  Needs enable-ssh-support in
+# ~/.gnupg/gpg-agent.conf; the agent code below then does nothing.
+# Needs: gpgconf
+#export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"; gpgconf --launch gpg-agent
+
+# Where the running agent's environment is written and read back.
 _agent_env="${DOTFILES_SSH_AGENT_ENV:-$HOME/.ssh/agent.env}"
 
+# An agent is alive when its socket exists and ssh-add can reach it (exit 0
+# or 1; 2 means no agent answered).
 _ssh_agent_alive() {
-    [[ -n "${SSH_AUTH_SOCK-}" && -S "$SSH_AUTH_SOCK" ]] && ssh-add -l >/dev/null 2>&1
-    [[ $? != 2 ]]            # 2 = cannot contact agent; 0/1 = alive (with/without keys)
+    [[ -n "${SSH_AUTH_SOCK-}" && -S "$SSH_AUTH_SOCK" ]] || return 1
+    ssh-add -l >/dev/null 2>&1
+    [[ $? != 2 ]]
 }
 
+# Reuse the saved agent, or start one and save its environment (mode 600),
+# then add the knob's keys.
 if command -v ssh-agent >/dev/null && ! _ssh_agent_alive; then
     [[ -r "$_agent_env" ]] && source "$_agent_env" >/dev/null
     if ! _ssh_agent_alive; then
-        mkdir -p "${_agent_env%/*}" && chmod 700 "${_agent_env%/*}"
+        command mkdir -p "${_agent_env%/*}" && chmod 700 "${_agent_env%/*}"
         (umask 077; ssh-agent -s > "$_agent_env")
         source "$_agent_env" >/dev/null
         for _k in ${DOTFILES_SSH_AGENT_KEYS-}; do ssh-add "$_k" 2>/dev/null; done

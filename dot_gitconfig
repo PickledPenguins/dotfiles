@@ -1,24 +1,40 @@
-# ~/.gitconfig -- loader only.  One include per concern; comment a line out
-# to drop that concern.  Later includes override earlier ones, so the local
-# file goes last.
+# ~/.gitconfig -- loader only.  One include per concern; later includes
+# override earlier ones, so the local file goes last.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# `git config --show-origin --includes -l` shows where each value came from.
 #
 # Identity is NOT here.  Create ~/.gitconfig.local (never committed):
 #
 #   [user]
 #       name = Your Name
 #       email = you@example.com
-#       # signingkey = ABCDEF1234567890      (see signing.gitconfig)
 #
-# Per-directory identities (work vs personal) also go there:
+# Per-directory identities (work and personal) go there too:
 #
 #   [includeIf "gitdir:~/work/"]
 #       path = ~/.gitconfig.work
 
 [include]
+    # How git behaves: editor, push, pull, merge, rebase, status.
     path = ~/.config/git/core.gitconfig
+
+    # Colors.
     path = ~/.config/git/color.gitconfig
+
+    # Aliases: `git aliases` lists them.
     path = ~/.config/git/aliases.gitconfig
+
+    # Diff algorithm, rename detection, diff and merge tools.
     path = ~/.config/git/diff.gitconfig
+
+    # URL shorthands: git clone gh:owner/repo.
     path = ~/.config/git/url.gitconfig
-    # path = ~/.config/git/signing.gitconfig
+
+    # Sign every commit and tag (needs user.signingkey in ~/.gitconfig.local).
+    #path = ~/.config/git/signing.gitconfig
+
+    # This machine's identity and overrides, last so they win.
     path = ~/.gitconfig.local

@@ -1,0 +1,65 @@
+# ~/.config/matplotlib/matplotlibrc -- matplotlib's defaults for every
+# script.  Every setting here is off, so plots look as they do without this
+# file until you choose; a script's own rcParams win.
+# matplotlib.rcParams lists every key; matplotlib.matplotlib_fname() says
+# which file was read.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# ── Figures ───────────────────────────────────────────────────────────────
+
+# Figures on screen at 120 dots per inch (default 100): sharper on high-DPI
+# screens, bigger windows.
+#figure.dpi: 120
+
+# Figure size in inches, width and height (default 6.4, 4.8).
+#figure.figsize: 8, 5
+
+# Room between subplots is worked out automatically, so labels do not overlap.
+#figure.constrained_layout.use: True
+
+# ── Saving ────────────────────────────────────────────────────────────────
+
+# Saved figures at 300 dpi, print quality (default: the screen dpi).
+#savefig.dpi: 300
+
+# Saved figures are cropped to what is drawn, without the white margin.
+#savefig.bbox: tight
+
+# plt.savefig without an extension writes PDF instead of PNG.
+#savefig.format: pdf
+
+# Text in PDF and PostScript files stays text (TrueType), editable and
+# searchable in Illustrator or Inkscape.
+#pdf.fonttype: 42
+#ps.fonttype: 42
+
+# ── Axes ──────────────────────────────────────────────────────────────────
+
+# A grid behind every plot.
+#axes.grid: True
+#grid.alpha: 0.3
+
+# No box lines at the top and right.
+#axes.spines.top: False
+#axes.spines.right: False
+
+# ── Text ──────────────────────────────────────────────────────────────────
+
+# Base font size in points (default 10).
+#font.size: 12
+
+# Mathematical text in Computer Modern, as LaTeX sets it.
+#mathtext.fontset: cm
+
+# All text typeset by LaTeX (slow; needs a LaTeX installation).
+# Needs: latex
+#text.usetex: True
+
+# ── Display ───────────────────────────────────────────────────────────────
+
+# Draw into files only, never a window: for ssh sessions and cluster jobs
+# without a display.
+#backend: Agg

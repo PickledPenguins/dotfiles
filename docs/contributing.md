@@ -7,10 +7,11 @@ Changing the project.  Back to the [README](../README.md);
 
 | Kind of change | Where | Then |
 |----------------|-------|------|
+| a setting someone may want | the module or file for its tool, in the [options format](configuration.md#the-options-format): description above, off unless it only adds a name | `./run-tests.sh long -k options` switches it on and loads it |
 | a shell behavior | one module in `dot_config/bash/rc.d/`; a new concern is a new numbered file | its row and knobs in `docs/configuration.md`; an integration assertion |
-| a per-machine difference | not in the repository: a knob or a hook file | document the knob in the module header and `docs/configuration.md` |
+| a per-machine difference | not in the repository: a knob (for a value) or a line in a hook file | document the knob in the module header and `docs/configuration.md` |
 | a `dots` behavior | the band that owns it (`docs/architecture.md`); output and exit code in the `cmd_*` | unit/CLI test, mutant line, `docs/cli.md`, catalog case |
-| a new dotfile | `dot_<name>` or `private_dot_<name>` at the mirrored path | integration test through the real program; row in `docs/configuration.md` |
+| a new dotfile | `dot_<name>` or `private_dot_<name>` at the mirrored path, with the standard header lines | a loader in `tests/test_options.py`; integration test through the real program; row in `docs/configuration.md` |
 | the prompt | `dot_config/bash/prompt/layout.sh` only; `prompt.sh` and `lib/` are upstream's | |
 | a decision not to build something | `docs/future-work.md`, labelled, with the evidence | |
 
@@ -18,6 +19,8 @@ Changing the project.  Back to the [README](../README.md);
 
 | Gate | Fails when |
 |------|------------|
+| `tests/test_options.py` (fast) | a configuration file lacks the header that mentions `dots options`; a setting has no description above it |
+| `tests/test_options.py` (long) | a setting that is off does not load in its program once switched on |
 | `tests/test_docs.py` (fast) | a flag, exit code, knob, module, hook file or top-level target is missing from its document; a README example drifts from its catalog case; README over 150 lines; a `docs/` file unlinked; a dead link |
 | `run-tests.sh cov` | `dots` coverage below 95% line or branch |
 | `run-tests.sh mutate` | a mutant in `tests/mutants.txt` survives the fast suite |
@@ -28,23 +31,42 @@ Changing the project.  Back to the [README](../README.md);
 
 ## Recipes
 
-**Add a bash module** `dot_config/bash/rc.d/NN-name.sh`:
+**Offer a setting** in an existing file: the description directly above
+it -- the first sentence says what it is, the rest what it does, what it
+costs and who would not want it -- and, if it changes an existing behavior,
+the comment character directly in front of its code:
 
-```sh
-cat > dot_config/bash/rc.d/72-direnv.sh <<'EOF'
+```bash
+# Case-insensitive [[ == ]], [[ =~ ]] and case patterns.
+#shopt -s nocasematch
+```
+
+A setting that needs a program adds `# Needs: PROGRAM` to its description;
+the switch-on test skips it where the program is missing.  Then
+`./run-tests.sh long -k options`, and `dots options nocasematch` shows it.
+
+**Add a bash module** `dot_config/bash/rc.d/NN-name.sh`, in the same format:
+
+```bash
 # 72-direnv.sh -- per-directory .envrc.  Skipped when direnv is absent.
 #
-# Knobs (set in ~/.bashrc.before):
-#   DOTFILES_DIRENV_QUIET   1 = no "direnv: loading" lines   default: 0
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# Nothing to do without direnv.
 command -v direnv >/dev/null || return 0
-[[ "${DOTFILES_DIRENV_QUIET:-0}" == 1 ]] && export DIRENV_LOG_FORMAT=
+
+# No "direnv: loading" lines when entering a directory.
+#export DIRENV_LOG_FORMAT=
+
+# The hook that loads and unloads each directory's .envrc.
 eval "$(direnv hook bash)"
-EOF
 ```
 
 Then: `BASH_MODULES` in `tests/test_config_integration.py` gets `direnv`
 after `conda`; a test asserts `type -t _direnv_hook`; `docs/configuration.md`
-gets the module row and the knob row; `./run-tests.sh all`.
+gets the module row; `./run-tests.sh all`.
 
 **Add a `dots` flag**: the `add_argument` in `main`, the behavior in the
 `cmd_*`, a CLI test asserting output and exit code, a line in

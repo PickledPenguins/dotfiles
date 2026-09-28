@@ -4,7 +4,7 @@
 
 ## What it shows
 
-The repository applied, then every per-machine hook used together: `~/.bashrc.before` knobs (minimal prompt, no safe rm, extra PATH), `~/.config/bash/disabled` (conda, hpc, title), `~/.bashrc.local` (an alias that overrides a module's), `~/.vimrc.before` and `~/.vimrc.local`, `~/.tmux.conf.local`, `~/.gitconfig.local`.  Each program is asked what it ended up with.
+The repository applied, then every per-machine hook used together: `~/.bashrc.before` knobs (minimal prompt, extra PATH), `~/.config/bash/disabled` (conda, hpc, title), `~/.bashrc.local` (an alias that overrides a module's, and `unalias` switching the safe-rm aliases off for this machine), `~/.vimrc.before` and `~/.vimrc.local`, `~/.tmux.conf.local`, `~/.gitconfig.local`.  Each program is asked what it ended up with.
 
 ## Why the combination matters
 

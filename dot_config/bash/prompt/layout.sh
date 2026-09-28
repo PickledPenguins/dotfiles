@@ -1,22 +1,26 @@
 #!/usr/bin/env bash
-# layout.sh -- prompt configuration for bash-prompt-toolkit (prompt.sh).
-# Sourced by rc.d/60-prompt.sh after prompt.sh.  This is the file to edit.
+# layout.sh -- what the prompt shows, for bash-prompt-toolkit (prompt.sh).
+# Read by rc.d/60-prompt.sh after prompt.sh; this is the file to edit.
 #
-#   segment  a function that prints a piece of text; register with
-#            prompt_segment NAME FUNC, reference as @NAME in a row
-#   row      a template string:  prompt_row NAME 'text @seg text @fill text'
-#   layout   the ordered rows:   prompt_layout [--box STYLE] [--closed] ROW...
+#   segment  a function that prints one piece of information; registered
+#            with prompt_segment NAME FUNC, placed in a row as @NAME
+#   row      a template:  prompt_row NAME 'text @segment text @fill text'
+#   layout   the rows in order:  prompt_layout [--box STYLE] [--closed] ROW...
 #
-# Every built-in segment is silent when it does not apply, so an unused
-# @token costs one function call per prompt and nothing on screen.
-# Comment out any prompt_segment line to skip even that.
+# A segment prints nothing when it does not apply (no git repository, no
+# job running), so an unused one costs a function call per prompt and no
+# space.  Turn a segment's line off to skip even the call.
 #
-# Knob (set in ~/.bashrc.before):
-#   DOTFILES_PROMPT_LAYOUT   box (default) | hpc | minimal   -- see the bottom
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+#
+# Knobs (set in ~/.bashrc.before):
+#   DOTFILES_PROMPT_LAYOUT   box (default), hpc or minimal -- see the bottom
 
 # ── Custom segments ───────────────────────────────────────────────────────
 
-# Colored user@host instead of the plain built-in; red user when root
+# user@host in color instead of the plain built-in one; the user in red for root.
 _my_user_host() {
     local uc="$PS_BGREEN"; [[ $EUID == 0 ]] && uc="$PS_BRED"
     printf '%s%s%s@%s%s%s' "$uc" "$USER" "$PS_R" "$PS_BCYAN" "${HOSTNAME%%.*}" "$PS_R"
@@ -24,72 +28,150 @@ _my_user_host() {
 
 # ── Segments ──────────────────────────────────────────────────────────────
 
-prompt_segment user_host        _my_user_host              # colored user@host
-prompt_segment root             _ps_seg_root               # ⚡ only in a root shell
-prompt_segment pwd              _ps_seg_pwd                # working directory
-prompt_segment git_branch       _ps_seg_git_branch         # branch / detached SHA
-prompt_segment git_remote       _ps_seg_git_remote         # tracking remote
-prompt_segment git_ahead_behind _ps_seg_git_ahead_behind   # ↑N ↓N or ✓
-prompt_segment git_status       _ps_seg_git_status         # +staged ~modified ?untracked
-prompt_segment git_stash        _ps_seg_git_stash          # ⚑N stash count
-prompt_segment git_conflicts    _ps_seg_git_conflicts      # ⚠N unmerged paths
-prompt_segment tmux             _ps_seg_tmux               # ⧉ session:win.pane
-prompt_segment display          _ps_seg_display            # $DISPLAY
-prompt_segment ssh              _ps_seg_ssh                # ⇄ ssh when remote
-prompt_segment venv             _ps_seg_venv               # (virtualenv)
-prompt_segment conda            _ps_seg_conda              # conda env, not "base"
-prompt_segment jobs             _ps_seg_jobs               # ⚙ N background jobs
-prompt_segment exit             _ps_seg_exit               # ✓ or ✗ N
-prompt_segment time             _ps_seg_time               # HH:MM
-prompt_segment cmd_time         _ps_seg_cmd_time           # last command duration (≥2 s)
-prompt_segment shlvl            _ps_seg_shlvl              # ⬇N when nested
-prompt_segment load             _ps_seg_load               # ⚖N.NN only when busy
-prompt_segment disk             _ps_seg_disk               # ⛁N% only when ≥90% full
+# @user_host: user@host, colored (the function above).
+prompt_segment user_host        _my_user_host
 
-# HPC -- all silent off-cluster; comment out on a workstation to save the calls
+# @root: ⚡ in a root shell only.
+prompt_segment root             _ps_seg_root
+
+# @pwd: the working directory, ~ for home.
+prompt_segment pwd              _ps_seg_pwd
+
+# @git_branch: the branch, or the commit when detached.
+prompt_segment git_branch       _ps_seg_git_branch
+
+# @git_remote: the branch's upstream, such as origin/main.
+prompt_segment git_remote       _ps_seg_git_remote
+
+# @git_ahead_behind: ↑N commits to push, ↓N to pull, ✓ when in step.
+prompt_segment git_ahead_behind _ps_seg_git_ahead_behind
+
+# @git_status: +N staged, ~N modified, ?N untracked files.
+prompt_segment git_status       _ps_seg_git_status
+
+# @git_stash: ⚑N stashed changes.
+prompt_segment git_stash        _ps_seg_git_stash
+
+# @git_conflicts: ⚠N files with merge conflicts.
+prompt_segment git_conflicts    _ps_seg_git_conflicts
+
+# @tmux: ⧉ session:window.pane inside tmux.
+prompt_segment tmux             _ps_seg_tmux
+
+# @display: $DISPLAY, when X forwarding is on.
+prompt_segment display          _ps_seg_display
+
+# @ssh: ⇄ ssh when logged in remotely.
+prompt_segment ssh              _ps_seg_ssh
+
+# @venv: the active python virtualenv.
+prompt_segment venv             _ps_seg_venv
+
+# @conda: the active conda environment, unless it is base.
+prompt_segment conda            _ps_seg_conda
+
+# @jobs: ⚙N background jobs.
+prompt_segment jobs             _ps_seg_jobs
+
+# @exit: ✓, or ✗ and the exit status of the last command.
+prompt_segment exit             _ps_seg_exit
+
+# @time: the time, HH:MM.
+prompt_segment time             _ps_seg_time
+
+# @cmd_time: how long the last command ran, when 2 s or more.
+prompt_segment cmd_time         _ps_seg_cmd_time
+
+# @shlvl: ⬇N in a shell started from another shell.
+prompt_segment shlvl            _ps_seg_shlvl
+
+# @load: ⚖N.NN load average, only when the machine is busy.
+prompt_segment load             _ps_seg_load
+
+# @disk: ⛁N% only when the file system here is 90% full or more.
+prompt_segment disk             _ps_seg_disk
+
+# ── HPC segments (silent off a cluster; turn off on a workstation) ────────
+
+# @pbs_job: the PBS job this shell runs in.
 prompt_segment pbs_job          _ps_seg_pbs_job
+
+# @pbs_queue: your queued and running PBS jobs.
 prompt_segment pbs_queue        _ps_seg_pbs_queue
+
+# @pbs_nodes: nodes of the current PBS job.
 prompt_segment pbs_nodes        _ps_seg_pbs_nodes
+
+# @slurm_job: the Slurm job this shell runs in.
 prompt_segment slurm_job        _ps_seg_slurm_job
+
+# @slurm_queue: your queued and running Slurm jobs.
 prompt_segment slurm_queue      _ps_seg_slurm_queue
+
+# @slurm_nodes: nodes of the current Slurm job.
 prompt_segment slurm_nodes      _ps_seg_slurm_nodes
-prompt_segment modules          _ps_seg_modules            # ⊞N loaded modules
-prompt_segment gpu              _ps_seg_gpu                # GPU N%, TTL-cached
+
+# @modules: ⊞N loaded environment modules.
+prompt_segment modules          _ps_seg_modules
+
+# @gpu: GPU utilization, cached for a few seconds.
+prompt_segment gpu              _ps_seg_gpu
 
 # ── Tuning ────────────────────────────────────────────────────────────────
-# prompt_cache_ttl 5              # seconds before a forced git refresh
-# prompt_cmd_time_threshold 2     # seconds before @cmd_time appears
+
+# Seconds git information is reused before it is read again (default 5).
+# Lower is fresher, higher is faster in big repositories.
+#prompt_cache_ttl 5
+
+# Seconds a command must run before @cmd_time shows it (default 2).
+#prompt_cmd_time_threshold 2
 
 # ── Rows ──────────────────────────────────────────────────────────────────
-# Single quotes so \$ survives as the PS1 prompt-character escape.
+# Single quotes, so \$ reaches PS1 as the prompt character ($, or # for root).
 
+# top: user@host at the left, the directory at the right.
 prompt_row top      '─[ @root@user_host ]@fill[ @pwd ]─'
+
+# env: where this shell runs and what is active in it.
 prompt_row env      '  @shlvl  @load  @disk  @ssh  @tmux  @display  @conda  @venv  @jobs'
+
+# git: branch, upstream, ahead/behind.
 prompt_row git      '  ⎇  @git_branch  →  @git_remote  @git_ahead_behind'
+
+# status: the working tree's changes.
 prompt_row status   '     @git_status  @git_stash  @git_conflicts'
+
+# hpc: scheduler jobs, modules, GPU.
 prompt_row hpc      '  @pbs_job  @pbs_queue  @pbs_nodes  @slurm_job  @slurm_queue  @slurm_nodes  @modules  @gpu'
+
+# cmd: the line you type on, after the last command's result.
 prompt_row cmd      '─[@exit] @cmd_time \$ '
+
+# footer: the last command's result and the time, closing the box.
 prompt_row footer   '─[@exit]@fill[ @time ]─'
+
+# line1 and line2: the two rows of the minimal layout.
 prompt_row line1    '[ @user_host ] ⎇ @git_branch @git_ahead_behind @pwd'
 prompt_row line2    '[@exit] @cmd_time \$ '
 
 # ── Layouts ───────────────────────────────────────────────────────────────
 
+# The layout named by DOTFILES_PROMPT_LAYOUT:
+#
+# box (default)
+#   ╭─[ chris@devbox ]────────────────────[ ~/projects/myapp ]─╮
+#   │  ⇄ ssh  ⧉ proj:2.1  (py311)                              │
+#   │  ⎇  feature/auth  →  origin/feature/auth  ↑3 ↓1          │
+#   │     +2 ~5 ?3  ⚑1                                          │
+#   ╰─[✓] 5s $
+# hpc: the same box plus the scheduler row, closed, the cursor on its own line
+# minimal
+#   [ chris@devbox ] ⎇ main ✓ ~/projects/myapp
+#   [✓] $
 case "${DOTFILES_PROMPT_LAYOUT:-box}" in
-    box)
-        # ╭─[ chris@devbox ]────────────────────[ ~/projects/myapp ]─╮
-        # │  ⇄ ssh  ⧉ proj:2.1  (py311)                              │
-        # │  ⎇  feature/auth  →  origin/feature/auth  ↑3 ↓1          │
-        # │     +2 ~5 ?3  ⚑1                                          │
-        # ╰─[✓] 5s $
-        prompt_layout --box rounded  top  env  git  status  cmd ;;
-    hpc)
-        # Same box plus the scheduler row, closed, cursor on its own line
-        prompt_layout --box rounded --closed  top  env  git  status  hpc  footer ;;
-    minimal)
-        # [ chris@devbox ] ⎇ main ✓ ~/projects/myapp
-        # [✓] $
-        prompt_layout  line1  line2 ;;
+    box)     prompt_layout --box rounded  top  env  git  status  cmd ;;
+    hpc)     prompt_layout --box rounded --closed  top  env  git  status  hpc  footer ;;
+    minimal) prompt_layout  line1  line2 ;;
     *)
         echo "layout.sh: unknown DOTFILES_PROMPT_LAYOUT '$DOTFILES_PROMPT_LAYOUT'" >&2
         prompt_layout --box rounded  top  env  git  status  cmd ;;

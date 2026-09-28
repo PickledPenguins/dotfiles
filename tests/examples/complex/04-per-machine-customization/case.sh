@@ -3,11 +3,11 @@ dots apply > /dev/null
 mkdir ~/tools
 cat > ~/.bashrc.before <<EOF
 DOTFILES_PROMPT_LAYOUT=minimal
-DOTFILES_SAFE_RM=0
+
 DOTFILES_PATH_PREPEND=$HOME/tools
 EOF
 printf 'conda\nhpc\ntitle\n' > ~/.config/bash/disabled
-echo "alias ll='ls -la --color=never'" > ~/.bashrc.local
+printf "alias ll='ls -la --color=never'\nunalias rm cp mv\n" > ~/.bashrc.local
 echo "let g:dotfiles_indent = 4" > ~/.vimrc.before
 echo "set scrolloff=3" > ~/.vimrc.local
 echo "set -g history-limit 7" > ~/.tmux.conf.local

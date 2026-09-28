@@ -1,41 +1,52 @@
-# 65-title.sh -- keep the terminal window/tab title current.
+# 65-title.sh -- keep the terminal window or tab title current.
 #
-# At each prompt the title becomes "user@host: ~/dir".  Optionally the title
-# shows the running command while it runs, so a busy tab says what it is
-# doing; that needs a DEBUG trap, which the toolkit prompt's command timer
-# also uses, so it is off unless asked for.  Only for terminals that
-# understand the xterm title escape, and only when stdout is a terminal.
+# Only for terminals that understand the xterm title escape, and only when
+# the shell's output is a terminal.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
-#   DOTFILES_TITLE_FORMAT    printf-style: %u user, %h host, %d dir   default: '%u@%h: %d'
-#   DOTFILES_TITLE_COMMANDS  1 = show the running command             default: 0
+#   DOTFILES_TITLE_FORMAT   %u user, %h host, %d directory   default: '%u@%h: %d'
 
+# Leave terminals without title support alone.
 case "$TERM" in
-    xterm*|rxvt*|screen*|tmux*|alacritty|foot|kitty) ;;
+    xterm*|rxvt*|screen*|tmux*|alacritty|foot|kitty|wezterm) ;;
     *) return 0 ;;
 esac
 [[ -t 1 ]] || return 0
 
+# At each prompt the title becomes "user@host: ~/dir" (the knob changes the
+# format).  The exit status is handed on untouched for the prompt to show.
 _title_fmt="${DOTFILES_TITLE_FORMAT:-%u@%h: %d}"
 _title_prompt() {
-    local d="${PWD/#$HOME/\~}" t="$_title_fmt"
+    local status=$? d="${PWD/#$HOME/\~}" t="$_title_fmt"
     t="${t//%u/$USER}"; t="${t//%h/${HOSTNAME%%.*}}"; t="${t//%d/$d}"
     printf '\e]0;%s\a' "$t"
+    return "$status"
 }
 PROMPT_COMMAND="_title_prompt${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 
-if [[ "${DOTFILES_TITLE_COMMANDS:-0}" == 1 ]]; then
-    _title_command() {
-        # DEBUG fires before every simple command, including prompt housekeeping
-        case "$BASH_COMMAND" in _title_*|prompt_build*|history*|_venv_auto*) return ;; esac
-        printf '\e]0;%s\a' "${BASH_COMMAND:0:60}"
-    }
-    # Arm the trap from the first prompt, not now, so loading the rest of
-    # rc.d does not spray titles; then remove the installer from PROMPT_COMMAND.
-    _title_arm() {
-        [[ -z "$(trap -p DEBUG)" ]] && trap '_title_command' DEBUG
-        PROMPT_COMMAND="${PROMPT_COMMAND/_title_arm;/}"
-        unset -f _title_arm
-    }
-    PROMPT_COMMAND="_title_arm;$PROMPT_COMMAND"
-fi
+# The functions for the setting below: the title shows a running command,
+# through a DEBUG trap added after any trap already there (the prompt's
+# command timer has one).
+_title_command() {
+    case "$BASH_COMMAND" in _title_*|prompt_build*|history*|_venv_auto*) return ;; esac
+    printf '\e]0;%s\a' "${BASH_COMMAND:0:60}"
+}
+_title_arm() {
+    local old=${_title_old#trap -- \'}; old=${old%\' DEBUG}
+    [[ "$old" == *_title_command* ]] || trap "${old:+$old; }_title_command" DEBUG
+    PROMPT_COMMAND="${PROMPT_COMMAND#*_title_arm;}"
+    unset -f _title_arm; unset _title_old
+    return "$_title_status"
+}
+
+# While a command runs, the title shows it, so a busy tab says what it is
+# doing.  Armed at the first prompt, so loading the rest of the
+# configuration does not flash titles; the trap already there is read
+# outside a function, where bash shows it.  Costs a function call before
+# every command.
+#PROMPT_COMMAND="_title_status=\$?; _title_old=\$(trap -p DEBUG); _title_arm;$PROMPT_COMMAND"

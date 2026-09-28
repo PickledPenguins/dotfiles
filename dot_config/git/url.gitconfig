@@ -1,17 +1,41 @@
-# url.gitconfig -- shorthands for clone/remote URLs.
+# url.gitconfig -- shorthands for clone and remote URLs.
 #
 #   git clone gh:owner/repo      ->  https://github.com/owner/repo
 #   git clone gh-ssh:owner/repo  ->  git@github.com:owner/repo
 #
-# pushInsteadOf: clone over https, push over ssh, without changing the
-# remote.  Comment it out to push over https too.
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# For one machine only, put the line in ~/.gitconfig.local instead.
 
 [url "https://github.com/"]
+    # gh:owner/repo is a GitHub https URL.
     insteadOf = gh:
 
 [url "git@github.com:"]
+    # gh-ssh:owner/repo is a GitHub ssh URL.
     insteadOf = gh-ssh:
+
+    # Clone GitHub over https, push over ssh, without changing the remote:
+    # anonymous clones keep working, pushes use your ssh key.
     pushInsteadOf = https://github.com/
 
+    # Every GitHub https URL is fetched over ssh too.  Clones then fail on
+    # machines without your key, even for public repositories.
+    #insteadOf = https://github.com/
+
 [url "https://gitlab.com/"]
+    # gl:owner/repo is a GitLab https URL.
     insteadOf = gl:
+
+[url "git@gitlab.com:"]
+    # gl-ssh:owner/repo is a GitLab ssh URL.
+    #insteadOf = gl-ssh:
+
+[url "https://codeberg.org/"]
+    # cb:owner/repo is a Codeberg https URL.
+    #insteadOf = cb:
+
+[url "https://bitbucket.org/"]
+    # bb:owner/repo is a Bitbucket https URL.
+    #insteadOf = bb:

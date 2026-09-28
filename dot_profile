@@ -1,8 +1,13 @@
-# ~/.profile -- login shells that are NOT bash (sh, dash, display managers).
-# Bash reads ~/.bash_profile instead, which sources this file first so PATH
-# is set the same way everywhere.  Keep this POSIX sh: no [[ ]], no arrays.
+# ~/.profile -- login shells that are not bash (sh, dash) and graphical
+# logins, whose environment every desktop program inherits.  Bash reads
+# ~/.bash_profile instead, which reads this first, so PATH is set the same
+# way everywhere.  Keep this POSIX sh: no [[ ]], no arrays.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
 
-# Private bin directories first on PATH
+# Your own programs first on PATH: ~/.local/bin and ~/bin, when they exist.
 for d in "$HOME/.local/bin" "$HOME/bin"; do
     if [ -d "$d" ]; then
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
@@ -10,5 +15,14 @@ for d in "$HOME/.local/bin" "$HOME/bin"; do
 done
 export PATH
 
-# Locale fallback for sessions that arrive without one (ssh, cron, GUI login)
+# A UTF-8 locale for sessions that arrive without one (ssh, cron, some
+# display managers).
 [ -z "${LANG:-}" ] && export LANG=C.UTF-8
+
+# The editor for programs started from the desktop, which never read
+# ~/.bashrc (where 00-env.sh sets it for shells).
+#export EDITOR=vim VISUAL=vim
+
+# Permissions for new files in the whole session, desktop programs
+# included: 077 keeps them private to you (bash's own is in 10-options.sh).
+#umask 077

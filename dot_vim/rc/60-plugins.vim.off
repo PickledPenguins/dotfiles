@@ -1,33 +1,149 @@
-" 60-plugins.vim -- vim-plug plugins.  Enable by removing .off, then
-" :PlugInstall.  vim-plug itself installs with:
+" 60-plugins.vim -- plugins through vim-plug.  Off until wanted: drop the .off
+" suffix, turn on the plugins you want below, then run :PlugInstall.
+" vim-plug itself installs with:
 "
 "   curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
 "     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 "
+" Each setting has its description in the comment above it.  A setting with
+" " directly in front of it ("set cursorcolumn) is off: delete that " to turn
+" it on, or add one to turn a setting off.  `dots options WORD` searches
+" every file.
+"
 " Knobs (set in ~/.vimrc.before):
 "   g:dotfiles_plugins   list of extra 'owner/repo' strings   default: []
 
+" Without vim-plug, say so once and stop reading this file.
 if empty(glob('~/.vim/autoload/plug.vim'))
   echomsg 'dotfiles: vim-plug missing, see ~/.vim/rc/60-plugins.vim'
   finish
 endif
 
+" Plugins go to ~/.vim/plugged.
 call plug#begin('~/.vim/plugged')
-Plug 'tpope/vim-commentary'       " gcc comments a line, gc a motion
-Plug 'tpope/vim-surround'         " cs"' ds( ysiw]
-Plug 'tpope/vim-repeat'           " . repeats the two above
-Plug 'tpope/vim-fugitive'         " :Git blame  :Gdiffsplit
-Plug 'airblade/vim-gitgutter'     " changed lines in the sign column
+
+" ── Editing ─────────────────────────────────────────────────────────────
+
+" vim-commentary: gcc comments a line out, gc{motion} a range.
+Plug 'tpope/vim-commentary'
+
+" vim-surround: cs"' changes surrounding quotes, ds( deletes brackets,
+" ysiw] wraps a word.
+Plug 'tpope/vim-surround'
+
+" vim-repeat: . repeats surround and commentary commands.
+Plug 'tpope/vim-repeat'
+
+" vim-unimpaired: paired [ ] mappings: [b ]b buffers, [<Space> blank lines,
+" [e ]e move lines, yo toggles options.
+"Plug 'tpope/vim-unimpaired'
+
+" vim-sleuth: guesses indentation from the file itself (overrides 30-indent).
+"Plug 'tpope/vim-sleuth'
+
+" targets.vim: more text objects: ci, inside commas, cin( the next brackets.
+"Plug 'wellle/targets.vim'
+
+" auto-pairs: types the closing bracket or quote for you.
+"Plug 'jiangmiao/auto-pairs'
+
+" vim-easymotion: <leader><leader>w labels every word to jump to.
+"Plug 'easymotion/vim-easymotion'
+
+" undotree: the undo history as a tree, :UndotreeToggle.
+"Plug 'mbbill/undotree'
+
+" ── Files and search ────────────────────────────────────────────────────
+
+" fzf.vim: :Files :Rg :Buffers :History with fuzzy search (needs fzf).
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
-Plug 'junegunn/fzf.vim'           " :Files :Rg :Buffers :History
-Plug 'editorconfig/editorconfig-vim'   " only needed before vim 9.0.1799
+Plug 'junegunn/fzf.vim'
+
+" vim-eunuch: :Rename :Move :Delete :Chmod :SudoWrite on the current file.
+"Plug 'tpope/vim-eunuch'
+
+" NERDTree: a file tree side bar, :NERDTreeToggle.
+"Plug 'preservim/nerdtree'
+
+" ── Git ─────────────────────────────────────────────────────────────────
+
+" vim-fugitive: :Git blame, :Gdiffsplit, :Git commit inside vim.
+Plug 'tpope/vim-fugitive'
+
+" vim-gitgutter: changed lines marked in the sign column; ]c [c jump.
+Plug 'airblade/vim-gitgutter'
+
+" vim-signify: the same marks for git, hg, svn and more (instead of gitgutter).
+"Plug 'mhinz/vim-signify'
+
+" ── Languages ───────────────────────────────────────────────────────────
+
+" editorconfig: only needed before vim 9.0.1799, which has it built in.
+Plug 'editorconfig/editorconfig-vim'
+
+" ALE: linting and fixing as you type with the linters you have installed.
+"Plug 'dense-analysis/ale'
+
+" vim-lsp and vim-lsp-settings: language servers (completion, go to
+" definition, rename); :LspInstallServer fetches one.
+"Plug 'prabirshrestha/vim-lsp'
+"Plug 'mattn/vim-lsp-settings'
+
+" vim-polyglot: syntax and indent for a hundred languages vim lacks.
+"Plug 'sheerun/vim-polyglot'
+
+" vimtex: LaTeX editing, compiling and viewing.
+"Plug 'lervag/vimtex'
+
+" vim-slime: send lines or paragraphs to a REPL in a tmux pane.
+"Plug 'jpalardy/vim-slime'
+
+" GitHub Copilot suggestions (needs node and an account).
+"Plug 'github/copilot.vim'
+
+" ── Look ────────────────────────────────────────────────────────────────
+
+" lightline: a colored status line (replaces 15-statusline.vim's).
+"Plug 'itchyny/lightline.vim'
+
+" Color schemes: gruvbox, nord, dracula, catppuccin, solarized; set one
+" with g:dotfiles_colorscheme in ~/.vimrc.before.
+"Plug 'morhetz/gruvbox'
+"Plug 'arcticicestudio/nord-vim'
+"Plug 'dracula/vim', { 'as': 'dracula' }
+"Plug 'catppuccin/vim', { 'as': 'catppuccin' }
+"Plug 'lifepillar/vim-solarized8'
+
+" indentLine: a thin line at each indent level.
+"Plug 'Yggdroot/indentLine'
+
+" goyo and limelight: distraction-free writing, :Goyo.
+"Plug 'junegunn/goyo.vim'
+"Plug 'junegunn/limelight.vim'
+
+" ── Together with tmux ──────────────────────────────────────────────────
+
+" vim-tmux-navigator: Ctrl-h/j/k/l move between vim windows and tmux panes
+" alike; turn on the matching block in ~/.config/tmux/conf.d/10-keys.conf.
+"Plug 'christoomey/vim-tmux-navigator'
+
+" ── Yours ───────────────────────────────────────────────────────────────
+
+" Every 'owner/repo' in the g:dotfiles_plugins knob.
 for s:p in get(g:, 'dotfiles_plugins', [])
   Plug s:p
 endfor
+
+" End of the plugin list.
 call plug#end()
 
-" plugin settings
+" ── Plugin settings ─────────────────────────────────────────────────────
+
+" <leader>f files, <leader>r ripgrep, <leader>g git status, through the
+" plugins above.
 nnoremap <leader>f :Files<CR>
 nnoremap <leader>r :Rg<CR>
 nnoremap <leader>g :Git<CR>
+
+" gitgutter's own mappings off (they take <leader>h...).
 let g:gitgutter_map_keys = 0

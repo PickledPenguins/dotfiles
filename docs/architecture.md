@@ -8,7 +8,11 @@ Two independent things share the repository: a source tree that mirrors
 `$HOME` (the configuration) and one script, `dots`, that projects it into
 `$HOME` as symlinks.  `dots` knows nothing about bash or vim; the
 configuration knows nothing about `dots` except that `~/.bashrc` resolves
-its own symlink to find `DOTFILES_DIR`.
+its own symlink to find `DOTFILES_DIR`.  The one shared convention is the
+[options format](configuration.md#the-options-format), which `dots
+options` reads and `tests/test_options.py` enforces: a description above
+every setting, and settings that are off written with the comment
+character directly in front.
 
 ```
 dots                            the linker (python3, stdlib, no .py suffix)
@@ -22,6 +26,7 @@ dot_tmux.conf  dot_config/tmux/conf.d/NN-*.conf
 dot_gitconfig  dot_config/git/{core,color,aliases,diff,url,signing}.gitconfig  ignore  attributes
 dot_inputrc  dot_editorconfig  dot_curlrc  dot_wgetrc  dot_screenrc  dot_dircolors
 dot_gdbinit  dot_nanorc  dot_condarc  dot_Xresources  dot_ctags.d/  dot_config/{ripgrep,python,pip}/
+dot_config/{kitty,matplotlib}/  dot_ipython/profile_default/  dot_sqliterc     shipped with every setting off
 private_dot_ssh/config          ~/.ssh/config (600) and ~/.ssh/sockets/ for ControlMaster
 tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, coveragerc
 docs/                           this set
@@ -31,13 +36,14 @@ CLAUDE.md                       instructions for the coding agent
 
 ## `dots`
 
-One file, ~370 lines, in four bands:
+One file, ~450 lines, in five bands:
 
 | Band | Functions | Responsibility |
 |------|-----------|----------------|
 | source state | `source_dir`, `parse_name`, `load_ignores`, `ignored`, `Entry`, `managed_entries` | turn the source tree into a sorted list of entries with targets and attributes |
 | target state | `state`, `set_mode`, `backup` | classify one target; apply modes; move a conflict aside |
-| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `cmd_prune`, `source_name`, `cmd_add`, `cmd_forget`, `selected` | one function per subcommand, each printing its own report and returning the exit code |
+| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `cmd_prune`, `cmd_options`, `source_name`, `cmd_add`, `cmd_forget`, `selected` | one function per subcommand, each printing its own report and returning the exit code |
+| the options format | `OPTIONS_TAG`, `comment_marker`, `Option`, `parse_options` | split a configuration file into settings, their descriptions and their on/off state; used by `cmd_options` and by the tests |
 | entry | `main` | argparse, source resolution, dispatch |
 
 Dependency direction: commands call the state bands; nothing calls a
@@ -65,6 +71,22 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
 - **Knobs before, overrides after.**  `~/.bashrc.before` exists because a
   knob must be set before the module reads it, and `~/.bashrc.local` must
   come after to win.  One file could not do both.
+- **Every option in the file, labeled, rather than documented elsewhere.**
+  The aim is that no setting has to be looked up: whatever a tool offers
+  that people commonly want is in its file, with what it does and what it
+  costs, switched by one character.  A separate options document would
+  drift; `dots options` reads the files themselves, and the switch-on test
+  keeps every offered setting loadable.  What starts off is anything that
+  would change an existing behavior; what only adds a name starts on.
+- **Knobs are values; on/off is the comment character.**  The boolean
+  knobs (`DOTFILES_AUTOCD`, `DOTFILES_SAFE_RM`, `g:dotfiles_tabs` and the
+  rest) became plain settings: two ways to switch the same kind of thing
+  was one too many, and per machine a setting's own line in the `.local`
+  file does what the knob did.  Knobs remain for values (sizes, paths,
+  names) and for what must be known before a module runs (the vim leader).
+- **Hooks hand `$?` on.**  Every function a module puts into
+  `PROMPT_COMMAND` ahead of the prompt returns the status it found, since
+  the prompt reads the last command's status after them.
 - **`.off` renames rather than a manifest.**  The file stays in git and in
   the linked tree, so the diff of turning something off is a rename, not
   an edit to a list nobody reads.
@@ -96,9 +118,14 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
 - **A vim / tmux / git module**: same pattern in `dot_vim/rc/`,
   `dot_config/tmux/conf.d/`, `dot_config/git/` (plus an include line in
   `dot_gitconfig`).
-- **A new dotfile**: create it under its attribute name; add an
-  integration test that makes the real program read it; add its row in
-  `docs/configuration.md`.  Formats that do not allow trailing comments
+- **A setting**: its description directly above it (first sentence: what
+  it is; then what it does and costs; `Needs:` for prerequisites), off
+  written as the comment character directly followed by the code, a blank
+  line after.  `./run-tests.sh long -k options` switches it on and loads it.
+- **A new dotfile**: create it under its attribute name with the standard
+  header lines (they mention `dots options`); give its program a loader in
+  `LOADERS` in `tests/test_options.py`; add an integration test that makes
+  the real program read it; add its row in `docs/configuration.md`.  Formats that do not allow trailing comments
   (curl, wget, nano, screen, Xresources, ctags, editorconfig, inputrc,
   gdb) take comments on their own lines.
 - **A `dots` subcommand**: a `cmd_*(args, src, home)` function returning

@@ -1,9 +1,12 @@
-# attributes -- global gitattributes (~/.config/git/attributes).
+# attributes -- the global gitattributes (~/.config/git/attributes).
 #
-# Function-context diffs (`git diff` shows the enclosing function name in
-# hunk headers) and word-level diffs for prose; binary types marked so git
-# never tries to merge them.
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# A project's own .gitattributes wins over these.
 
+# Hunk headers name the enclosing function or section (git's built-in
+# language drivers), and word diffs split words the language's way.
 *.c        diff=cpp
 *.h        diff=cpp
 *.cpp      diff=cpp
@@ -18,7 +21,7 @@
 *.html     diff=html
 *.css      diff=css
 
-# binary: no text diff, no merge, no eol conversion
+# Binary: no text diff, no merge, no line-ending conversion.
 *.png      binary
 *.jpg      binary
 *.jpeg     binary
@@ -31,6 +34,16 @@
 *.npy      binary
 *.pkl      binary
 
-# always LF, regardless of core.autocrlf
+# Always LF, whatever core.autocrlf says: scripts break with CRLF.
 *.sh       text eol=lf
 Makefile   text eol=lf
+
+# PDFs diffed as their text (turn on [diff "pdf"] in diff.gitconfig too).
+#*.pdf      diff=pdf
+
+# Word documents diffed as their text (turn on [diff "docx"] in diff.gitconfig too).
+#*.docx     diff=docx
+
+# Minified files and lock files: no diff text, marked as generated.
+#*.min.js   -diff linguist-generated
+#*.lock     -diff linguist-generated

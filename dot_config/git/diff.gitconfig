@@ -1,35 +1,99 @@
-# diff.gitconfig -- diff algorithm, rename detection, and the tools
-# `git difftool` / `git mergetool` open.
+# diff.gitconfig -- how diffs are computed and shown, and the programs
+# `git difftool` and `git mergetool` open.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# For one machine only, put the line in ~/.gitconfig.local instead.
 
 [diff]
-    algorithm = histogram           # better hunks than the default myers
-    colorMoved = default            # moved lines in a different color from changed ones
+    # The histogram algorithm: hunks that follow the code's structure better
+    # than the default myers.
+    algorithm = histogram
+
+    # Moved lines in their own color, even when re-indented.
+    colorMoved = default
     colorMovedWS = allow-indentation-change
-    renames = copies                # detect renames and copies
-    mnemonicPrefix = true           # i/ w/ c/ prefixes instead of a/ b/
+
+    # Detect renamed and copied files.
+    renames = copies
+
+    # i/ w/ c/ prefixes (index, working tree, commit) instead of a/ b/.
+    mnemonicPrefix = true
+
+    # No a/ b/ prefixes at all, so paths in a diff can be copied as they are.
+    # Breaks `git apply` of patches made with it by people without the setting.
+    #noprefix = true
+
+    # Submodule changes shown as their commit log, not a bare hash change.
+    #submodule = log
+
+    # git difftool opens vimdiff, without asking for each file.
     tool = vimdiff
 
+    # difftastic, a diff that understands the syntax of most languages,
+    # for every git diff.
+    # Needs: difft
+    #external = difft
+
 [difftool]
+    # No "Launch vimdiff?" question per file.
     prompt = false
 
 [difftool "vimdiff"]
+    # vimdiff means vim -d on the two versions.
     cmd = vim -d "$LOCAL" "$REMOTE"
 
 [merge]
+    # git mergetool opens vimdiff.
     tool = vimdiff
 
 [mergetool]
+    # No question per file, and no .orig files left after a merge.
     prompt = false
-    keepBackup = false              # no .orig files after a merge
+    keepBackup = false
 
 [mergetool "vimdiff"]
+    # Local, base and remote on top; the merged result below.
     layout = "LOCAL,BASE,REMOTE / MERGED"
 
-# delta, if installed: syntax-highlighted side-by-side diffs
-# [core]
-#     pager = delta
-# [interactive]
-#     diffFilter = delta --color-only
-# [delta]
-#     navigate = true
-#     side-by-side = true
+# delta: syntax-colored, side-by-side diffs with line numbers; n and N jump
+# between files.
+# Needs: delta
+#[core]
+    #pager = delta
+#[interactive]
+    #diffFilter = delta --color-only
+#[delta]
+    #navigate = true
+    #side-by-side = true
+    #line-numbers = true
+
+# diff-so-fancy: plain diffs made readable, words changed highlighted.
+# Needs: diff-so-fancy
+#[core]
+    #pager = diff-so-fancy | less --tabs=4 -RFX
+
+# meld as the diff and merge tool (graphical).
+# Needs: meld
+#[diff]
+    #tool = meld
+#[merge]
+    #tool = meld
+
+# VS Code as the diff and merge tool.
+# Needs: code
+#[difftool "vscode"]
+    #cmd = code --wait --diff "$LOCAL" "$REMOTE"
+#[mergetool "vscode"]
+    #cmd = code --wait "$MERGED"
+
+# PDFs diffed as their text (with *.pdf diff=pdf in attributes).
+# Needs: pdftotext
+#[diff "pdf"]
+    #textconv = pdftotext -layout -q -nopgbrk -
+
+# Word documents diffed as their text (with *.docx diff=docx in attributes).
+# Needs: pandoc
+#[diff "docx"]
+    #textconv = pandoc --to=plain

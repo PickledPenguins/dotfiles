@@ -28,3 +28,20 @@ return 1 if wanted else 0 ||| return 0
 if entry.target == p or p in entry.target.parents: ||| if entry.target == p:
 if not link.startswith(str(src) + os.sep) or os.path.exists(link): ||| if not link.startswith(str(src) + os.sep):
 if root.is_dir() and not root.is_symlink(): ||| if False:
+if OPTIONS_TAG not in text: ||| if False:
+if not option.summary or args.state not in (None, option.state): ||| if not option.summary:
+if not option.summary or args.state not in (None, option.state): ||| if args.state not in (None, option.state):
+if all(word in haystack for word in words): ||| if any(word in haystack for word in words) or not words:
+haystack = "\n".join([entry.rel, *option.doc, *option.code]).lower() ||| haystack = "\n".join([*option.doc, *option.code]).lower()
+first, rest = (text[0], text[1:] + option.code) if args.full else (option.summary, []) ||| first, rest = (option.summary, [])
+return 0 if found else 1 ||| return 0
+except (OSError, UnicodeDecodeError): ||| except OSError:
+name = name[:-len(".off")] if name.endswith(".off") else name ||| pass
+if name == ".vimrc" or name.endswith(".vim"): ||| if name.endswith(".vim"):
+return "!" if name == ".Xresources" else "#" ||| return "#"
+text = " ".join(d for d in self.doc if d and not d.startswith("Needs:")) ||| text = " ".join(d for d in self.doc if d)
+return sentence if len(sentence) <= 100 else sentence[:97].rsplit(" ", 1)[0] + "..." ||| return sentence
+if not line or (number == 1 and line.startswith("#!")): ||| if not line:
+if line.startswith(marker) and (not rest or rest[0].isspace() or rest[0] == marker): ||| if line.startswith(marker) and (not rest or rest[0].isspace()):
+state = "off" if line.startswith(marker) else "on" ||| state = "on"
+if doc or current is None or current.state != state: ||| if doc or current is None:

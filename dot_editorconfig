@@ -1,26 +1,46 @@
-# ~/.editorconfig -- indentation defaults for editors that support it (vim 9+,
-# VS Code, JetBrains ...).  A project's own .editorconfig overrides this
-# because search stops at the first file with root = true.
+# ~/.editorconfig -- indentation defaults for editors that read EditorConfig
+# (vim 9+, neovim, VS Code, JetBrains).  A project without its own
+# .editorconfig gets these; a project's file with root = true replaces them.
+# Comments must be on their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# The search for .editorconfig files stops here.
 root = true
 
 [*]
+# UTF-8, LF line endings, a final newline, no trailing spaces.
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+# Two-space indentation by default.
 indent_style = space
 indent_size = 2
 
+# Editors that support it mark or wrap lines at 100 columns.
+#max_line_length = 100
+
 [*.{py,rs,java,c,cpp,h,sh,bash}]
+# Four spaces for python, rust, java, C, C++ and shell.
 indent_size = 4
 
 [{Makefile,makefile,*.mk,*.go}]
+# Real tabs for make and go, which require or expect them.
 indent_style = tab
 indent_size = 8
 
 [*.md]
-# two trailing spaces are a line break
+# Markdown keeps trailing spaces: two at the end of a line are a line break.
 trim_trailing_whitespace = false
 
 [*.{yml,yaml,json,toml}]
+# Two spaces for data files.
 indent_size = 2
+
+# Windows batch files keep CRLF line endings.
+#[*.{bat,cmd}]
+#end_of_line = crlf

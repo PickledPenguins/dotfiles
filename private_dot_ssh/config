@@ -1,29 +1,124 @@
-# ~/.ssh/config -- defaults for every host.  Host entries go in
-# ~/.ssh/config.local (never committed); it is read first, so a Host block
-# there wins over the defaults below (ssh uses the first value it finds).
+# ~/.ssh/config -- defaults for every host.  Your hosts go in
+# ~/.ssh/config.local (never committed), which is read first: ssh keeps the
+# first value it finds for each setting, so a Host block there wins over
+# the defaults here.
 #
-#   Host work
-#       HostName login.cluster.example.edu
-#       User charris
-#       IdentityFile ~/.ssh/id_ed25519_work
-#       ForwardAgent yes
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# `ssh -G HOST` prints the settings that apply to HOST.
 
+# Your hosts first: ~/.ssh/config.local, then every file in ~/.ssh/config.d/.
 Include ~/.ssh/config.local
 Include ~/.ssh/config.d/*
 
+# ── Examples: copy into ~/.ssh/config.local and fill in ──────────────────
+
+# A cluster login node under a short name: `ssh work`, `scp f work:`.
+#Host work
+    #HostName login.cluster.example.edu
+    #User yourname
+    #IdentityFile ~/.ssh/id_ed25519_work
+    #ForwardAgent yes
+
+# A host behind a bastion: ssh jumps through the bastion by itself.
+#Host inner
+    #HostName inner.example.edu
+    #ProxyJump bastion.example.edu
+
+# GitHub over port 443, for networks that block port 22.
+#Host github.com
+    #HostName ssh.github.com
+    #Port 443
+    #User git
+
+# A Jupyter server on a remote machine, reached at localhost:8888 here
+# while the ssh session is open.
+#Host jupyter
+    #HostName compute.example.edu
+    #LocalForward 8888 localhost:8888
+
+# ── Defaults for every host ───────────────────────────────────────────────
+
 Host *
-    AddKeysToAgent yes            # first use adds the key to the agent; no more passphrase prompts
-    IdentitiesOnly yes            # offer only the configured key, not everything in the agent
-    ServerAliveInterval 60        # keepalive through NAT and idle timeouts ...
-    ServerAliveCountMax 3         # ... give up after 3 missed replies
+    # The first time a key is used it is added to the agent, so its
+    # passphrase is asked once per agent, not per connection.
+    AddKeysToAgent yes
+
+    # Offer only the key configured for a host, not every key in the agent:
+    # servers that allow few attempts do not lock you out.  Hosts that
+    # relied on agent keys need an IdentityFile line.
+    IdentitiesOnly yes
+
+    # Keepalive every 60 s, so NAT routers and idle timeouts do not drop the
+    # connection; give up after 3 unanswered.
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
     TCPKeepAlive yes
-    ControlMaster auto            # multiplex: the second ssh/scp to a host reuses the first connection
+
+    # Multiplexing: a second ssh, scp or git to a host reuses the first
+    # connection (no new login, no new two-factor prompt) and stays open 10
+    # minutes after the last one closes.
+    ControlMaster auto
     ControlPath ~/.ssh/sockets/%r@%h-%p
-    ControlPersist 10m            # keep the master open 10 min after the last session
-    HashKnownHosts no             # readable known_hosts (grep-able); yes for privacy
+    ControlPersist 10m
+
+    # known_hosts in plain text, so `grep host ~/.ssh/known_hosts` works;
+    # yes hides which hosts you visit from anyone who reads the file.
+    HashKnownHosts no
+
+    # A host's key is asked about the first time, and a changed key is refused.
     StrictHostKeyChecking ask
+
+    # New host keys are accepted without asking; a changed key is still
+    # refused.  Instead of the line above.
+    #StrictHostKeyChecking accept-new
+
+    # A server's other host keys are learned when it offers them, so a key
+    # rotation on the server does not look like an attack.
+    #UpdateHostKeys yes
+
+    # No ASCII-art picture of the host key.
     VisualHostKey no
-    Compression no                # slower on a LAN; yes over a slow link
-    ForwardAgent no               # opt in per host; a compromised host could use the agent
+
+    # No compression: slower on a fast network; yes helps over a slow link.
+    Compression no
+
+    # No agent forwarding by default: anyone with root on the remote host
+    # could use your keys while you are connected.  Turn it on per host.
+    ForwardAgent no
+
+    # No X11 forwarding by default (ssh -X per connection, or per host).
     ForwardX11 no
-    # ProxyJump bastion           # per-host in config.local
+
+    # Give up connecting after 10 s instead of the system's TCP timeout
+    # (often two minutes).
+    #ConnectTimeout 10
+
+    # IPv4 only: fixes slow connections where IPv6 is advertised but broken.
+    #AddressFamily inet
+
+    # Skip Kerberos (GSSAPI) authentication, which stalls logins for seconds
+    # on networks without Kerberos.
+    #GSSAPIAuthentication no
+
+    # No "Warning: Permanently added ... to the list of known hosts".
+    #LogLevel ERROR
+
+    # Tell the remote side TERM=xterm-256color: fixes "unknown terminal
+    # type" and broken keys on hosts that lack your terminal's terminfo
+    # (xterm-kitty, alacritty, foot).  Needs OpenSSH 8.7+ at both ends.
+    #SetEnv TERM=xterm-256color
+
+    # Send your locale, so remote programs print UTF-8 (the server must
+    # AcceptEnv it; Debian's does).
+    #SendEnv LANG LC_*
+
+    # An ssh -L or -R that cannot open its port ends the connection instead
+    # of carrying on without it.
+    #ExitOnForwardFailure yes
+
+    # Allow the old ssh-rsa (SHA-1) signatures that very old servers still
+    # need.  Weaker; enable per host rather than here.
+    #HostKeyAlgorithms +ssh-rsa
+    #PubkeyAcceptedAlgorithms +ssh-rsa

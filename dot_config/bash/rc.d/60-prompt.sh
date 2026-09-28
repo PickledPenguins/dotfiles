@@ -1,14 +1,21 @@
-# 60-prompt.sh -- the bash-prompt-toolkit prompt.
+# 60-prompt.sh -- the prompt, drawn by bash-prompt-toolkit.
 #
-# prompt.sh and lib/ under ~/.config/bash/prompt/ are a vendored snapshot of
-# bash-prompt-toolkit (version in their headers); do not edit them here.
-# layout.sh is the configuration: which segments, which rows, which box.
+# prompt.sh and lib/ under ~/.config/bash/prompt/ are a vendored copy of
+# bash-prompt-toolkit (the version is in their headers); do not edit them
+# here.  layout.sh beside them is the configuration: which pieces of
+# information, on which rows, in which box -- every piece is listed there
+# with a description.
 #
-# Too heavy for a slow login node?  Disable this module (echo prompt >>
-# ~/.config/bash/disabled) and enable 61-prompt-simple instead.
+# Too slow on a busy login node?  Turn this module off
+# (echo prompt >> ~/.config/bash/disabled) and 61-prompt-simple on.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
 #
 # Knobs (set in ~/.bashrc.before):
-#   DOTFILES_PROMPT_LAYOUT   layout name from layout.sh: box, hpc, minimal   default: box
+#   DOTFILES_PROMPT_LAYOUT   box (default), hpc or minimal -- see layout.sh
 
+# The toolkit, then the layout that says what it draws.
 source "$DOTFILES_BASH_DIR/prompt/prompt.sh"
 source "$DOTFILES_BASH_DIR/prompt/layout.sh"

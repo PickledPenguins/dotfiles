@@ -1,35 +1,54 @@
-" 40-files.vim -- swap, backup, undo and where they go.
+" 40-files.vim -- swap, backup and undo files, and what happens on read
+" and write.  All three kinds live under ~/.vim/tmp/, so a working tree never
+" collects .swp or ~ files.
 "
-" All three live under ~/.vim/tmp/ (created here) so a working tree never
-" gets .swp or ~ files.  Undo history persists across sessions.
-"
-" Knobs (set in ~/.vimrc.before):
-"   g:dotfiles_backup   0 = no backup copies (swap and undo stay)   default: 1
+" Each setting has its description in the comment above it.  A setting with
+" " directly in front of it ("set cursorcolumn) is off: delete that " to turn
+" it on, or add one to turn a setting off.  `dots options WORD` searches
+" every file.  For one machine only, put the line in ~/.vimrc.local instead.
 
+" ── Swap, backup, undo ──────────────────────────────────────────────────
+
+" Make ~/.vim/tmp/{swap,backup,undo} (mode 700) when missing.
 for s:d in ['swap', 'backup', 'undo']
   if !isdirectory(expand('~/.vim/tmp/' . s:d))
     call mkdir(expand('~/.vim/tmp/' . s:d), 'p', 0700)
   endif
 endfor
 
-set directory=~/.vim/tmp/swap//         " trailing // keys the name on the full path
+" Swap files (crash recovery, the "file is open elsewhere" warning) under
+" ~/.vim/tmp/swap; the trailing // names them after the full path.
+set directory=~/.vim/tmp/swap//
+
+" No swap files at all: no warning when a file is open twice, and no
+" recovery after a crash.
+"set noswapfile
+
+" A copy of the previous version of each file you save, in ~/.vim/tmp/backup.
 set backupdir=~/.vim/tmp/backup//
-if get(g:, 'dotfiles_backup', 1) | set backup | else | set nobackup | endif
-set writebackup                         " always a backup while writing
+set backup
+
+" A copy while writing only, deleted once the write succeeded.
+set writebackup
+
+" Undo history kept across sessions, 1000 steps per file.
 if has('persistent_undo')
   set undodir=~/.vim/tmp/undo//
   set undofile
   set undolevels=1000
 endif
 
-" never back up or write undo for secrets and temp files
+" No backup, undo or swap files and no viminfo for secrets and temporary
+" files: /tmp, /dev/shm, gpg files, ~/.ssh, pass stores.
 augroup dotfiles_nobackup
   autocmd!
   autocmd BufNewFile,BufRead /tmp/*,/dev/shm/*,*.gpg,*.asc,*/.ssh/*,*/pass.*/*
         \ setlocal nobackup nowritebackup noundofile noswapfile viminfo=
 augroup END
 
-" reopen a file at the last cursor position
+" ── Reading ─────────────────────────────────────────────────────────────
+
+" Reopen a file at the line where you left it (not for commit messages).
 augroup dotfiles_lastpos
   autocmd!
   autocmd BufReadPost *
@@ -38,14 +57,25 @@ augroup dotfiles_lastpos
         \ | endif
 augroup END
 
-" create missing parent directories on :w
+" ── Writing ─────────────────────────────────────────────────────────────
+
+" :w makes missing parent directories.
 augroup dotfiles_mkdir
   autocmd!
   autocmd BufWritePre * if !isdirectory(expand('<afile>:p:h')) | call mkdir(expand('<afile>:p:h'), 'p') | endif
 augroup END
 
-" strip trailing whitespace on write, except where it means something
+" Strip trailing whitespace on every write, except in markdown, diffs and
+" mail where it means something.  In a file that already had some, the
+" diff then shows those lines changed too.
 augroup dotfiles_trailing
   autocmd!
   autocmd BufWritePre * if &filetype !~# 'markdown\|diff\|mail' | let s:v = winsaveview() | keeppatterns %s/\s\+$//e | call winrestview(s:v) | endif
 augroup END
+
+" Save every changed buffer when vim loses focus (switching to another
+" window or tmux pane).
+"augroup dotfiles_autosave
+  "autocmd!
+  "autocmd FocusLost * silent! wall
+"augroup END

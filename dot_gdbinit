@@ -1,23 +1,77 @@
-# ~/.gdbinit -- gdb defaults.
-# command history across sessions
+# ~/.gdbinit -- gdb defaults.  Comments must be on their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# ── History and prompts ───────────────────────────────────────────────────
+
+# Command history kept across sessions, in ~/.cache/gdb_history.
 set history save on
 set history filename ~/.cache/gdb_history
 set history size 10000
-# no "Quit anyway?" prompts
+
+# Repeated commands are saved once.
+#set history remove-duplicates unlimited
+
+# No "Quit anyway? (y or n)" or other confirmations.
 set confirm off
-# never stop for --Type <RET>--
+
+# Output never stops at "--Type <RET> for more--".
 set pagination off
-# structs one member per line
+
+# Never ask whether to download debug information from debuginfod servers,
+# and never download it (offline, or on a cluster).
+#set debuginfod enabled off
+
+# Always download debug information from debuginfod, without asking.
+#set debuginfod enabled on
+
+# ── Printing ──────────────────────────────────────────────────────────────
+
+# Structures one member per line; arrays with their indexes.
 set print pretty on
 set print array on
 set print array-indexes on
-# show the real (derived) type
+
+# Objects printed as their real (derived) C++ type; static members left out;
+# every frame argument's value in backtraces.
 set print object on
 set print static-members off
 set print frame-arguments all
+
+# Strings and arrays printed in full instead of cut at 200 elements.
+#set print elements unlimited
+
+# Character arrays stop at the first NUL, as strings.
+#set print null-stop on
+
+# No "[New Thread ...]" and "[Inferior 1 exited]" lines.
+#set print thread-events off
+#set print inferior-events off
+
+# Assembly in Intel syntax instead of AT&T.
 set disassembly-flavor intel
-# breakpoints in not-yet-loaded libraries
+
+# ── Loading ───────────────────────────────────────────────────────────────
+
+# A breakpoint in a shared library not loaded yet is kept for when it loads.
 set breakpoint pending on
-# trust project .gdbinit files
+
+# Every directory's .gdbinit and gdb scripts are trusted and run.
 set auto-load safe-path /
-# add-auto-load-safe-path ~/work         # narrower alternative to the line above
+
+# Only your projects' .gdbinit files run, instead of every directory's
+# (turn the line above off).
+#add-auto-load-safe-path ~/work
+
+# ── Extensions ────────────────────────────────────────────────────────────
+
+# GEF: registers, stack and code on every stop, heap commands.
+# Needs: ~/.gef.py
+#source ~/.gef.py
+
+# gdb-dashboard: a full-screen overview of registers, stack, source and
+# variables.
+# Needs: ~/.gdb-dashboard
+#source ~/.gdb-dashboard

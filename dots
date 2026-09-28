@@ -16,14 +16,19 @@ Directories are created for real; every file is a symlink back into the
 source directory.  Entries whose name starts with "." (.git, .dotsignore)
 are never managed; .dotsignore lists further target paths to skip.
 
+`dots options` reads the settings back out of the configuration files that
+mention it: a comment directly above a setting describes it, and a setting
+whose comment character is followed directly by code ("#shopt -s x") is off.
+
 Exit status: 0 on success; 1 when apply leaves conflicts, status finds
-anything not ok, or forget names an unmanaged path; 2 for usage errors and
-a missing source directory.
+anything not ok, forget names an unmanaged path, or options matches
+nothing; 2 for usage errors and a missing source directory.
 """
 
 import argparse
 import fnmatch
 import os
+import re
 import shutil
 import stat
 import sys
@@ -251,6 +256,98 @@ def cmd_prune(args, src, home):
     return 0
 
 
+def cmd_options(args, src, home):
+    """List the options in every managed file that is written in the options format."""
+    words = [w.lower() for w in args.words]
+    found = 0
+    for entry in managed_entries(src, home):
+        try:
+            text = entry.source.read_text()
+        except (OSError, UnicodeDecodeError):       # unreadable or binary: not a config file
+            continue
+        if OPTIONS_TAG not in text:
+            continue
+        shown = []
+        for option in parse_options(text, comment_marker(entry.rel)):
+            if not option.summary or args.state not in (None, option.state):
+                continue
+            haystack = "\n".join([entry.rel, *option.doc, *option.code]).lower()
+            if all(word in haystack for word in words):
+                shown.append(option)
+        if shown:
+            print(f"~/{entry.rel}")
+        for option in shown:
+            text = [d for d in option.doc if d]
+            first, rest = (text[0], text[1:] + option.code) if args.full else (option.summary, [])
+            print(f"{option.line:>6}  {option.state:<3}  {first}")
+            for line in rest:
+                print(f"{'':13}{line}".rstrip())
+        found += len(shown)
+    return 0 if found else 1
+
+
+# ── the options format ────────────────────────────────────────────────────
+
+OPTIONS_TAG = "dots options"        # a file that mentions this is read by `dots options`
+
+
+def comment_marker(rel):
+    """The comment character of a target's format: vim script, X resources, else #.
+
+    A module switched off by an .off suffix keeps its format.
+    """
+    name = rel.rsplit("/", 1)[-1]
+    name = name[:-len(".off")] if name.endswith(".off") else name
+    if name == ".vimrc" or name.endswith(".vim"):
+        return '"'
+    return "!" if name == ".Xresources" else "#"
+
+
+class Option:
+    """One setting in a configuration file: its description, its code, on or off."""
+
+    def __init__(self, line, doc, state):
+        self.line, self.doc, self.state, self.code = line, doc, state, []
+
+    @property
+    def summary(self):
+        """The description's first sentence, Needs: lines left out, at most 100 characters."""
+        text = " ".join(d for d in self.doc if d and not d.startswith("Needs:"))
+        match = re.match(r"(.*?[\w)\]'\"`][.!?])(\s|$)", text)
+        sentence = match.group(1) if match else text
+        return sentence if len(sentence) <= 100 else sentence[:97].rsplit(" ", 1)[0] + "..."
+
+
+def parse_options(text, marker):
+    """Split a configuration file into options.
+
+    A comment line whose marker is followed by a space, or by nothing, is
+    description.  One whose marker is followed directly by code is a setting
+    switched off: "#shopt -s histverify".  Description attaches to the code
+    right below it and a blank line ends an option.  Code with nothing above
+    it -- a [section] header, the line after a switched-off one -- comes back
+    with an empty description.
+    """
+    options, doc, current = [], [], None
+    for number, raw in enumerate(text.splitlines(), 1):
+        line = raw.strip()
+        if not line or (number == 1 and line.startswith("#!")):
+            doc, current = [], None
+            continue
+        rest = line[len(marker):]
+        if line.startswith(marker) and (not rest or rest[0].isspace() or rest[0] == marker):
+            doc.append(rest.strip())
+            current = None
+            continue
+        state = "off" if line.startswith(marker) else "on"
+        if doc or current is None or current.state != state:
+            current = Option(number, doc, state)
+            options.append(current)
+            doc = []
+        current.code.append(raw)
+    return options
+
+
 def source_name(rel_path, private, executable):
     """Build the source-relative path for a target path, adding attribute prefixes."""
     parts = []
@@ -365,6 +462,14 @@ def main(argv=None):
     p = sub.add_parser("prune", help="remove dangling symlinks into the source tree")
     p.add_argument("-n", "--dry-run", action="store_true", help="print the removals, change nothing")
     p.set_defaults(func=cmd_prune)
+
+    p = sub.add_parser("options", help="list the settings in the configuration files, on and off")
+    p.add_argument("words", nargs="*", help="only options whose file, description or code has every word")
+    state = p.add_mutually_exclusive_group()
+    state.add_argument("--on", dest="state", action="store_const", const="on", help="only settings that are on")
+    state.add_argument("--off", dest="state", action="store_const", const="off", help="only settings that are off")
+    p.add_argument("-f", "--full", action="store_true", help="also print each description in full and its code")
+    p.set_defaults(func=cmd_options)
 
     args = parser.parse_args(argv)
     src = Path(args.source).resolve() if args.source else source_dir()

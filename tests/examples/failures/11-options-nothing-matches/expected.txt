@@ -1,0 +1,4 @@
+exit 1
+usage: dots options [-h] [--on | --off] [-f] [words ...]
+dots options: error: argument --off: not allowed with argument --on
+exit 2

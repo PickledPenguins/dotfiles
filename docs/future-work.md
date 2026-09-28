@@ -27,7 +27,7 @@ here is scheduled; an item is cited by its label.  Back to the
   edit-the-live-file property that symlinks give.
 - **F.1.e  chezmoi in symlink mode.**  Rejected.  It would give `add`,
   `diff` and templating for the cost of a Go binary on every login node;
-  the whole of `dots` is ~370 lines of stdlib Python and python3 is already
+  the whole of `dots` is ~450 lines of stdlib Python and python3 is already
   there.
 
 ## F.2 configuration
@@ -46,6 +46,25 @@ here is scheduled; an item is cited by its label.  Back to the
 - **F.2.d  BSD/macOS aliases.**  The `ls`/`rm`/`ss` aliases assume GNU;
   only `CLICOLOR` is set otherwise.  Untested here (no such machine), so
   left as a known limit rather than a guess.
+- **F.2.e  More tools in the catalog.**  Not shipped because nothing here
+  uses them and each new file is one more link in every home: neovim
+  (`~/.config/nvim/init.vim` sourcing `~/.vimrc` would need its own undo
+  and swap directories, since vim's and neovim's files are incompatible),
+  alacritty, wezterm, starship, psql, R, npm, lazygit, bat.  Add one as a
+  file in the options format with a loader in `tests/test_options.py`.
+  htop is not a candidate: it rewrites its own config on exit, which would
+  rewrite the repository's file.
+- **F.2.f  Per-machine opt-out of whole files.**  `.dotsignore` is
+  committed, so a file you never want linked on one machine (the kitty
+  config on a server) is still linked there; harmless, since a program that
+  is not installed never reads it, and every setting in the four
+  catalog-only files is off.  A `~/.config/dots/ignore` read by `dots`
+  would fix it; not built until a file does harm somewhere.
+- **F.2.g  Exercising settings, not just loading them.**  The switch-on
+  test proves each setting loads; it does not prove an alias's program
+  exists or a key binding does what its description says.  Doing that is
+  one assertion per setting, by hand; the integration tests do it for the
+  settings that are on by default.
 
 ## F.3 tests
 

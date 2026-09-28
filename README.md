@@ -1,8 +1,9 @@
 # dotfiles
 
-A home directory in git: bash, vim, tmux, git, readline and the rest as
-single-purpose modules with knobs, and `dots`, a chezmoi-alike that symlinks
-them into `$HOME`.
+A home directory in git: bash, vim, tmux, git, readline, kitty and the rest
+as single-purpose modules, every setting described in place and the common
+alternatives there too, switched off; and `dots`, a chezmoi-alike that
+symlinks them into `$HOME` and lists the settings.
 
 ## What it does
 
@@ -14,6 +15,14 @@ tool's entry point is a loader that reads numbered modules -- one concern
 each, switched off by an `.off` rename or a per-machine list -- and two hook
 files, one before the modules for knobs and one after for overrides.
 Identity and secrets never enter the repository.
+
+Nothing needs looking up: each file carries the options people commonly
+want for its tool -- about 640 on and 420 off -- each with a description
+of what it does, what it costs and when not to use it.  A setting written
+with its comment character directly in front (`#shopt -s histverify`) is
+off; delete that character to turn it on.  `dots options WORD` finds a
+setting in any file.  Every one that is off is tested to load once
+switched on.
 
 For one person's machines, including HPC login nodes: `dots` is a
 stdlib-only Python 3 script, nothing else is required to install.  It does
@@ -96,9 +105,11 @@ set nu
 ~/.vimrc is a link
 ```
 
-Turn a module off, or tune one:
+Find a setting and switch it, turn a module off, or tune one:
 
 ```sh
+dots options history                           # every setting that mentions history, on and off
+dots options --off -f tmux                     # tmux's offered settings in full
 echo conda >> ~/.config/bash/disabled          # this machine only
 echo 'DOTFILES_PROMPT_LAYOUT=minimal' >> ~/.bashrc.before
 DOTFILES_DEBUG=1 bash -i -c true               # each module and its load time
@@ -110,12 +121,12 @@ DOTFILES_DEBUG=1 bash -i -c true               # each module and its load time
 - [docs/lifecycle.md](docs/lifecycle.md) -- what `dots apply`, `add` and `forget` do step by step; the order a shell, vim, tmux, git and ssh read their files
 - [docs/cli.md](docs/cli.md) -- every `dots` command, flag, exit code, environment variable
 - [docs/usage.md](docs/usage.md) -- bootstrapping a used machine, importing a home, per-machine settings, reorganizing, scripts, troubleshooting
-- [docs/configuration.md](docs/configuration.md) -- every knob, hook file, module and dotfile, with defaults
+- [docs/configuration.md](docs/configuration.md) -- the options format, every knob, hook file, module and dotfile, with defaults
 - [docs/architecture.md](docs/architecture.md) -- file tree, the bands of `dots`, decisions and their reasons, extension points, limits
 - [docs/testing.md](docs/testing.md) -- suites, gates, coverage and mutation numbers, the documentation test
 - [docs/contributing.md](docs/contributing.md) -- where a change goes, what enforces what, recipes
 - [docs/future-work.md](docs/future-work.md) -- known gaps and what was deliberately not built
-- [tests/examples/README.md](tests/examples/README.md) -- the example catalog: 43 runnable cases
+- [tests/examples/README.md](tests/examples/README.md) -- the example catalog: 46 runnable cases
 - [CLAUDE.md](CLAUDE.md) -- instructions for the coding agent
 
 No changelog: the git log is the record.

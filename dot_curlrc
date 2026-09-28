@@ -1,17 +1,56 @@
-# ~/.curlrc -- defaults for every curl call.  A flag on the command line wins.
-# follow redirects
+# ~/.curlrc -- defaults for every curl call; an option on the command line
+# wins.  `curl -q` as the first option skips this file.  Comments must be on
+# their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# Follow redirects (301, 302 ...) to the final page.
 --location
-# give up connecting after 15 s
+
+# Give up connecting after 15 s, and the whole transfer after 5 minutes.
 --connect-timeout 15
-# ... and transferring after 5 min
 --max-time 300
-# retry transient errors
+
+# Retry transient failures (timeouts, 5xx) 3 times, 2 s apart.
 --retry 3
 --retry-delay 2
-# with -s, still print errors
+
+# With -s (silent), still print the error when something fails.
 --show-error
-# a bar instead of the stats table
+
+# A progress bar instead of the statistics table, for downloads to a file.
 --progress-bar
-# --silent                    # no progress at all
-# --user-agent "curl"         # some servers block the default UA string
-# --proxy http://proxy:3128   # site proxy; or set http_proxy in ~/.bashrc.local
+
+# No progress output at all.
+#--silent
+
+# Ask for compressed responses and decompress them: smaller transfers.
+#--compressed
+
+# An HTTP error (404, 500) makes curl fail with exit 22 instead of printing
+# the error page and succeeding.  Scripts then notice.
+#--fail
+
+# A newline after the output, so the prompt does not land at the end of a
+# response that lacks one.
+#--write-out "\n"
+
+# Downloaded files keep the server's modification time.
+#--remote-time
+
+# -o makes missing directories in the output path.
+#--create-dirs
+
+# Use ~/.netrc for logins when it has one for the host.
+#--netrc-optional
+
+# IPv4 only, where IPv6 is advertised but broken.
+#--ipv4
+
+# A plain User-Agent, for servers that block curl's default one.
+#--user-agent "Mozilla/5.0"
+
+# A proxy for every request (or set https_proxy in ~/.bashrc.local).
+#--proxy http://proxy.example.com:3128

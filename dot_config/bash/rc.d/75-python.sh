@@ -1,22 +1,37 @@
-# 75-python.sh -- python conveniences.  $PYTHONSTARTUP is set in 00-env.sh.
+# 75-python.sh -- python conveniences.  $PYTHONSTARTUP and the bytecode
+# settings are in 00-env.sh.  Nothing here when python3 is missing.
 #
-#   venv [DIR]     create DIR (default .venv) if missing, then activate it
-#   deactivate     as provided by the venv itself
-#   py             python3
-#   pipup          upgrade every outdated package in the active environment
+#   venv [DIR]   create DIR (default .venv) if missing, then activate it
+#   deactivate   leave it (defined by the venv itself)
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+# For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
-#   DOTFILES_VENV_DIR    default venv directory name                     default: .venv
-#   DOTFILES_VENV_AUTO   1 = activate/deactivate .venv on cd (one stat per prompt)  default: 0
+#   DOTFILES_VENV_DIR    default venv directory name   default: .venv
 
+# Nothing to do without python3.
 command -v python3 >/dev/null || return 0
 
+# py: python3; pyv: its version.
 alias py='python3'
 alias pyv='python3 --version'
-alias pipup='python3 -m pip list --outdated --format=freeze | cut -d= -f1 | xargs -r -n1 python3 -m pip install -U'
-alias pyclean='find . -type d -name __pycache__ -prune -exec rm -rf {} + ; find . -name "*.pyc" -delete'
-alias json='python3 -m json.tool'               # pretty-print:  curl ... | json
 
+# pipup: upgrade every outdated package in the active environment.
+alias pipup='python3 -m pip list --outdated --format=freeze | cut -d= -f1 | xargs -r -n1 python3 -m pip install -U'
+
+# pyclean: delete __pycache__ directories and .pyc files below here.
+alias pyclean='find . -type d -name __pycache__ -prune -exec rm -rf {} + ; find . -name "*.pyc" -delete'
+
+# json: pretty-print JSON from stdin or a file:  curl -s URL | json
+alias json='python3 -m json.tool'
+
+# pt: pytest through the active python, quiet.
+alias pt='python3 -m pytest -q'
+
+# venv [DIR] -- create DIR (default .venv, or the knob) if missing, then activate it.
 venv() {
     local dir="${1:-${DOTFILES_VENV_DIR:-.venv}}"
     [[ -d "$dir" ]] || python3 -m venv "$dir" || return
@@ -24,16 +39,41 @@ venv() {
     source "$dir/bin/activate"
 }
 
-# Auto-activate a .venv when entering a directory that has one (and leave it
-# when leaving).  Off unless DOTFILES_VENV_AUTO=1: it adds a stat per prompt.
-if [[ "${DOTFILES_VENV_AUTO:-0}" == 1 ]]; then
-    _venv_auto() {
-        local dir="${DOTFILES_VENV_DIR:-.venv}"
-        if [[ -f "$dir/bin/activate" && "$VIRTUAL_ENV" != "$PWD/$dir" ]]; then
-            source "$dir/bin/activate"
-        elif [[ -n "${VIRTUAL_ENV-}" && "$PWD" != "${VIRTUAL_ENV%/*}"* ]]; then
-            deactivate
-        fi
-    }
-    PROMPT_COMMAND="_venv_auto${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
-fi
+# The function for the setting below: activate ./.venv when there is one,
+# deactivate after leaving its project.  Hands the exit status on for the
+# prompt.
+_venv_auto() {
+    local status=$? dir="${DOTFILES_VENV_DIR:-.venv}"
+    if [[ -f "$dir/bin/activate" && "${VIRTUAL_ENV-}" != "$PWD/$dir" ]]; then
+        source "$dir/bin/activate"
+    elif [[ -n "${VIRTUAL_ENV-}" && "$PWD" != "${VIRTUAL_ENV%/*}"* ]]; then
+        deactivate
+    fi
+    return "$status"
+}
+
+# Activate a project's .venv on entering it and deactivate on leaving,
+# checked at every prompt (one file test each).
+#PROMPT_COMMAND="_venv_auto${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+
+# pip refuses to install anything outside a virtual environment (a conda
+# environment counts), so nothing lands in the system or user site by
+# mistake.  Once, anywhere: PIP_REQUIRE_VIRTUALENV=0 pip install ...
+#export PIP_REQUIRE_VIRTUALENV=true
+
+# breakpoint() opens ipdb (IPython's debugger: colors, Tab completion)
+# instead of pdb.  Needs the ipdb package in the environment that runs.
+#export PYTHONBREAKPOINT=ipdb.set_trace
+
+# The plain REPL of python 3.12 and older in 3.13+: the new one ignores
+# readline, so ~/.inputrc and pythonrc.py's completion setup do nothing there.
+#export PYTHON_BASIC_REPL=1
+
+# ipy: IPython, when installed.
+command -v ipython >/dev/null && alias ipy='ipython'
+
+# jl / jn: Jupyter Lab / Notebook in this directory, when installed.
+command -v jupyter >/dev/null && alias jl='jupyter lab' jn='jupyter notebook'
+
+# uv's own Tab completion, when uv is installed (a few ms per shell).
+command -v uv >/dev/null && eval "$(uv generate-shell-completion bash)"

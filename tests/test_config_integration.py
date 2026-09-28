@@ -84,7 +84,7 @@ def test_off_suffix_module_is_linked_but_not_loaded(linked):
 
 def test_before_sets_knobs_and_local_overrides(linked):
     proc = bash(linked, "echo $HISTSIZE; alias ll; shopt autocd | cut -f2",
-                before="DOTFILES_HISTSIZE=123\nDOTFILES_AUTOCD=0\n", local="alias ll='echo local'\n")
+                before="DOTFILES_HISTSIZE=123\n", local="alias ll='echo local'\nshopt -u autocd\n")
     assert proc.stdout == "123\nalias ll='echo local'\noff\n"
 
 
@@ -103,10 +103,10 @@ def test_options_module_history_and_shopts(linked):
     assert proc.stdout == "ignoreboth:erasedups\non\non\non\nshared\n"
 
 
-def test_options_module_opinionated_knobs_default_off(linked):
+def test_options_module_opinionated_options_default_off(linked):
     proc = bash(linked, "set -o | grep -E '^(noclobber|pipefail)' | awk '{print $2}'; shopt dotglob | awk '{print $2}'")
     assert proc.stdout == "off\noff\noff\n"
-    proc = bash(linked, "set -o | grep -E '^noclobber' | awk '{print $2}'", before="DOTFILES_NOCLOBBER=1\n")
+    proc = bash(linked, "set -o | grep -E '^noclobber' | awk '{print $2}'", local="set -o noclobber\n")
     assert proc.stdout == "on\n"
 
 
@@ -139,8 +139,8 @@ def test_aliases_module(linked):
     assert proc.stdout == "'ls -alFh'\n'ls -A'\n'cd ..'\n'rm -I'\n'git status -sb'\n"
 
 
-def test_aliases_safe_rm_knob(linked):
-    proc = bash(linked, "alias rm cp mv 2>&1 | head -1", before="DOTFILES_SAFE_RM=0\n")
+def test_aliases_safe_rm_switched_off_per_machine(linked):
+    proc = bash(linked, "alias rm cp mv 2>&1 | head -1", local="unalias rm cp mv\n")
     assert "not found" in proc.stdout
 
 
@@ -284,10 +284,9 @@ def test_vim_modules_each_leave_a_setting(linked):
 
 @needs("vim")
 def test_vim_knobs_from_vimrc_before(linked):
-    out = vim(linked, "set shiftwidth?", "set expandtab?", "set relativenumber?", "set foldmethod?",
-              before="let g:dotfiles_indent = 4\nlet g:dotfiles_tabs = 1\nlet g:dotfiles_relativenumber = 1\n"
-                     "let g:dotfiles_foldmethod = 'marker'\n")
-    assert out.splitlines() == ["shiftwidth=4", "noexpandtab", "relativenumber", "foldmethod=marker"]
+    out = vim(linked, "set shiftwidth?", "set foldmethod?", "set expandtab?",
+              before="let g:dotfiles_indent = 4\nlet g:dotfiles_foldmethod = 'marker'\n")
+    assert out.splitlines() == ["shiftwidth=4", "foldmethod=marker", "expandtab"]
 
 
 @needs("vim")
@@ -453,3 +452,73 @@ def test_nanorc_has_no_unknown_options(linked):
     proc = subprocess.run(["nano", "--rcfile", str(linked / ".nanorc"), "--version"],
                           capture_output=True, text=True, timeout=10)
     assert "Unknown" not in proc.stderr and "Error" not in proc.stderr
+
+
+# ── on a real terminal ────────────────────────────────────────────────────
+
+
+def pty_session(home, typed, before="", local="", seconds=3.0):
+    """An interactive bash on a pseudo-terminal: wait for the first prompt,
+    type each line of `typed`, and return everything the terminal received.
+    Pipes would take the other branch of every is-a-terminal check (65-title
+    installs nothing without one)."""
+    import pty
+    import select
+    import time
+    (home / ".bashrc.before").write_text(before)
+    (home / ".bashrc.local").write_text(local)
+    pid, fd = pty.fork()
+    if pid == 0:                                     # pragma: no cover -- the child
+        os.chdir(str(home))
+        env = {k: v for k, v in os.environ.items() if k not in ("PROMPT_COMMAND", "DOTFILES_DIR", "TMUX")}
+        env.update(HOME=str(home), TERM="xterm-256color")
+        os.execvpe("bash", ["bash", "--rcfile", str(home / ".bashrc"), "-i"], env)
+    out, sent, deadline = b"", False, time.time() + seconds
+    while time.time() < deadline:
+        ready, _, _ = select.select([fd], [], [], 0.05)
+        if ready:
+            try:
+                out += os.read(fd, 65536)
+            except OSError:
+                break
+        if not sent and b"$ " in out:
+            for line in typed:
+                os.write(fd, line.encode() + b"\r")
+                time.sleep(0.4)
+            sent = True
+    os.kill(pid, 9)
+    os.waitpid(pid, 0)
+    os.close(fd)
+    return out.decode(errors="replace")
+
+
+def test_prompt_shows_a_failed_command_even_with_the_title_module(linked):
+    # 65-title's hook runs before prompt_build and used to hand it its own
+    # exit status, so the prompt said ✓ after `false` on every terminal.
+    screen = pty_session(linked, ["false"], before="DOTFILES_PROMPT_LAYOUT=minimal\n")
+    assert "\x1b]0;" in screen                      # the title module is active
+    assert "✗ 1" in screen
+
+
+def test_title_shows_the_running_command_when_switched_on(linked):
+    line = next(l for l in (REPO / "dot_config/bash/rc.d/65-title.sh").read_text().splitlines()
+                if l.startswith("#PROMPT_COMMAND="))
+    screen = pty_session(linked, ["sleep 0.2", "trap -p DEBUG", "false"],
+                         before="DOTFILES_PROMPT_LAYOUT=minimal\n", local=line[1:] + "\n")
+    assert "\x1b]0;sleep 0.2\x07" in screen
+    assert "_cmd_timer_preexec; _title_command" in screen   # the prompt's timer trap is kept
+    assert "✗ 1" in screen                          # and the exit status still reaches the prompt
+
+
+def test_ssh_agent_module_starts_one_agent_and_later_shells_reuse_it(linked):
+    off = linked / ".config/bash/rc.d/25-ssh-agent.sh.off"
+    os.symlink(os.readlink(off), linked / ".config/bash/rc.d/25-ssh-agent.sh")
+    env = {"SSH_AUTH_SOCK": "", "SSH_AGENT_PID": ""}
+    first = bash(linked, "echo $SSH_AGENT_PID", env=env).stdout.strip()
+    try:
+        assert first.isdigit(), "no agent was started"          # used to think one was running
+        assert (linked / ".ssh" / "agent.env").is_file()
+        assert bash(linked, "echo $SSH_AGENT_PID", env=env).stdout.strip() == first
+    finally:
+        if first.isdigit():
+            os.kill(int(first), 15)

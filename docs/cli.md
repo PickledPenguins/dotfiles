@@ -22,7 +22,7 @@ makes `./dots` work from a fresh clone anywhere.
 
 Paths given to `apply`, `status` and `unlink` restrict them to targets equal
 to or below those paths; `add` and `forget` require paths; `managed` and
-`prune` take none.  Paths are made
+`prune` take none; `options` takes search words instead.  Paths are made
 absolute lexically (`~` expanded, `..` collapsed, symlinks not followed).
 
 ### `dots apply [-n] [--force] [paths...]`
@@ -108,6 +108,33 @@ alone.  `prune  target  ->  link` per removal, then
 
 Exit 0.
 
+### `dots options [--on | --off] [-f] [words...]`
+
+List the settings in the configuration files, on and off, so an option can
+be found without knowing which file holds it.  Reads every managed file that
+contains the text `dots options` (each file in this repository says it in
+its header) in the [options format](configuration.md#the-options-format):
+a comment directly above a setting describes it, and a setting whose
+comment character is followed directly by code (`#shopt -s histverify`,
+`"set relativenumber`) is off.  The comment character is `"` for `.vimrc`
+and `*.vim`, `!` for `.Xresources`, `#` for everything else.
+
+Output: the target (`~/.config/bash/rc.d/10-options.sh`), then one line per
+option: its line number, `on` or `off`, and the first line of its
+description.  Code with no description above it (a `[section]` header, the
+rest of an `if`) is not an option and is not listed.
+
+| Flag | Effect |
+|------|--------|
+| `words` | only options whose target path, description or code contains every word, case-insensitively |
+| `--on` | only settings that are on |
+| `--off` | only settings that are off |
+| `-f`, `--full` | also print the rest of each description and the setting's code, indented |
+
+Exit 0 when anything was listed, 1 when nothing matched.  To switch an
+option, open the file at the line shown (`vim +57 ~/.config/...`) and
+delete or add the comment character in front of the setting.
+
 ### `dots unlink [-n] [paths...]`
 
 Remove every symlink whose state is `ok`; real files, foreign links and
@@ -125,7 +152,7 @@ Exit 0.
 | Code | When |
 |------|------|
 | 0 | success |
-| 1 | `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path; an unhandled error (a traceback, e.g. an unreadable `.dotsignore`) |
+| 1 | `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path; `options` matched nothing; an unhandled error (a traceback, e.g. an unreadable `.dotsignore`) |
 | 2 | usage error (argparse), or the source directory does not exist |
 
 ## Environment

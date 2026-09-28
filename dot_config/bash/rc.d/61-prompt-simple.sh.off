@@ -1,13 +1,21 @@
-# 61-prompt-simple.sh -- plain one-line colored prompt with the git branch.
-# Enable by removing .off (and disabling 60-prompt); zero forks except one
-# `git` per prompt inside a repository.
+# 61-prompt-simple.sh -- a plain one-line colored prompt with the git branch:
 #
 #   user@host ~/dir (branch) $
 #
+# Off: 60-prompt draws the full prompt.  To use this one instead, turn
+# 60-prompt off (echo prompt >> ~/.config/bash/disabled) and drop the .off
+# suffix here.  No process is started per prompt except one git inside a
+# repository.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+#
 # Knobs (set in ~/.bashrc.before):
 #   DOTFILES_PROMPT_GIT    0 = no branch                 default: 1
-#   DOTFILES_PROMPT_COLOR  0 = no color                  default: auto-detect
+#   DOTFILES_PROMPT_COLOR  0/1 = color off/on            default: on when TERM says color
 
+# The branch (or the short commit when detached), in parentheses.
 _ps_simple_git() {
     [[ "${DOTFILES_PROMPT_GIT:-1}" == 1 ]] || return
     local b
@@ -15,14 +23,29 @@ _ps_simple_git() {
     printf ' (%s)' "$b"
 }
 
+# Color unless the knob says otherwise or the terminal cannot show it.
 _ps_color="${DOTFILES_PROMPT_COLOR-}"
 [[ -z "$_ps_color" && ( "$TERM" == *color* || -n "${COLORTERM-}" ) ]] && _ps_color=1
 
+# user@host in green, the directory in blue, the branch in yellow; # instead
+# of $ for root.  \[ \] around colors keep line editing aligned.
 if [[ "$_ps_color" == 1 ]]; then
-    # \[ \] mark non-printing sequences so readline counts the width right
     PS1='\[\e[1;32m\]\u@\h\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\]\[\e[33m\]$(_ps_simple_git)\[\e[0m\] \$ '
 else
     PS1='\u@\h \w$(_ps_simple_git) \$ '
 fi
-[[ $EUID == 0 ]] && PS1="${PS1/\\$ /# }"        # root gets # not $
+[[ $EUID == 0 ]] && PS1="${PS1/\\$ /# }"
 unset _ps_color
+
+# The time (HH:MM) at the start of the prompt.
+#PS1="\A $PS1"
+
+# Only the last directory name instead of the whole path: ~/work/proj/src
+# shows as src.
+#PS1="${PS1//\\w/\\W}"
+
+# Shorten a deep path to its last three directories: .../proj/src/lib.
+#PROMPT_DIRTRIM=3
+
+# The exit status of a failed command, in red, before the prompt.
+#PS1='$(s=$?; (( s )) && printf "\001\e[31m\002%s \001\e[0m\002" "$s")'"$PS1"

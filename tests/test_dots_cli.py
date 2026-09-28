@@ -321,7 +321,7 @@ def test_add_and_forget_require_a_path(home, src):
 def test_help_lists_every_subcommand(home, src):
     proc = run_subprocess(home, src, "--help")
     assert proc.returncode == 0
-    assert "{apply,status,managed,add,forget,unlink,prune}" in proc.stdout
+    assert "{apply,status,managed,add,forget,unlink,prune,options}" in proc.stdout
     assert "dot_config/git/config" in proc.stdout           # the naming spec from the docstring
 
 
@@ -415,3 +415,64 @@ def test_prune_with_nothing_managed(run, tmp_path, home):
     empty = tmp_path / "empty"
     empty.mkdir()
     assert run("prune", source=empty) == (0, "0 dangling link(s) removed\n", "")
+
+
+# ── options ───────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def configured(src):
+    """Two files in the options format and one that does not declare it."""
+    (src / "dot_bashrc").write_text(
+        "# dots options\n\n# Append to history.\nshopt -s histappend\n\n"
+        "# Verify history expansions.\n#   Costs an extra Enter.\n#shopt -s histverify\n\n#shopt -s bare\n")
+    (src / "dot_vimrc").write_text('" dots options\n\n" Relative numbers.\n"set relativenumber\n')
+    (src / "dot_config" / "app" / "settings.ini").write_text("# Not in the format.\nx = 1\n")
+    return src
+
+
+def test_options_lists_every_described_setting_by_file(run, configured):
+    code, out, err = run("options")
+    assert (code, err) == (0, "")
+    assert out.splitlines() == [
+        "~/.bashrc",
+        "     4  on   Append to history.",
+        "     8  off  Verify history expansions.",
+        "~/.vimrc",
+        "     4  off  Relative numbers.",
+    ]
+
+
+def test_options_words_must_all_match_file_description_or_code(run, configured):
+    assert run("options", "HISTORY", "extra")[1] == "~/.bashrc\n     8  off  Verify history expansions.\n"
+    assert run("options", "vimrc")[1] == "~/.vimrc\n     4  off  Relative numbers.\n"
+    assert run("options", "histappend")[1] == "~/.bashrc\n     4  on   Append to history.\n"
+
+
+def test_options_state_filters(run, configured):
+    assert run("options", "--on")[1] == "~/.bashrc\n     4  on   Append to history.\n"
+    assert [l for l in run("options", "--off")[1].splitlines() if " on " in l] == []
+
+
+def test_options_full_prints_the_rest_of_the_description_and_the_code(run, configured):
+    code, out, _ = run("options", "--full", "verify")
+    assert out.splitlines() == [
+        "~/.bashrc",
+        "     8  off  Verify history expansions.",
+        "             Costs an extra Enter.",
+        "             #shopt -s histverify",
+    ]
+
+
+def test_options_nothing_matched_exits_1(run, configured):
+    assert run("options", "no-such-word") == (1, "", "")
+
+
+def test_options_skips_binary_files(run, configured):
+    (configured / "dot_blob").write_bytes(b"\xff\xfe dots options \x00")
+    assert run("options", "--off")[0] == 0
+
+
+def test_options_on_and_off_together_is_a_usage_error(home, src):
+    proc = run_subprocess(home, src, "options", "--on", "--off")
+    assert proc.returncode == 2 and "not allowed with argument" in proc.stderr

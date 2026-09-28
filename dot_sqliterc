@@ -1,0 +1,22 @@
+# ~/.sqliterc -- run by the sqlite3 command-line shell at start (not by
+# programs that use the library).  Lines starting with # are comments.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# Query results with column names, in aligned boxes.
+#.headers on
+#.mode box
+
+# Results as aligned columns without the box drawing.
+#.mode column
+
+# NULL shown as NULL instead of an empty string.
+#.nullvalue NULL
+
+# Each query reports how long it took.
+#.timer on
+
+# Foreign key constraints enforced (sqlite's default is off).
+#PRAGMA foreign_keys = ON;

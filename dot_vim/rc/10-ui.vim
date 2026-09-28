@@ -1,50 +1,143 @@
-" 10-ui.vim -- what the screen shows.
+" 10-ui.vim -- what the screen shows: numbers, the current line, invisible
+" characters, wrapping, colors, the cursor.
+"
+" Each setting has its description in the comment above it.  A setting with
+" " directly in front of it ("set cursorcolumn) is off: delete that " to turn
+" it on, or add one to turn a setting off.  `dots options WORD` searches
+" every file.  For one machine only, put the line in ~/.vimrc.local instead.
 "
 " Knobs (set in ~/.vimrc.before):
-"   g:dotfiles_colorscheme    scheme name                   default: 'desert'
-"   g:dotfiles_relativenumber 1 = relative line numbers      default: 0
-"   g:dotfiles_colorcolumn    column to mark, 0 for none     default: 0
-"   g:dotfiles_truecolor      1 = 24-bit color when TERM allows  default: 1
+"   g:dotfiles_colorscheme   scheme name   default: 'desert'
 
+" ── Numbers and position ────────────────────────────────────────────────
+
+" Syntax colors.
 syntax enable
-set number                  " line numbers
-if get(g:, 'dotfiles_relativenumber', 0) | set relativenumber | endif
-set ruler                   " line,col in the status area
-set showcmd                 " pending operator in the bottom right
+
+" Line numbers.
+set number
+
+" Line numbers relative to the cursor (the current line keeps its own
+" number with the line above): 5j and d3k without counting.
+"set relativenumber
+
+" line,column at the bottom right, and a pending operator (d2...) beside it.
+set ruler
+set showcmd
+
+" -- INSERT -- and the other mode names in the command line.
 set showmode
-set laststatus=2            " always a status line (15-statusline.vim fills it)
-set cursorline              " highlight the current line ...
-augroup dotfiles_cursorline " ... only in the active window
+
+" A status line on every window, even alone (15-statusline.vim fills it).
+set laststatus=2
+
+" Two lines for the command line, so long messages need no Enter.
+"set cmdheight=2
+
+" ── Current line and column ─────────────────────────────────────────────
+
+" Highlight the cursor's line, in the active window only.
+set cursorline
+augroup dotfiles_cursorline
   autocmd!
   autocmd WinEnter,BufEnter * setlocal cursorline
   autocmd WinLeave          * setlocal nocursorline
 augroup END
-set scrolloff=5             " keep 5 lines above/below the cursor
+
+" Highlight the cursor's column too, for lining up YAML or tables.  Slows
+" redrawing in big files.
+"set cursorcolumn
+
+" A vertical line at column 80, to see when lines get long (python's
+" is at 80 and 100, 45-filetypes.vim).
+"set colorcolumn=80
+
+" ── Scrolling and splitting ─────────────────────────────────────────────
+
+" Keep 5 lines above and below the cursor, and 5 columns beside it.
+set scrolloff=5
 set sidescrolloff=5
-set display=lastline        " show as much of a long last line as fits
+
+" Show as much of a long last line as fits instead of a column of @.
+set display=lastline
+
+" New splits open below and to the right.
+set splitbelow splitright
+
+" ── Characters ──────────────────────────────────────────────────────────
+
+" Show tabs as », trailing spaces as ·, non-breaking spaces as ␣, and
+" › ‹ where a line runs off the screen.
 set list listchars=tab:»\ ,trail:·,nbsp:␣,extends:›,precedes:‹
-set splitbelow splitright   " new splits go below / right
-set shortmess+=I            " no intro screen
-set belloff=all             " never beep or flash
-set lazyredraw              " no redraw in the middle of a macro
-set showmatch matchtime=2   " blink the matching bracket briefly
-set signcolumn=auto
-set wrap linebreak          " wrap long lines at word boundaries ...
-set breakindent             " ... keeping the indent
+
+" Mark line ends with ¬ as well.
+"set listchars+=eol:¬
+
+" No ~ on the empty lines after the end of the file.
+"set fillchars+=eob:\
+
+" A solid bar between vertical splits instead of |.
+"set fillchars+=vert:│
+
+" ── Wrapping ────────────────────────────────────────────────────────────
+
+" Wrap long lines on screen at a word boundary, keeping their indent, and
+" mark the continuation with ↪.  The file itself is not changed.
+set wrap linebreak
+set breakindent
 let &showbreak = '↪ '
 
-if get(g:, 'dotfiles_colorcolumn', 0)
-  let &colorcolumn = g:dotfiles_colorcolumn
-endif
+" Long lines run off the right edge instead of wrapping (scroll with zl, zh).
+"set nowrap
 
-if get(g:, 'dotfiles_truecolor', 1) && has('termguicolors')
-      \ && ($COLORTERM ==# 'truecolor' || $COLORTERM ==# '24bit')
+" ── Messages and bells ──────────────────────────────────────────────────
+
+" No intro screen on an empty vim.
+set shortmess+=I
+
+" Show the match count when searching: [3/10].
+set shortmess-=S
+
+" Never beep or flash.
+set belloff=all
+
+" Do not redraw in the middle of a macro or a mapping (faster).
+set lazyredraw
+
+" Briefly jump to the matching bracket when typing one.
+set showmatch matchtime=2
+
+" The sign column (git, linters) appears only when there are signs.
+set signcolumn=auto
+
+" vim sets the terminal title to the file name.  Replaces the shell's
+" title from 65-title.sh while vim runs.
+"set title
+
+" ── Colors ──────────────────────────────────────────────────────────────
+
+" 24-bit colors when the terminal says it has them ($COLORTERM, set by
+" 00-env.sh); schemes then look as designed.
+if has('termguicolors') && ($COLORTERM ==# 'truecolor' || $COLORTERM ==# '24bit')
   set termguicolors
 endif
+
+" Dark background: schemes pick their dark variant.
 set background=dark
+
+" Light background instead: schemes pick their light variant.
+"set background=light
+
+" The color scheme, from the knob.  Built in: blue darkblue default delek
+" desert elflord evening habamax industry koehler lunaperche morning murphy
+" pablo peachpuff quiet retrobox ron shine slate sorbet torte wildcharm
+" zaibatsu zellner (:colorscheme <Tab> lists what this vim has).
 execute 'silent! colorscheme' get(g:, 'dotfiles_colorscheme', 'desert')
 
-" Cursor shape: bar in insert, block in normal (xterm, tmux, most emulators)
+" ── Cursor ──────────────────────────────────────────────────────────────
+
+" Cursor shape: a bar in insert mode, an underline in replace mode, a block
+" otherwise (xterm, tmux, kitty and most terminals).
 let &t_SI = "\e[6 q"
 let &t_SR = "\e[4 q"
 let &t_EI = "\e[2 q"

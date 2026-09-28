@@ -1,16 +1,56 @@
-# 50-plugins.conf -- tpm plugins.  Enable by removing .off, then prefix I.
+# 50-plugins.conf -- plugins through tpm.  Off until wanted: install tpm,
+# drop the .off suffix, turn on the plugins you want, then prefix I
+# installs them (prefix U updates).
 #
 #   git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 #
-# Add plugins as `set -g @plugin 'owner/repo'` lines; prefix I installs,
-# prefix U updates.
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
 
+# tpm itself.
 set -g @plugin 'tmux-plugins/tpm'
-set -g @plugin 'tmux-plugins/tmux-sensible'       # widely agreed defaults
-set -g @plugin 'tmux-plugins/tmux-resurrect'      # prefix C-s save / C-r restore sessions
-set -g @plugin 'tmux-plugins/tmux-yank'           # copy to the system clipboard (replaces 30-copy pipes)
 
+# tmux-sensible: widely agreed defaults (most are already in 00-options).
+set -g @plugin 'tmux-plugins/tmux-sensible'
+
+# tmux-resurrect: prefix C-s saves every session, window and pane, prefix
+# C-r restores them after a reboot, pane contents included.  Takes prefix
+# C-s from 10-keys.conf.
+set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @resurrect-capture-pane-contents 'on'
 
-# keep this line last
+# tmux-continuum: saves with resurrect every 15 minutes and restores when
+# tmux starts.
+#set -g @plugin 'tmux-plugins/tmux-continuum'
+#set -g @continuum-restore 'on'
+
+# tmux-yank: copying reaches the system clipboard (replaces the pipes in
+# 30-copy.conf).
+set -g @plugin 'tmux-plugins/tmux-yank'
+
+# tmux-open: in copy mode, o opens the selection (a file or URL), S searches it.
+#set -g @plugin 'tmux-plugins/tmux-open'
+
+# tmux-thumbs: prefix Space labels every URL, path and hash on screen for
+# copying by its letter.
+#set -g @plugin 'fcsonline/tmux-thumbs'
+
+# extrakto: prefix Tab picks any word, path or URL on screen with fzf.
+#set -g @plugin 'laktak/extrakto'
+
+# tmux-fzf: prefix F finds sessions, windows, panes and commands with fzf.
+#set -g @plugin 'sainnhe/tmux-fzf'
+
+# tmux-prefix-highlight: shows in the status line when the prefix is pressed.
+#set -g @plugin 'tmux-plugins/tmux-prefix-highlight'
+
+# Themes, instead of 20-status.conf's colors: catppuccin or dracula.
+#set -g @plugin 'catppuccin/tmux'
+#set -g @plugin 'dracula/tmux'
+
+# vim-tmux-navigator's tmux half, instead of the block in 10-keys.conf.
+#set -g @plugin 'christoomey/vim-tmux-navigator'
+
+# Start tpm; keep this line last.
 if "test -d ~/.tmux/plugins/tpm" "run -b '~/.tmux/plugins/tpm/tpm'"

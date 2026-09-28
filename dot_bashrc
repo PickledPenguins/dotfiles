@@ -1,33 +1,42 @@
 # ~/.bashrc -- loader only.  Everything lives in ~/.config/bash/rc.d/.
 #
-# Each NN-name.sh there has one responsibility and a "Knobs:" block in its
-# header listing the variables that tune it.  Three ways to change behavior,
+# Each NN-name.sh there has one concern and lists its settings, every one
+# described in the comment above it.  A setting with "#" directly in front
+# of it is off: delete that "#" to turn it on, or add one to turn a setting
+# off.  `dots options WORD` searches every file.  Ways to change things,
 # most to least permanent:
 #
-#   1. edit the module (committed, applies everywhere)
-#   2. turn a module off:
-#        everywhere:    git mv rc.d/70-conda.sh rc.d/70-conda.sh.off
-#        this machine:  echo conda >> ~/.config/bash/disabled
-#   3. set knobs and add machine-local settings, never committed:
-#        ~/.bashrc.before   sourced FIRST  -- set DOTFILES_* knobs here
-#        ~/.bashrc.local    sourced LAST   -- overrides, extra aliases, secrets
+#   1. edit the module (committed, every machine)
+#   2. turn a whole module off:
+#        every machine:  git mv rc.d/70-conda.sh rc.d/70-conda.sh.off
+#        this machine:   echo conda >> ~/.config/bash/disabled
+#   3. this machine only, never committed:
+#        ~/.bashrc.before   read FIRST -- DOTFILES_* knobs (each module's header lists its own)
+#        ~/.bashrc.local    read LAST  -- any setting line, overrides, extra aliases, secrets
 #
 # DOTFILES_DEBUG=1 bash -i   prints each module as it loads, with its time.
 
-case $- in *i*) ;; *) return ;; esac            # interactive shells only
+# Only interactive shells read the rest: scripts, scp and cron stay fast and
+# unaffected.
+case $- in *i*) ;; *) return ;; esac
 
+# Where the modules are, and the repository (for dots and the modules).
 DOTFILES_BASH_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/bash"
 DOTFILES_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 export DOTFILES_DIR
 
+# This machine's knobs, before any module reads them.
 [[ -r ~/.bashrc.before ]] && source ~/.bashrc.before
 
+# A module is skipped on this machine when its name (without number and
+# .sh) is a line of ~/.config/bash/disabled; # starts a comment there.
 _dotfiles_disabled() {
-    # name is disabled when listed in ~/.config/bash/disabled (one per line, # comments)
     [[ -r "$DOTFILES_BASH_DIR/disabled" ]] || return 1
     grep -qxF "$1" <(sed 's/#.*//; s/[[:space:]]//g' "$DOTFILES_BASH_DIR/disabled")
 }
 
+# Every rc.d/*.sh in number order; .sh.off files are not matched.  With
+# DOTFILES_DEBUG set, each one's name and load time goes to stderr.
 for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
     [[ -r "$_rc" ]] || continue
     _name="${_rc##*/}"; _name="${_name%.sh}"; _name="${_name#[0-9][0-9]-}"

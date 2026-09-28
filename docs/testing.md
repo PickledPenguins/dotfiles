@@ -7,8 +7,8 @@ Back to the [README](../README.md).
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
 | `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every commit (`.git/hooks/pre-commit`, installed by `./run-tests.sh hook`) | ~2 s |
-| `./run-tests.sh long` | the applied configuration read by the real programs, and the example catalog | before a release, after any module change | ~22 s |
-| `./run-tests.sh all` | both | | ~24 s |
+| `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, and the example catalog | before a release, after any module change | ~65 s |
+| `./run-tests.sh all` | both | | ~70 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 95%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
 
@@ -17,17 +17,20 @@ Generated files (coverage data) land in `.build/`; the pytest cache is
 disabled.  Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
 
-## Numbers (commit `de70691`, 2026-09-20, this machine)
+## Numbers (2026-09-27, this machine)
 
-- fast: 108 tests, 1.7 s.  long: 141 tests, 21.5 s.
-- coverage of `dots`: 100% lines (242), 100% branches (102); floor 95.
-- mutation: 26 mutants, 26 caught, 0 survivors.  The list is hand-written
+- fast: 304 tests, 2.3 s.  long: 206 passed and 12 skipped (programs not
+  installed here: screen, ctags, ripgrep; settings whose `Needs:` program
+  is missing), 56 s.
+- coverage of `dots`: 100% lines (334), 100% branches (140); floor 95.
+- mutation: 43 mutants, 43 caught, 0 survivors.  The list is hand-written
   (no mutmut here), one mutant per decision in the script: each attribute
   prefix, the ignore matching, the root-dotfile skip, the home-directory
   guard, each state classification, each mode bit, the force/dry-run
   branches, every exit code, the `add` attribute inference, path
-  selection.  A new branch in `dots` needs a line there.
-- performance: not gated.  `dots apply` on this repository (73 targets)
+  selection, and the options parser and filters.  A new branch in `dots`
+  needs a line there.
+- performance: not gated.  `dots apply` on this repository (76 targets)
   is ~60 ms; no path is worth a timing baseline yet.
 
 ## Layout
@@ -39,9 +42,10 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_dots_cli.py` | every subcommand's exact output, state change and exit code; argparse behavior as a subprocess | fast |
 | `tests/test_dots_safety.py` | destructive paths (`--force`, `unlink`, `forget`), escapes from `$HOME`, names that map to `~`, modes, odd names, unreadable ignore file, backup collisions | fast |
 | `tests/test_docs.py` | the documentation against the code, both directions (see below) | fast |
-| `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files | long |
-| `tests/test_examples.py` | the example catalog: 43 cases, output compared to `expected.txt` after path normalization | long |
-| `tests/examples/` | `simple/` 15, `moderate/` 12, `complex/` 6, `failures/` 10; each with `README.md`, `case.sh`, `expected.txt` | |
+| `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
+| `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags (long) | fast + long |
+| `tests/test_examples.py` | the example catalog: 46 cases, output compared to `expected.txt` after path normalization | long |
+| `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 6, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
 | `tests/mutants.txt`, `tests/coveragerc`, `tests/hooks/pre-commit` | the gates | |
 
 Integration tests for programs not installed skip by name
@@ -92,4 +96,10 @@ real configuration.  The catalog README is `tests/examples/README.md`.
 - The prompt toolkit's own behavior: it has its own bats suite upstream;
   here only "it builds a PS1 for each layout" is checked.
 - Programs absent on the machine the suite runs on (screen, ctags, delta)
-  are skipped, not faked.
+  are skipped, not faked; so is a setting whose `Needs:` line names a
+  missing program or file.
+- A switched-on setting is loaded, not exercised: an alias to a missing
+  program, or a key binding that does the wrong thing, still passes.
+  Values are checked only where the program checks them (bash, vim, tmux,
+  conda, kitty, matplotlib, gdb); git and ssh are checked for syntax and
+  option names, pip and conda keys against the programs' own option lists.

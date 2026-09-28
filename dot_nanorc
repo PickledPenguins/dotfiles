@@ -1,21 +1,82 @@
-# ~/.nanorc -- for the times nano is what is there.
+# ~/.nanorc -- for the times nano is what is there.  Comments must be on
+# their own lines here.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+# ── Editing ───────────────────────────────────────────────────────────────
+
+# A new line keeps the indent of the line before.
 set autoindent
+
+# Tab is 4 columns and inserts spaces.
 set tabsize 4
 set tabstospaces
-set linenumbers
-# cursor position always shown
-set constantshow
-# Home goes to the first non-blank first
+
+# Home goes to the first non-blank character first.
 set smarthome
-set softwrap
-# wrap at spaces, not mid-word
-set atblanks
-set mouse
-# scrollbar
-set indicator
-# strip trailing spaces on hard-wrap
-set trimblanks
-# Backspace/Delete remove the selection
+
+# Backspace and Delete remove the marked region.
 set zap
+
+# Ctrl-K cuts from the cursor to the end of the line, not the whole line.
+#set cutfromcursor
+
+# Searches are case-insensitive.
 unset casesensitive
+
+# ── Display ───────────────────────────────────────────────────────────────
+
+# Line numbers, the cursor position always shown, and a scroll indicator.
+set linenumbers
+set constantshow
+set indicator
+
+# Long lines wrap on screen at a space, not mid-word.
+set softwrap
+set atblanks
+
+# Hard-wrapping trims the spaces at the ends of lines.
+set trimblanks
+
+# The mouse places the cursor and marks text.
+set mouse
+
+# A vertical line at column 80.
+#set guidestripe 80
+
+# No help lines at the bottom: more room for text.
+#set nohelp
+
+# A single status line at the bottom instead of the title bar.
+#set minibar
+
+# ── Files ─────────────────────────────────────────────────────────────────
+
+# Reopen a file where the cursor was last time.
+#set positionlog
+
+# Search and replace strings kept between sessions.
+#set historylog
+
+# A backup of the previous version (file~) when saving.
+#set backup
+
+# ── Keys like other editors ───────────────────────────────────────────────
+
+# Ctrl-S save, Ctrl-Q quit, Ctrl-Z undo, Ctrl-Y redo, Ctrl-F find, Ctrl-C
+# copy, Ctrl-X cut, Ctrl-V paste.  Replaces nano's own meanings of those keys.
+#bind ^S savefile main
+#bind ^Q exit all
+#bind ^Z undo main
+#bind ^Y redo main
+#bind ^F whereis all
+#bind ^C copy main
+#bind ^X cut main
+#bind ^V paste all
+
+# ── Syntax colors ─────────────────────────────────────────────────────────
+
+# Every syntax definition nano ships.
 include "/usr/share/nano/*.nanorc"

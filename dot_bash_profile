@@ -1,16 +1,33 @@
-# ~/.bash_profile -- bash login shells (ssh, console, `bash -l`).
+# ~/.bash_profile -- bash login shells: ssh, the console, `bash -l`.
 #
 # Order:  ~/.profile  ->  ~/.config/bash/profile.d/*.sh  ->  ~/.bashrc
 #
-# Put login-only work in profile.d: things that should run once per session
-# and be inherited by every child process (ssh-agent start, one-time exports,
-# `umask`).  Interactive settings belong in rc.d, which ~/.bashrc loads.
+# profile.d is for what should happen once per login and be inherited by
+# every program started from it (an ssh-agent, one-time exports).
+# Interactive settings belong in ~/.config/bash/rc.d, which ~/.bashrc loads.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
 
+# PATH and locale, shared with non-bash login shells.
 [[ -r ~/.profile ]] && source ~/.profile
 
+# This machine's login-time additions: every ~/.config/bash/profile.d/*.sh.
 for _p in "${XDG_CONFIG_HOME:-$HOME/.config}"/bash/profile.d/*.sh; do
     [[ -r "$_p" ]] && source "$_p"
 done
 unset _p
 
+# The interactive configuration, which bash would not read on its own in a
+# login shell.
 [[ -r ~/.bashrc ]] && source ~/.bashrc
+
+# An ssh login goes straight into tmux, attaching to the session "main" or
+# creating it, so a dropped connection loses nothing.  Leaving tmux then
+# ends the ssh session; scp and ssh HOST COMMAND are not affected.
+#[[ -n "${SSH_CONNECTION-}" && -z "${TMUX-}" && $- == *i* ]] && command -v tmux >/dev/null && exec tmux new-session -A -s main
+
+# A login on the first virtual console starts the graphical session
+# (startx), for machines without a display manager.
+#[[ -z "${DISPLAY-}" && "${XDG_VTNR-}" == 1 ]] && command -v startx >/dev/null && exec startx

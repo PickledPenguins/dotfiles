@@ -1,0 +1,9 @@
+~/.bashrc
+     4  on   Append to the history file.
+     8  off  Verify history expansions first.
+~/.bashrc
+     8  off  Verify history expansions first.
+~/.bashrc
+     8  off  Verify history expansions first.
+             Costs one more Enter.
+             #shopt -s histverify
