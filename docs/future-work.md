@@ -127,28 +127,6 @@ here is scheduled; an item is cited by its label.  Back to the
   local stopgap is to append `cmd_timer_arm` as the last `PROMPT_COMMAND`
   entry in `90-local.sh`.  What changes for a user: the shown durations get
   shorter and true.
-- **F.2.j  kitty prints its `PS0` literally.**  In kitty, every command's
-  output starts with `$(_ksi_get_current_command > /dev/tty)`.  kitty's
-  bash integration puts that substitution in `PS0`
-  (`/usr/lib/kitty/shell-integration/bash/kitty.bash:230`) to set the
-  title and mark the command's start; the toolkit runs `shopt -u
-  promptvars` (`prompt/toolkit/prompt.sh:59`) so that a directory or
-  branch name holding `$(...)` cannot run, and with `promptvars` off bash
-  prints `PS0` unexpanded.  Reproduced on 2026-10-07: `PS0='$(f)'` prints
-  nothing, and after `shopt -u promptvars` prints `$(f)`.  kitty's
-  `shell_integration no-title no-prompt-mark` does not help, since kitty
-  tests `[[ "${_ksi_prompt[mark]}" ]]`, which is true for `n`; only
-  `shell_integration disabled` stops it, and that loses prompt jumps and
-  last-output.  Fix in the toolkit subtree: leave `promptvars` on and
-  escape `$`, backtick and `\` in every piece of runtime text
-  `prompt_build` puts into `PS1` (directory, branch, venv, user, host),
-  keeping the `security.bats` guards passing; then split upstream, with a
-  pty test here that sets a `PS0` holding `$(...)`.  Not built yet: it
-  replaces the toolkit's injection guard with another, which is the
-  owner's call.  What changes for a user: the stray text goes, and other
-  terminal integrations that rely on `PS0` or `PS1` substitutions work.
-  Moved from the 2026-09-20 handoff ("does the prompt render in kitty"),
-  answered on 2026-10-07.
 
 ## F.3 tests
 

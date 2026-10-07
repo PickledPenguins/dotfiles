@@ -30,17 +30,21 @@ def linked(home):
     return home
 
 
+def shell_env(home, env=None):
+    environment = dict(os.environ, HOME=str(home), TERM="xterm-256color", PATH=os.environ["PATH"])
+    for var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "PROMPT_COMMAND"):
+        environment.pop(var, None)
+    environment.update(env or {})
+    return environment
+
+
 def bash(home, script, env=None, before=None, local=None):
     if before is not None:
         (home / ".bashrc.before").write_text(before)
     if local is not None:
         (home / ".bashrc.local").write_text(local)
-    environment = dict(os.environ, HOME=str(home), TERM="xterm-256color", PATH=os.environ["PATH"])
-    for var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "PROMPT_COMMAND"):
-        environment.pop(var, None)
-    environment.update(env or {})
     proc = subprocess.run(["bash", "--rcfile", str(home / ".bashrc"), "-i", "-c", script],
-                          env=environment, capture_output=True, text=True, cwd=str(home), errors="replace")
+                          env=shell_env(home, env), capture_output=True, text=True, cwd=str(home), errors="replace")
     proc.stderr = "\n".join(l for l in proc.stderr.splitlines()
                             if "job control" not in l and "process group" not in l)
     return proc
@@ -216,6 +220,22 @@ def test_prompt_module_builds_ps1_with_the_toolkit(linked):
     proc = bash(linked, "type -t prompt_build; prompt_build; echo \"$PS1\" | head -1")
     assert proc.stdout.splitlines()[0] == "function"
     assert "╭" in proc.stdout.splitlines()[1]
+
+
+@needs("script")
+def test_prompt_leaves_promptvars_on_for_ps0_and_shows_a_hostile_directory_as_typed(linked):
+    # kitty's shell integration puts $(...) in PS0; the prompt must not
+    # switch promptvars off to keep a directory name from running.
+    (linked / ".bashrc.local").write_text("PS0='$(printf \"<ps0 %s>\" ran)'\n")
+    name = "x$(touch PWNED)`touch PWNED`"
+    (linked / name).mkdir()
+    proc = subprocess.run(["script", "-qec", f"bash --rcfile {linked}/.bashrc -i", "/dev/null"],
+                          input=f"cd '{name}'\necho hi\nexit\n", env=shell_env(linked),
+                          capture_output=True, text=True, cwd=str(linked), errors="replace")
+    assert "<ps0 ran>" in proc.stdout
+    assert "$(printf" not in proc.stdout
+    assert f"/{name} ]" in proc.stdout       # the prompt's directory box, not the echoed cd
+    assert list(linked.rglob("PWNED")) == []
 
 
 def test_prompt_toolkit_links_only_the_code_bash_sources(linked):
