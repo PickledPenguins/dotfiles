@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.5
+# Toolkit version: 0.1.6
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1
@@ -49,14 +49,37 @@
 [[ -n "${_PROMPT_SH_LOADED-}" ]] && return 0
 readonly _PROMPT_SH_LOADED=1
 
-# SECURITY: disable bash's promptvars expansion. By default bash re-parses
-# PS1's stored value for command substitution ($(...), backticks, ${...},
-# $((...))) on every single prompt render. Directory names, git branch
-# names, $VIRTUAL_ENV, $USER, and $HOSTNAME can all legally contain $(...)
-# text, and it would otherwise execute repeatedly for as long as it stays
-# part of the active prompt. Backslash prompt-escapes (\$, \n, \u, \h, \w)
-# are a separate, always-on bash mechanism and are unaffected by this.
-shopt -u promptvars
+# SECURITY: promptvars stays on, and every segment's output is escaped
+# instead (_ps_escape_into, applied in _ps_expand). With promptvars on, bash
+# expands $(...), backticks and ${...} in PS1 on every render; directory
+# names, git branches, $VIRTUAL_ENV and tmux session names can all hold
+# such text. Bash also decodes backslash escapes (\w, \[, \D{...}) in PS1
+# whether or not promptvars is on, so turning it off never closed that
+# half. It also broke other users of the option: kitty's shell integration
+# puts $(...) in PS0, which printed literally with promptvars off.
+shopt -s promptvars
+
+# _ps_escape_into VAR — escape VAR's text in place so PS1 shows it as typed.
+# Each \ becomes \\\\ and each $ or backtick gets \\ before it: bash's
+# backslash decoding turns \\\\ into \\, \\$ into \$ (so root's # prompt
+# sign cannot appear) and \\` into \`, then promptvars expansion, which
+# runs in double-quote context, turns those into \, $ and `.
+_ps_escape_into() {
+    local v=${!1} bs='\\\\' dollar='\\$' tick='\\`'
+    v=${v//\\/"$bs"}
+    v=${v//\$/"$dollar"}
+    v=${v//\`/"$tick"}
+    printf -v "$1" '%s' "$v"
+}
+
+# _ps_unescape_into VAR — undo _ps_escape_into, to measure escaped text.
+_ps_unescape_into() {
+    local v=${!1} bs='\\\\' dollar='\\$' tick='\\`' one='\'
+    v=${v//"$bs"/"$one"}
+    v=${v//"$dollar"/\$}
+    v=${v//"$tick"/\`}
+    printf -v "$1" '%s' "$v"
+}
 
 # Source library modules relative to this file's location. _PS_ROOT stays
 # set until the segment files at the bottom have been sourced.
@@ -170,7 +193,10 @@ _ps_expand() {
             else
                 val=$("${_PS_SEGS[$name]}" 2>/dev/null) || val=""
             fi
-            result+="$val"
+            # plain keeps the raw text: it measures what the row shows.
+            local shown=$val
+            _ps_escape_into shown
+            result+="$shown"
             # Skip the strip_ansi call when the segment returned plain text.
             # Readline markers start with \001; their absence means no ANSI.
             [[ "$val" == *$'\001'* ]] && plain+="$(strip_ansi "$val")" || plain+="$val"
@@ -482,7 +508,9 @@ prompt_build() {
         # Top border of a real multi-row box: pad with bar char.
         # Inner rows: pad with spaces.
         if (( ! has_fill )); then
-            local plain; plain=$(strip_ansi "$content")
+            local plain=$content
+            _ps_unescape_into plain
+            plain=$(strip_ansi "$plain")
             local pad=$(( budget - $(str_width "$plain") ))
             if (( pad > 0 )); then
                 if (( is_last && _PS_CLOSED )); then

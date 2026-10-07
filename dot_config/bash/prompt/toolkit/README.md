@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.5
+**Version:** 0.1.6
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -254,6 +254,11 @@ than being shell-expanded at registration time. Tokens have no end
 delimiter — avoid a segment name that's a literal prefix of adjacent
 template text.
 
+**Segment output is shown as typed.** `_ps_expand` escapes `\`, `$` and
+backtick in what a segment prints, so a directory or branch name cannot
+run code or act as a prompt escape. A segment that wants a prompt escape
+(`\u`, `\$`) cannot print one; put it in the row template instead.
+
 **Box styles:** `rounded` (╭╮╰╯), `sharp` (┌┐└┘), `double` (╔╗╚╝),
 `ascii` (++++) — pass as `prompt_layout --box <style> ...`.
 
@@ -450,7 +455,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**120 tests across 9 files**, all passing against v0.1.5:
+**123 tests across 9 files**, all passing against v0.1.6:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -460,7 +465,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 7 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence |
 | `prompt_segments.bats` | 14 | pwd truncation/sanitizing, module counting, exit and conflict segments |
-| `security.bats` | 3 | promptvars command-injection regression guards |
+| `security.bats` | 6 | segment text shown as typed (`$(...)`, backticks, `\w`, `$` for root), `promptvars` left on for `PS0` |
 | `term_utils.bats` | 9 | ANSI stripping, width, repeat |
 | `test_v012_changes.bats` | 31 | everything added or fixed in v0.1.2 – v0.1.4 |
 
@@ -511,6 +516,28 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.6
+
+**Fixed:**
+
+- **`promptvars` is left on.** v0.1.1 turned it off for the whole shell,
+  which broke every other user of the option: kitty's shell integration
+  puts `$(...)` in `PS0`, and printed it literally before every command.
+  `_ps_expand` now escapes each segment's output instead (`\` becomes
+  `\\\\`, `$` and backtick get `\\` before them), so the text reaches the
+  screen as typed and nothing in it runs.
+- **Backslashes in segment output were prompt escapes.** Bash decodes
+  `\w`, `\[`, `\n` and `\D{...}` in `PS1` whether or not `promptvars` is
+  on, so a directory named `a\wb` showed the full working directory and
+  overflowed the box. The same escaping closes it, for custom segments
+  too.
+- A row without `@fill` is padded by the width of the text as shown, not
+  as escaped.
+
+**Added:** three `security.bats` tests (backslash and substitution text,
+`$` for root, padding); the `promptvars`-off test now checks that a `PS0`
+holding `$(...)` expands.
 
 ### v0.1.5
 
@@ -779,7 +806,8 @@ permanent regression test in `tests/test_v012_changes.bats`:**
   `$(...)` sitting in `$PS1`'s stored value on every prompt render. A
   directory name, git branch, `$VIRTUAL_ENV` path, `$USER`, or
   `$HOSTNAME` containing `$(...)` reached PS1 unmodified and executed
-  repeatedly. Fixed with `shopt -u promptvars` at load time — confirmed
+  repeatedly. Fixed with `shopt -u promptvars` at load time (replaced in
+  v0.1.6 by escaping segment output, with `promptvars` left on) — confirmed
   to fully close this with zero effect on `\$`/`\n` prompt-escape
   handling (a separate, always-on bash mechanism).
 
