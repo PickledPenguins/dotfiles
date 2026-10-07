@@ -98,16 +98,16 @@ here is scheduled; an item is cited by its label.  Back to the
   `PROMPT_COMMAND` is `_title_prompt;prompt_build;history -a`.
   `prompt_build` arms the toolkit's timer, and the DEBUG trap fires for
   `history -a` while `PROMPT_COMMAND` is still running, so the start time
-  is when the prompt was drawn (`prompt/lib/cmd_timer.sh:50`).  Wait 3.5 s,
-  run `true`, and the next prompt shows `[✓] 3s`; the box layout shows
-  `@cmd_time` on every prompt.  From the 2026-10-07 creview, ctesting and
-  creadme reports (the description in `layout.sh` is right for the
-  intended behavior).  Not fixed here: the code is the vendored toolkit,
-  fixed upstream only, and the fix has more than one shape.  Upstream:
-  arm from an entry the toolkit appends at the very end of
-  `PROMPT_COMMAND`, or ignore DEBUG while `PROMPT_COMMAND` runs; then
-  re-vendor, with an upstream bats test and a pty test here that idles
-  before a fast command and expects no duration.  A local stopgap is to
+  is when the prompt was drawn (`prompt/toolkit/lib/cmd_timer.sh:50`).
+  Wait 3.5 s, run `true`, and the next prompt shows `[✓] 3s`; the box
+  layout shows `@cmd_time` on every prompt.  From the 2026-10-07 creview,
+  ctesting and creadme reports (the description in `layout.sh` is right
+  for the intended behavior).  Not fixed yet: the fix has more than one
+  shape.  Either arm from an entry the toolkit appends at the very end of
+  `PROMPT_COMMAND`, or ignore DEBUG while `PROMPT_COMMAND` runs; fixed in
+  the toolkit subtree and split upstream, with a bats test there and a pty
+  test here that idles before a fast command and expects no duration.  A
+  local stopgap is to
   append `cmd_timer_arm` as the last `PROMPT_COMMAND` entry in
   `90-local.sh`.  What changes for a user: the shown durations get
   shorter and true.
@@ -118,7 +118,7 @@ here is scheduled; an item is cited by its label.  Back to the
   if either becomes available on the machines this runs on.  The list
   stays either way as the documented minimum.
 - **F.3.b  Visual check of the prompt** (render `PS1` through bash and
-  compare a golden frame).  Upstream's bats suite covers the toolkit;
+  compare a golden frame).  The toolkit's bats suite covers it;
   here only "each layout builds" is asserted.
 - **F.3.c  A gate on shell startup time.**  Every new terminal pays for
   `~/.bashrc`, and nothing fails when a module adds 200 ms.  Measured on

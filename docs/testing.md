@@ -19,7 +19,7 @@ temporary `HOME` through the `home` fixture.
 
 ## Numbers (2026-10-07, this machine, measured on the commit that added this line)
 
-- fast: 311 tests, 3.0 s.  long: 223 passed and 15 skipped (programs not
+- fast: 311 tests, 3.0 s.  long: 224 passed and 15 skipped (programs not
   installed here: conda, sqlite3, ctags, ripgrep, matplotlib in the test
   interpreter; settings whose `Needs:` program is missing), 51 s.  A gdb
   built without debuginfod support passes the debuginfod setting.
@@ -94,8 +94,9 @@ real configuration.  The catalog README is `tests/examples/README.md`.
 
 - No load, concurrency or scaling tests: `dots` is single-process and
   bounded by the number of dotfiles.
-- The prompt toolkit's own behavior: it has its own bats suite upstream;
-  here only "it builds a PS1 for each layout" is checked.
+- The prompt toolkit's own behavior: its bats suite is in
+  `dot_config/bash/prompt/toolkit/tests/` (`bats` is not installed here);
+  this suite checks only "it builds a PS1 for each layout".
 - Programs absent on the machine the suite runs on (screen, ctags, delta)
   are skipped, not faked; so is a setting whose `Needs:` line names a
   missing program or file.

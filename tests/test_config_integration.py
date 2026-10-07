@@ -218,6 +218,13 @@ def test_prompt_module_builds_ps1_with_the_toolkit(linked):
     assert "╭" in proc.stdout.splitlines()[1]
 
 
+def test_prompt_toolkit_links_only_the_code_bash_sources(linked):
+    toolkit = linked / ".config/bash/prompt/toolkit"
+    names = sorted(str(p.relative_to(toolkit)) for p in toolkit.rglob("*") if not p.is_dir())
+    assert names[0] == "lib/cache.sh"
+    assert all(n == "prompt.sh" or n.startswith(("lib/", "segments/")) for n in names), names
+
+
 @pytest.mark.parametrize("layout, marker", [("minimal", "[ "), ("hpc", "╭"), ("box", "╭")])
 def test_prompt_layout_knob(linked, layout, marker):
     proc = bash(linked, "prompt_build; echo \"$PS1\" | head -1", before=f"DOTFILES_PROMPT_LAYOUT={layout}\n")

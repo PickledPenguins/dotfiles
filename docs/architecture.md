@@ -20,7 +20,7 @@ run-tests.sh                    test runner and gates
 .dotsignore                     targets dots never links (README.md, dots, tests, docs ...)
 dot_bashrc  dot_bash_profile  dot_bash_logout  dot_profile      bash entry points (loaders)
 dot_config/bash/rc.d/NN-*.sh    bash modules, one concern each
-dot_config/bash/prompt/         prompt.sh + lib/ + segments/ (vendored bash-prompt-toolkit), layout.sh (ours)
+dot_config/bash/prompt/         toolkit/ (bash-prompt-toolkit, git subtree), layout.sh (ours)
 dot_vimrc  dot_vim/rc/NN-*.vim  vim loader and modules
 dot_tmux.conf  dot_config/tmux/conf.d/NN-*.conf
 dot_gitconfig  dot_config/git/{core,color,aliases,diff,url,signing}.gitconfig  ignore  attributes
@@ -106,9 +106,11 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
   `apply`, so a `chmod` drift is repaired.
 - **stdlib Python, no dependencies.**  It has to run on a login node with
   nothing installed; `python3` is the one thing that is always there.
-- **The prompt toolkit is vendored, not a submodule.**  A clone has to work
-  without `--recursive`, and the toolkit's tests and README do not belong
-  in `$HOME`.  Its version is in the headers; upgrading is a copy.
+- **The prompt toolkit is a git subtree, not a submodule or a copy.**  A
+  clone has to work without `--recursive`, so not a submodule; a fix to the
+  toolkit is made once, here, and split upstream, so not a copy kept in
+  step by hand.  Its tests, README, LICENSE and installer stay out of
+  `$HOME` through `.dotsignore`.
 
 ## Extension points
 

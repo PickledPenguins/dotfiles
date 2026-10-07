@@ -12,8 +12,8 @@ Changing the project.  Back to the [README](../README.md);
 | a per-machine difference | not in the repository: a knob (for a value) or a line in a hook file | document the knob in the module header and `docs/configuration.md` |
 | a `dots` behavior | the band that owns it (`docs/architecture.md`); output and exit code in the `cmd_*` | unit/CLI test, mutant line, `docs/cli.md`, catalog case |
 | a new dotfile | `dot_<name>` or `private_dot_<name>` at the mirrored path, with the standard header lines | a loader in `tests/test_options.py`; integration test through the real program; row in `docs/configuration.md` |
-| the prompt | `dot_config/bash/prompt/layout.sh` only; `prompt.sh`, `lib/` and `segments/` are upstream's | |
-| a decision not to build something | `docs/future-work.md`, labelled, with the evidence | |
+| the prompt | `dot_config/bash/prompt/layout.sh`; a toolkit change goes in `prompt/toolkit/` | [the prompt toolkit](#the-prompt-toolkit) |
+| a decision not to build something | `docs/future-work.md`, labeled, with the evidence | |
 
 ## What enforces what
 
@@ -76,6 +76,27 @@ and `./run-tests.sh cov mutate`.
 **Record a changed catalog output**: `python3 tests/test_examples.py
 --write LEVEL/NAME`, read the diff, commit it with the change that caused it.
 
+## The prompt toolkit
+
+`dot_config/bash/prompt/toolkit/` is
+[bash-prompt-toolkit](https://github.com/PickledPenguins/bash-prompt-toolkit)
+as a git subtree (squashed).  A plain clone has it; nothing to initialize.
+Edit it here, in a commit that touches only that directory, so it splits
+cleanly.  The toolkit's own tests run with `bats tests/` from inside it.
+
+```sh
+# Send toolkit commits made here to the toolkit repository.
+git subtree split --prefix=dot_config/bash/prompt/toolkit -b toolkit-split
+git -C ../bash-prompt-toolkit pull ../dotfiles toolkit-split
+git branch -D toolkit-split
+
+# Take toolkit commits made there.
+git subtree pull --squash --prefix=dot_config/bash/prompt/toolkit ../bash-prompt-toolkit BRANCH
+```
+
+`git subtree push` to `../bash-prompt-toolkit` is refused while that
+repository has the branch checked out, hence split and pull.  Both
+directions need a clean working tree.
 ## Commit convention
 
 One change per commit; the subject says what changed and the body says

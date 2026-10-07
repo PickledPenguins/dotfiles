@@ -40,9 +40,7 @@ dots = load_dots()
 #: Managed files that are not written in the options format, and why.
 NOT_IN_THE_FORMAT = {
     ".dircolors": "dircolors -p output: a table of file types and colors, not options",
-    ".config/bash/prompt/prompt.sh": "vendored from bash-prompt-toolkit; edited upstream only",
-    ".config/bash/prompt/lib/*": "vendored from bash-prompt-toolkit; edited upstream only",
-    ".config/bash/prompt/segments/*": "vendored from bash-prompt-toolkit; edited upstream only",
+    ".config/bash/prompt/toolkit/*": "bash-prompt-toolkit subtree; a library, not a configuration file",
     ".ssh/sockets/.keep": "empty placeholder that makes git keep the directory",
 }
 

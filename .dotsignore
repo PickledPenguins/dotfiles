@@ -10,3 +10,9 @@ tests
 docs
 reviews
 __pycache__
+# The prompt toolkit's own repository files, beside the code bash sources.
+.config/bash/prompt/toolkit/tests
+.config/bash/prompt/toolkit/README.md
+.config/bash/prompt/toolkit/LICENSE
+.config/bash/prompt/toolkit/install.sh
+.config/bash/prompt/toolkit/prompt_example.sh

@@ -93,8 +93,9 @@ Modes live on the source file, since a symlink has none of its own.
 
 ## The prompt
 
-`~/.config/bash/prompt/prompt.sh`, `lib/` and `segments/` are a **vendored snapshot** of
-[bash-prompt-toolkit](../../bash-prompt-toolkit) (its version is in the file
-headers).  `layout.sh` is the local configuration -- which **segments** are
+`~/.config/bash/prompt/toolkit/` is
+[bash-prompt-toolkit](../dot_config/bash/prompt/toolkit/README.md), kept here as a
+**git subtree** (its version is in the file headers).  `layout.sh` is the
+local configuration -- which **segments** are
 registered, the **row** templates, and which **layout** `DOTFILES_PROMPT_LAYOUT`
 selects.
