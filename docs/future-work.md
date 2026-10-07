@@ -17,7 +17,10 @@ here is scheduled; an item is cited by its label.  Back to the
 - **F.1.b  `add -r DIR`.**  `add` refuses directories; importing a tree is
   `find DIR -type f | xargs dots add`.  A recursive flag is a few lines; not
   built because the refusal makes the user look at each file's mode before
-  it becomes a `private_` decision in git history.
+  it becomes a `private_` decision in git history.  Declined on
+  recommendation on 2026-09-20 (the owner answered "whatever is
+  recommended"), not explicitly; reopen if importing another home
+  directory turns out to be tedious.
 - **F.1.c  Backup pruning.**  `~/.dotfiles-backup/<ts>/` trees accumulate.
   A `dots backups [--prune N]`.  Not built: `rm -r` is one command and
   automatic deletion is the one thing dots promises never to do.
@@ -93,7 +96,6 @@ here is scheduled; an item is cited by its label.  Back to the
   exists or a key binding does what its description says.  Doing that is
   one assertion per setting, by hand; the integration tests do it for the
   settings that are on by default.
-
 - **F.2.i  `@cmd_time` counts the time spent at the prompt.**  The default
   `PROMPT_COMMAND` is `_title_prompt;prompt_build;history -a`.
   `prompt_build` arms the toolkit's timer, and the DEBUG trap fires for
@@ -107,10 +109,31 @@ here is scheduled; an item is cited by its label.  Back to the
   `PROMPT_COMMAND`, or ignore DEBUG while `PROMPT_COMMAND` runs; fixed in
   the toolkit subtree and split upstream, with a bats test there and a pty
   test here that idles before a fast command and expects no duration.  A
-  local stopgap is to
-  append `cmd_timer_arm` as the last `PROMPT_COMMAND` entry in
-  `90-local.sh`.  What changes for a user: the shown durations get
+  local stopgap is to append `cmd_timer_arm` as the last `PROMPT_COMMAND`
+  entry in `90-local.sh`.  What changes for a user: the shown durations get
   shorter and true.
+- **F.2.j  kitty prints its `PS0` literally.**  In kitty, every command's
+  output starts with `$(_ksi_get_current_command > /dev/tty)`.  kitty's
+  bash integration puts that substitution in `PS0`
+  (`/usr/lib/kitty/shell-integration/bash/kitty.bash:230`) to set the
+  title and mark the command's start; the toolkit runs `shopt -u
+  promptvars` (`prompt/toolkit/prompt.sh:59`) so that a directory or
+  branch name holding `$(...)` cannot run, and with `promptvars` off bash
+  prints `PS0` unexpanded.  Reproduced on 2026-10-07: `PS0='$(f)'` prints
+  nothing, and after `shopt -u promptvars` prints `$(f)`.  kitty's
+  `shell_integration no-title no-prompt-mark` does not help, since kitty
+  tests `[[ "${_ksi_prompt[mark]}" ]]`, which is true for `n`; only
+  `shell_integration disabled` stops it, and that loses prompt jumps and
+  last-output.  Fix in the toolkit subtree: leave `promptvars` on and
+  escape `$`, backtick and `\` in every piece of runtime text
+  `prompt_build` puts into `PS1` (directory, branch, venv, user, host),
+  keeping the `security.bats` guards passing; then split upstream, with a
+  pty test here that sets a `PS0` holding `$(...)`.  Not built yet: it
+  replaces the toolkit's injection guard with another, which is the
+  owner's call.  What changes for a user: the stray text goes, and other
+  terminal integrations that rely on `PS0` or `PS1` substitutions work.
+  Moved from the 2026-09-20 handoff ("does the prompt render in kitty"),
+  answered on 2026-10-07.
 
 ## F.3 tests
 
@@ -129,3 +152,25 @@ here is scheduled; an item is cited by its label.  Back to the
   `docs/testing.md`.  From the 2026-10-07 ctesting audit.  Future work
   because it is a new gate with a threshold to choose, and a timing gate
   is noisy on a shared login node.
+
+## F.4 housekeeping
+
+Things done by hand outside the repository, moved from the 2026-09-20
+handoff.
+
+- **F.4.a  Publishing.**  There is no remote.  The other projects are
+  under `github.com/PickledPenguins/`; whether this one goes there is not
+  decided.
+- **F.4.b  `~/.gitignore`.**  The old `~/env/.gitconfig` set
+  `excludesfile = ~/.gitignore`; this set uses `~/.config/git/ignore`,
+  which already holds that file's one line
+  (`**/.claude/settings.local.json`).  The set is live, so `~/.gitignore`
+  can go; not checked whether anything else reads it.
+- **F.4.c  `~/env/` and `~/.bash_aliases`.**  The old configuration, kept
+  as a backup.  `~/.bash_aliases -> env/.bash_aliases` is still in `$HOME`
+  and nothing sources it.  Both can go once nothing from them is missed.
+- **F.4.d  ssh hosts that relied on agent-offered keys.**
+  `IdentitiesOnly yes` in `~/.ssh/config` offers only keys named by
+  `IdentityFile`; a host that worked with any agent key needs an
+  `IdentityFile` line in `~/.ssh/config.local`.  Not checked against the
+  owner's hosts.
