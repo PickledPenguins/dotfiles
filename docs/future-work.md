@@ -96,6 +96,21 @@ here is scheduled; an item is cited by its label.  Back to the
   exists or a key binding does what its description says.  Doing that is
   one assertion per setting, by hand; the integration tests do it for the
   settings that are on by default.
+- **F.2.h  A `cached` command for command output.**  `cached [-t TTL]
+  [--refresh] -- CMD...` runs CMD once, stores its output and exit status
+  under `~/.cache/cached/` keyed by a hash of the command line and `$PWD`,
+  and replays them until TTL expires: slow cluster commands (`squeue`,
+  `qstat`, `lfs quota`) and network calls, from any shell, script or cron.
+  The toolkit's `prompt/toolkit/lib/cache.sh` is not this: it records only
+  when a key was last refreshed, in one shell's memory, so nothing outside
+  that shell sees it.  Promoting it to its own module, or moving it out of
+  the toolkit subtree (which forks the toolkit, since `git_info.sh` sources
+  it from its own directory), was considered and rejected.  Open before
+  building: whether `$PWD` is part of the key, whether a failed run is
+  replayed or rerun, pruning of the cache directory, and refusing commands
+  that read stdin or need a tty.  About 30-40 lines of bash; it belongs in
+  `linuxbin` as a standalone script rather than here as a function, since a
+  function in `40-functions.sh` exists only in interactive shells.
 - **F.2.i  `@cmd_time` counts the time spent at the prompt.**  The default
   `PROMPT_COMMAND` is `_title_prompt;prompt_build;history -a`.
   `prompt_build` arms the toolkit's timer, and the DEBUG trap fires for
