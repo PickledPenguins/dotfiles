@@ -234,5 +234,5 @@ In the source root.  One glob per line, `#` comments, matched with
 it: `README.md` matches only at the top; `tests` skips everything under
 `tests/`; `*.local` matches at any depth because `*` crosses `/`.  The
 shipped file lists `README.md CLAUDE.md HANDOFF.md LICENSE dots
-run-tests.sh tests docs reviews __pycache__`.  To not link a file you do
+run-tests.sh install.sh tests docs reviews __pycache__`.  To not link a file you do
 not want on any machine, add its target path here.

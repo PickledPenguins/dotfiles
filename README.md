@@ -44,6 +44,10 @@ exec bash
 ```
 
 `dots` is on `PATH` from the next shell (`20-path.sh` adds the repository).
+For a shell that does not load these files yet, or a machine where the
+repository lives elsewhere, `~/.dotfiles/install.sh` links `~/.local/bin/dots`
+to it (`install.sh DIR` links `DIR/dots`); an existing `dots` there is left
+alone, exit 1.
 
 ## Quick start
 

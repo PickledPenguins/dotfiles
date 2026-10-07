@@ -11,7 +11,7 @@ import stat
 
 import pytest
 
-from conftest import run_subprocess
+from conftest import REPO, run_subprocess
 
 # ── managed ───────────────────────────────────────────────────────────────
 
@@ -501,3 +501,61 @@ def test_options_skips_binary_files(run, configured):
 def test_options_on_and_off_together_is_a_usage_error(home, src):
     proc = run_subprocess(home, src, "options", "--on", "--off")
     assert proc.returncode == 2 and "not allowed with argument" in proc.stderr
+
+
+# ── install.sh ────────────────────────────────────────────────────────────
+
+
+def install(home, *args, path="/usr/bin:/bin"):
+    import subprocess
+
+    return subprocess.run([str(REPO / "install.sh"), *args], env={"HOME": str(home), "PATH": path},
+                          capture_output=True, text=True, cwd=home)
+
+
+def linked_dots(home, *args):
+    """The installed link run by name, with no DOTS_SOURCE and no ~/.dotfiles."""
+    import subprocess
+    import sys
+
+    path = f"{home}/.local/bin:{os.path.dirname(sys.executable)}:/usr/bin:/bin"
+    return subprocess.run(["dots", *args], env={"HOME": str(home), "PATH": path},
+                          capture_output=True, text=True)
+
+
+def test_install_links_dots_into_local_bin_and_it_runs_this_checkout(home):
+    proc = install(home)
+    link = home / ".local/bin/dots"
+    assert (proc.returncode, proc.stdout) == (0, f"linked: {link} -> {REPO}/dots\n")
+    assert proc.stderr == f"note: {home}/.local/bin is not on PATH\n"
+    assert os.readlink(link) == str(REPO / "dots")
+    managed = linked_dots(home, "managed")
+    assert (managed.returncode, managed.stdout.splitlines()[0]) == (0, ".Xresources")
+
+
+def test_install_again_says_already_linked(home):
+    install(home)
+    proc = install(home, path=f"{home}/.local/bin:/usr/bin:/bin")
+    assert (proc.returncode, proc.stdout, proc.stderr) == (
+        0, f"already linked: {home}/.local/bin/dots -> {REPO}/dots\n", "")
+
+
+def test_install_into_a_named_directory(home):
+    proc = install(home, str(home / "tools"))
+    assert proc.returncode == 0
+    assert os.readlink(home / "tools/dots") == str(REPO / "dots")
+    assert not (home / ".local").exists()
+
+
+def test_install_leaves_an_existing_dots_alone_and_exits_1(home):
+    (home / ".local/bin").mkdir(parents=True)
+    (home / ".local/bin/dots").write_text("mine\n")
+    proc = install(home)
+    assert (proc.returncode, proc.stdout) == (1, "")
+    assert proc.stderr == f"install.sh: {home}/.local/bin/dots exists; remove it first\n"
+    assert (home / ".local/bin/dots").read_text() == "mine\n"
+
+
+def test_install_two_directories_is_a_usage_error(home):
+    assert install(home, "a", "b").returncode == 2
+    assert not (home / "a").exists()

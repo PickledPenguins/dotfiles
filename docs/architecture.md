@@ -17,6 +17,7 @@ character directly in front.
 ```
 dots                            the linker (python3, stdlib, no .py suffix)
 run-tests.sh                    test runner and gates
+install.sh                      links ~/.local/bin/dots (or DIR/dots) to this checkout
 .dotsignore                     targets dots never links (README.md, dots, tests, docs ...)
 dot_bashrc  dot_bash_profile  dot_bash_logout  dot_profile      bash entry points (loaders)
 dot_config/bash/rc.d/NN-*.sh    bash modules, one concern each
