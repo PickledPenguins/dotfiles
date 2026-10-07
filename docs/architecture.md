@@ -20,7 +20,7 @@ run-tests.sh                    test runner and gates
 .dotsignore                     targets dots never links (README.md, dots, tests, docs ...)
 dot_bashrc  dot_bash_profile  dot_bash_logout  dot_profile      bash entry points (loaders)
 dot_config/bash/rc.d/NN-*.sh    bash modules, one concern each
-dot_config/bash/prompt/         prompt.sh + lib/ (vendored bash-prompt-toolkit), layout.sh (ours)
+dot_config/bash/prompt/         prompt.sh + lib/ + segments/ (vendored bash-prompt-toolkit), layout.sh (ours)
 dot_vimrc  dot_vim/rc/NN-*.vim  vim loader and modules
 dot_tmux.conf  dot_config/tmux/conf.d/NN-*.conf
 dot_gitconfig  dot_config/git/{core,color,aliases,diff,url,signing}.gitconfig  ignore  attributes

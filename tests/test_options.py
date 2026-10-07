@@ -41,6 +41,7 @@ NOT_IN_THE_FORMAT = {
     ".dircolors": "dircolors -p output: a table of file types and colors, not options",
     ".config/bash/prompt/prompt.sh": "vendored from bash-prompt-toolkit; edited upstream only",
     ".config/bash/prompt/lib/*": "vendored from bash-prompt-toolkit; edited upstream only",
+    ".config/bash/prompt/segments/*": "vendored from bash-prompt-toolkit; edited upstream only",
     ".ssh/sockets/.keep": "empty placeholder that makes git keep the directory",
 }
 

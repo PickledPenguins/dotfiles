@@ -46,7 +46,7 @@ every setting that is off, switched on alone, still loads in its real
 program without an error.
 
 Not in the format, on purpose: `~/.dircolors` (the `dircolors -p` table of
-file types), `~/.config/bash/prompt/prompt.sh` and `lib/` (vendored from
+file types), `~/.config/bash/prompt/prompt.sh`, `lib/` and `segments/` (vendored from
 bash-prompt-toolkit), `~/.ssh/sockets/.keep` (empty).
 
 ## Precedence

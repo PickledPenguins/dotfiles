@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.4
+# Toolkit version: 0.1.5
 # ════════════════════════════════════════════════════════════════════════════
 # lib/term_utils.sh — Terminal string utilities
 #

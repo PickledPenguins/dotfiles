@@ -31,7 +31,7 @@ PROMPT_COMMAND="_title_prompt${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 
 # The functions for the setting below: the title shows a running command,
 # through a DEBUG trap added after any trap already there (the prompt's
-# command timer has one).
+# command timer claims one during the first prompt_build).
 _title_command() {
     case "$BASH_COMMAND" in _title_*|prompt_build*|history*|_venv_auto*) return ;; esac
     printf '\e]0;%s\a' "${BASH_COMMAND:0:60}"
@@ -39,14 +39,13 @@ _title_command() {
 _title_arm() {
     local old=${_title_old#trap -- \'}; old=${old%\' DEBUG}
     [[ "$old" == *_title_command* ]] || trap "${old:+$old; }_title_command" DEBUG
-    PROMPT_COMMAND="${PROMPT_COMMAND#*_title_arm;}"
+    PROMPT_COMMAND="${PROMPT_COMMAND%;_title_old=*}"
     unset -f _title_arm; unset _title_old
-    return "$_title_status"
 }
 
 # While a command runs, the title shows it, so a busy tab says what it is
-# doing.  Armed at the first prompt, so loading the rest of the
-# configuration does not flash titles; the trap already there is read
-# outside a function, where bash shows it.  Costs a function call before
-# every command.
-#PROMPT_COMMAND="_title_status=\$?; _title_old=\$(trap -p DEBUG); _title_arm;$PROMPT_COMMAND"
+# doing.  Armed at the end of the first prompt, after the prompt has
+# claimed its own trap, so loading the rest of the configuration does not
+# flash titles; that trap is read outside a function, where bash shows it.
+# Costs a function call before every command.
+#PROMPT_COMMAND="$PROMPT_COMMAND;_title_old=\$(trap -p DEBUG); _title_arm"

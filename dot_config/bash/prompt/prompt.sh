@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.4
+# Toolkit version: 0.1.5
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1
@@ -17,27 +17,33 @@
 #            Default (open):  last row is  ╰─content — cursor follows.
 #            Closed (--closed): last row gets ╯, cursor drops to new line.
 #
-# Library modules sourced automatically from lib/ next to this file:
-#   lib/git_info.sh    — git state + mtime/TTL cache (GIT_* globals)
+#   Collector  Named function that gathers data for segments (git state,
+#            load average, command duration) into globals, in the shell's
+#            own process. Runs in prompt_build only while a row the
+#            layout shows uses a segment that needs it; TTL 0 runs it
+#            every prompt, TTL N at most once per N seconds.
+#
+# This file is the engine. The built-in segments live in segments/, one
+# file per topic, each holding its segment functions, its collectors and
+# their needs declarations; all of them are sourced at the end of this
+# file:
+#   segments/identity.sh — user, host, root marker, directory
+#   segments/command.sh  — exit status, command duration, clock
+#   segments/git.sh      — branch, upstream, ahead/behind, status, stash
+#   segments/shell.sh    — tmux, display, ssh, venv, conda, jobs, shlvl
+#   segments/system.sh   — load, disk, gpu
+#   segments/hpc.sh      — environment modules, PBS and Slurm jobs
+#
+# Library modules, from lib/ next to this file:
 #   lib/term_utils.sh  — strip_ansi  str_width  str_repeat
 #   lib/colors.sh      — C_* and PS_* color variables, c_fg/c_bg helpers
-#   lib/cache.sh       — generic TTL bookkeeping (used by git_info.sh + @gpu)
-#   lib/cmd_timer.sh   — command-duration tracking behind @cmd_time
+#   lib/cache.sh       — generic TTL bookkeeping (collector TTLs, git_info.sh)
+#   lib/git_info.sh    — git state + mtime/TTL cache (sourced by segments/git.sh)
+#   lib/cmd_timer.sh   — command duration (sourced by segments/command.sh)
 #
 # Setup — add to .bashrc:
-#   source ~/dotfiles/prompt.sh
-#   source ~/dotfiles/prompt.example.sh
-#
-# Built-in segment functions (register with prompt_segment <name> <func>):
-#   _ps_seg_user  _ps_seg_host  _ps_seg_user_host  _ps_seg_root  _ps_seg_pwd
-#   _ps_seg_git_branch  _ps_seg_git_remote  _ps_seg_git_ahead_behind
-#   _ps_seg_git_status  _ps_seg_git_stash  _ps_seg_git_conflicts
-#   _ps_seg_tmux  _ps_seg_display  _ps_seg_ssh  _ps_seg_venv
-#   _ps_seg_jobs  _ps_seg_exit  _ps_seg_time
-#   _ps_seg_cmd_time  _ps_seg_conda  _ps_seg_shlvl  _ps_seg_modules
-#   _ps_seg_load  _ps_seg_disk  _ps_seg_gpu
-#   _ps_seg_pbs_job  _ps_seg_pbs_queue  _ps_seg_pbs_nodes
-#   _ps_seg_slurm_job  _ps_seg_slurm_queue  _ps_seg_slurm_nodes
+#   source ~/.local/share/bash-prompt-toolkit/prompt.sh
+#   source ~/.local/share/bash-prompt-toolkit/prompt_example.sh
 # ════════════════════════════════════════════════════════════════════════════
 
 [[ -n "${_PROMPT_SH_LOADED-}" ]] && return 0
@@ -52,26 +58,13 @@ readonly _PROMPT_SH_LOADED=1
 # are a separate, always-on bash mechanism and are unaffected by this.
 shopt -u promptvars
 
-# Source library modules relative to this file's location
-_PROMPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${_PROMPT_DIR}/lib/cache.sh"
-source "${_PROMPT_DIR}/lib/git_info.sh"
-source "${_PROMPT_DIR}/lib/term_utils.sh"
-source "${_PROMPT_DIR}/lib/colors.sh"
+# Source library modules relative to this file's location. _PS_ROOT stays
+# set until the segment files at the bottom have been sourced.
+_PS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${_PS_ROOT}/lib/cache.sh"
+source "${_PS_ROOT}/lib/term_utils.sh"
+source "${_PS_ROOT}/lib/colors.sh"
 colors_init prompt   # switch C_* / PS_* to readline-safe \001..\002 format
-
-# cmd_timer.sh is standalone and doesn't know it's being used by a prompt,
-# so its own DEBUG-trap opt-out is CMD_TIMER_SKIP_TRAP. PS_SKIP_DEBUG_TRAP
-# is kept working as an alias so existing configs don't silently break.
-[[ -n "${PS_SKIP_DEBUG_TRAP-}" && -z "${CMD_TIMER_SKIP_TRAP-}" ]] && CMD_TIMER_SKIP_TRAP=1
-source "${_PROMPT_DIR}/lib/cmd_timer.sh"
-unset _PROMPT_DIR
-
-# Core count for the load segment's busy threshold — invariant for the
-# life of the shell, so this forks nproc once here instead of once per
-# render (as _ps_seg_load used to).
-declare -gi _PS_CORES=1
-_PS_CORES=$(nproc 2>/dev/null) || _PS_CORES=1
 
 # ps_fg/ps_bg — thin wrappers kept for any existing code using the old names
 ps_fg() { c_fg "$@"; }
@@ -86,30 +79,19 @@ declare -ga _PS_SEGS_SORTED=()   # segment names, longest-first (expansion order
 declare -g    _PS_BOX=0            # 1 = wrap rows in a unicode box
 declare -g    _PS_CLOSED=0         # 1 = close box (╯) on last row; 0 = open
 declare -g    _PS_STYLE="rounded"
-declare -g    _PS_HAS_GIT=0        # 1 = at least one git-dependent segment registered
-declare -g    _PS_HAS_GPU=0        # 1 = a gpu-dependent segment is registered
-declare -g    _PS_HAS_DISK=0       # 1 = a disk-dependent segment is registered
-declare -g    _PS_HAS_LOAD=0       # 1 = a load-dependent segment is registered
 
-# Which collected data each built-in segment FUNCTION depends on.
-#
-# [v0.1.4] Keyed on the function, not on the name it's registered under.
-# Previously these flags were set by string-matching the registered name
-# (`git_*`, `gpu`, `disk`, `load`), which silently broke any alias: a user
-# writing `prompt_segment gpu_util _ps_seg_gpu` or `prompt_segment branch
-# _ps_seg_git_branch` got a permanently blank segment, because the
-# corresponding refresh never ran and nothing reported a problem. Aliasing
-# is exactly what the row-template system invites, so it must not be a
-# trap. Custom segments needing their own cached data declare it with
-# prompt_segment_needs (below) rather than being guessed at by name.
-declare -gA _PS_SEG_NEEDS=(
-    [_ps_seg_git_branch]=git       [_ps_seg_git_remote]=git
-    [_ps_seg_git_ahead_behind]=git [_ps_seg_git_status]=git
-    [_ps_seg_git_stash]=git        [_ps_seg_git_conflicts]=git
-    [_ps_seg_gpu]=gpu
-    [_ps_seg_disk]=disk
-    [_ps_seg_load]=load
-)
+# ── Collector registry ─────────────────────────────────────────────────────
+# Needs are keyed on the segment FUNCTION, not on the name it is registered
+# under, so an alias (`prompt_segment branch _ps_seg_git_branch`) still
+# arms the git collector. [v0.1.4 moved this off name matching, which left
+# every alias permanently blank.]
+declare -gA _PS_COLLECTOR_FUNC=()     # collector name → function that gathers its data
+declare -gA _PS_COLLECTOR_TTL=()      # collector name → seconds between runs (0 = every prompt)
+declare -ga _PS_COLLECTOR_ORDER=()    # collector names in registration order = run order
+declare -gA _PS_SEG_NEEDS=()          # segment function → space-separated collector names
+declare -ga _PS_ACTIVE_COLLECTORS=()  # collectors the layout's rows need, in run order
+declare -gi _PS_PLAN_DIRTY=1          # 1 = _PS_ACTIVE_COLLECTORS needs rebuilding
+declare -ga _PS_ROW_SEGMENTS=()       # _ps_row_segments' result
 
 # ── Box character sets ────────────────────────────────────────────────────
 declare -gA _PS_CHARS=(
@@ -122,20 +104,6 @@ declare -gA _PS_CHARS=(
     [ascii_tl]="+"    [ascii_tr]="+"    [ascii_bl]="+"    [ascii_br]="+"
     [ascii_h]="-"     [ascii_v]="|"
 )
-
-# ── Command timer + gpu/disk/load cache values ──────────────────────────────
-# Command-duration tracking (the DEBUG trap, arm/elapsed logic) now lives in
-# lib/cmd_timer.sh, sourced above — nothing prompt-specific about it.
-# cache.sh tracks *when* each value was last refreshed; the values
-# themselves still live here since cache.sh deliberately doesn't store
-# values (see lib/cache.sh's header — different segments cache different
-# shapes of data). Populated by _ps_refresh_gpu/_disk/_load, called from
-# prompt_build — never write these from inside a *_seg_* function; those
-# run via command substitution (a subshell) and any assignment made there
-# is silently lost when it exits. See prompt_build's comment for why.
-declare -g _PS_GPU_CACHE_VAL=""    # nvidia-smi utilization.gpu, or "" if unavailable
-declare -g _PS_DISK_CACHE_VAL=""   # usage percent, or "" if unavailable/not near capacity
-declare -g _PS_LOAD_CACHE_VAL=""   # 1-min load average, or "" if unavailable/not busy
 
 # ── Row template expansion ─────────────────────────────────────────────────
 
@@ -244,30 +212,67 @@ prompt_segment() {
         return 1
     }
     _PS_SEGS["$name"]="$func"
-    # Arm whichever refresh this segment's FUNCTION depends on, regardless
-    # of the name it was registered under.
-    case "${_PS_SEG_NEEDS[$func]-}" in
-        git)  _PS_HAS_GIT=1  ;;
-        gpu)  _PS_HAS_GPU=1  ;;
-        disk) _PS_HAS_DISK=1 ;;
-        load) _PS_HAS_LOAD=1 ;;
-    esac
     _PS_SEGS_DIRTY=1
+    _PS_PLAN_DIRTY=1
 }
 
-# Declare that a segment function depends on collected data, so
-# prompt_build refreshes it. For custom segments wrapping built-in data:
+# Register a data collector: a function that fills globals for segments to
+# format. It runs in prompt_build, in the shell's own process (segments run
+# in a subshell, so anything they assign is lost), and only while a row the
+# layout shows uses a segment that needs it. Registering an existing name
+# replaces its TTL and function and keeps its place in the run order.
+#   _my_collect() { _MY_VAL=$(expensive_command); }
+#   prompt_collector mine 30 _my_collect
+# $1  name          Letters, digits and _; referenced by prompt_segment_needs.
+# $2  ttl_seconds   0 = every prompt; N = at most once per N seconds.
+# $3  function      Must already be defined.
+prompt_collector() {
+    (( $# == 3 )) || {
+        printf 'prompt_collector: usage: <name> <ttl_seconds> <function>\n' >&2
+        return 1
+    }
+    local name="$1" ttl="$2" func="$3"
+    [[ "$name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
+        printf 'prompt_collector: bad name "%s" (letters, digits and _ only)\n' "$name" >&2
+        return 1
+    }
+    [[ "$ttl" =~ ^[0-9]+$ ]] || {
+        printf 'prompt_collector: ttl "%s" is not a whole number of seconds\n' "$ttl" >&2
+        return 1
+    }
+    declare -F "$func" >/dev/null || {
+        printf 'prompt_collector: "%s" is not a defined function\n' "$func" >&2
+        return 1
+    }
+    [[ -n "${_PS_COLLECTOR_FUNC[$name]-}" ]] || _PS_COLLECTOR_ORDER+=("$name")
+    _PS_COLLECTOR_FUNC["$name"]="$func"
+    _PS_COLLECTOR_TTL["$name"]=$(( 10#$ttl ))   # 10#: "08" is not octal
+    _PS_PLAN_DIRTY=1
+}
+
+# Declare the collectors a segment function reads data from, so they run
+# whenever a shown row uses that function. Replaces any earlier
+# declaration for the function. Order relative to prompt_segment does not
+# matter. For custom segments wrapping built-in data:
 #   _my_branch() { printf '⎇ %s' "$GIT_BRANCH"; }
-#   prompt_segment_needs _my_branch git      # before prompt_segment
+#   prompt_segment_needs _my_branch git
 #   prompt_segment mybranch _my_branch
-# $1  function name   $2  one of: git | gpu | disk | load
+# $1  function name   $2…  registered collector names (git, cmd_time,
+#                          load, disk, gpu, or your own)
 prompt_segment_needs() {
-    local func="$1" need="$2"
-    case "$need" in
-        git|gpu|disk|load) _PS_SEG_NEEDS["$func"]="$need" ;;
-        *) printf 'prompt_segment_needs: unknown dependency "%s" (expected git, gpu, disk, or load)\n' "$need" >&2
-           return 1 ;;
-    esac
+    (( $# >= 2 )) || {
+        printf 'prompt_segment_needs: usage: <function> <collector>...\n' >&2
+        return 1
+    }
+    local func="$1" c; shift
+    for c in "$@"; do
+        [[ -n "${_PS_COLLECTOR_FUNC[$c]-}" ]] && continue
+        printf 'prompt_segment_needs: unknown collector "%s" (registered: %s)\n' \
+            "$c" "${_PS_COLLECTOR_ORDER[*]}" >&2
+        return 1
+    done
+    _PS_SEG_NEEDS["$func"]="$*"
+    _PS_PLAN_DIRTY=1
 }
 
 # Rebuild _PS_SEGS_SORTED (longest-name-first, so @git_branch matches
@@ -282,13 +287,57 @@ prompt_segment_needs() {
 # called once per render from prompt_build, a no-op unless something
 # registered since the last call.
 _ps_resort_segments() {
-    (( _PS_SEGS_DIRTY )) || return
+    (( _PS_SEGS_DIRTY )) || return 0
     _PS_SEGS_SORTED=()
     while IFS= read -r n; do _PS_SEGS_SORTED+=("$n"); done < <(
         printf '%s\n' "${!_PS_SEGS[@]}" |
             awk '{ print length" "$0 }' | sort -rn | cut -d' ' -f2-
     )
     _PS_SEGS_DIRTY=0
+}
+
+# Fill _PS_ROW_SEGMENTS with the segment names a row template uses, in
+# order. Matches tokens exactly as _ps_expand does (@fill first, then
+# longest name first, an unmatched @ is literal), so the collectors planned
+# are those of the segments that actually render.
+# $1  template string
+_ps_row_segments() {
+    local rest="$1" name
+    _PS_ROW_SEGMENTS=()
+    _ps_resort_segments
+    while [[ "$rest" == *@* ]]; do
+        rest="${rest#*@}"
+        [[ "$rest" == fill* ]] && { rest="${rest#fill}"; continue; }
+        for name in "${_PS_SEGS_SORTED[@]}"; do
+            [[ "$rest" == "${name}"* ]] || continue
+            _PS_ROW_SEGMENTS+=("$name")
+            rest="${rest#"$name"}"
+            break
+        done
+    done
+}
+
+# Rebuild _PS_ACTIVE_COLLECTORS: the collectors needed by the segments that
+# the layout's rows show, in registration order. A no-op unless a segment,
+# row, layout, collector or needs declaration changed since the last call,
+# so the per-prompt cost is one integer test.
+_ps_plan_collectors() {
+    (( _PS_PLAN_DIRTY )) || return 0
+    local -A wanted=()
+    local r s c
+    for r in "${_PS_ORDER[@]}"; do
+        _ps_row_segments "${_PS_ROWS[$r]-}"
+        for s in "${_PS_ROW_SEGMENTS[@]}"; do
+            # Collector names are validated identifiers: splitting is safe.
+            # shellcheck disable=SC2086
+            for c in ${_PS_SEG_NEEDS[${_PS_SEGS[$s]}]-}; do wanted["$c"]=1; done
+        done
+    done
+    _PS_ACTIVE_COLLECTORS=()
+    for c in "${_PS_COLLECTOR_ORDER[@]}"; do
+        [[ -n "${wanted[$c]-}" ]] && _PS_ACTIVE_COLLECTORS+=("$c")
+    done
+    _PS_PLAN_DIRTY=0
 }
 
 # Define a named row template.
@@ -301,6 +350,7 @@ prompt_row() {
         return 1
     }
     _PS_ROWS["$name"]="$tmpl"
+    _PS_PLAN_DIRTY=1
 }
 
 # Set the prompt layout: ordered rows + optional box decoration.
@@ -329,6 +379,7 @@ prompt_layout() {
         esac
         shift
     done
+    _PS_PLAN_DIRTY=1
 
     # Prepend once — checks the exact call token (start of string, or right
     # after a "; "), not a bare substring, so a differently-named function
@@ -340,6 +391,7 @@ prompt_layout() {
 
 # Print current configuration to stderr — useful during layout development.
 prompt_debug() {
+    _ps_plan_collectors
     printf '=== prompt.sh  box=%d  closed=%d  style=%s ===\n' \
         "$_PS_BOX" "$_PS_CLOSED" "$_PS_STYLE" >&2
     printf 'rows:\n' >&2
@@ -347,23 +399,19 @@ prompt_debug() {
         printf '  %-16s %s\n' "$r" "${_PS_ROWS[$r]:-<undefined>}" >&2
     done
     printf 'segments:\n' >&2
-    local s; for s in "${!_PS_SEGS[@]}"; do
-        printf '  @%-20s → %s\n' "$s" "${_PS_SEGS[$s]}" >&2
+    local s needs; for s in "${!_PS_SEGS[@]}"; do
+        needs="${_PS_SEG_NEEDS[${_PS_SEGS[$s]}]-}"
+        printf '  @%-20s → %s%s\n' "$s" "${_PS_SEGS[$s]}" "${needs:+  (needs $needs)}" >&2
     done
-    printf 'git cache:  dir=%s  age=%ss  ttl=%ds\n' \
-        "${_GIT_CACHE_DIR:-(none)}" \
-        "$(cache_age git_info)" \
-        "$_GIT_CACHE_TTL" >&2
-    (( _PS_HAS_GPU  )) && printf 'gpu cache:  age=%ss  ttl=10s  val=%s\n'  "$(cache_age gpu)"  "${_PS_GPU_CACHE_VAL:-(none)}"  >&2
-    (( _PS_HAS_DISK )) && printf 'disk cache: age=%ss  ttl=30s  val=%s\n' "$(cache_age disk)" "${_PS_DISK_CACHE_VAL:-(none)}" >&2
-    (( _PS_HAS_LOAD )) && printf 'load cache: age=%ss  ttl=10s  val=%s\n' "$(cache_age load)" "${_PS_LOAD_CACHE_VAL:-(none)}" >&2
-    printf 'raw PS1: '; printf '%s' "$PS1" | cat -v >&2; printf '\n' >&2
+    printf 'collectors (active = a shown row needs it):\n' >&2
+    local c active; for c in "${_PS_COLLECTOR_ORDER[@]}"; do
+        active=no; [[ " ${_PS_ACTIVE_COLLECTORS[*]} " == *" $c "* ]] && active=yes
+        printf '  %-12s ttl=%-4s active=%-3s age=%ss  → %s\n' "$c" \
+            "${_PS_COLLECTOR_TTL[$c]}" "$active" "$(cache_age "collector:$c")" \
+            "${_PS_COLLECTOR_FUNC[$c]}" >&2
+    done
+    printf 'raw PS1: ' >&2; printf '%s' "$PS1" | cat -v >&2; printf '\n' >&2
 }
-
-# Backward-compatible wrappers — delegate to the library functions
-prompt_cache_ttl()          { git_info_cache_ttl "$@"; }
-# Set the minimum seconds a command must run before @cmd_time displays it.
-prompt_cmd_time_threshold() { _PS_CMD_TIME_MIN="${1:-2}"; }
 
 # ── Builder ────────────────────────────────────────────────────────────────
 
@@ -371,29 +419,29 @@ prompt_cmd_time_threshold() { _PS_CMD_TIME_MIN="${1:-2}"; }
 # PROMPT_COMMAND. The $? capture MUST remain the very first statement.
 prompt_build() {
     local last_exit=$?
+    # shellcheck disable=SC2034  # read by _ps_seg_exit in segments/command.sh
     PROMPT_LAST_EXIT=$last_exit   # global — readable by all segment functions
-
-    # Compute how long the last user command ran (sets $_CMD_TIMER_ELAPSED).
-    cmd_timer_elapsed
 
     _ps_resort_segments   # also called inside _ps_expand itself; cheap either way, kept here for a predictable point in the render sequence
 
-    # Refresh git data only when the cache is stale.
-    # Cache hit: ~2 stat calls (<1 ms). Cache miss: full git_info_refresh.
-    (( _PS_HAS_GIT )) && { git_info_cache_valid || git_info_refresh; }
-
-    # [v0.1.3] gpu/disk/load data collection happens HERE, in the parent
-    # shell — not inside the segment functions. Segments run via
-    # val=$(segfunc), a subshell; any cache_touch or value assignment made
-    # there is lost the instant the subshell exits. That was a real,
-    # verified bug: the @gpu segment's TTL cache never once took effect —
-    # every render re-forked nvidia-smi regardless of its 10s TTL. The
-    # rule going forward: data collection happens in prompt_build,
-    # segments only format already-collected globals — same pattern the
-    # git segments have always used.
-    (( _PS_HAS_GPU  )) && { cache_stale gpu  10 && _ps_refresh_gpu;  }
-    (( _PS_HAS_DISK )) && { cache_stale disk 30 && _ps_refresh_disk; }
-    (( _PS_HAS_LOAD )) && { cache_stale load 10 && _ps_refresh_load; }
+    # Data collection happens HERE, in the parent shell — not inside the
+    # segment functions. Segments run via val=$(segfunc), a subshell; any
+    # cache_touch or value assignment made there is lost the instant the
+    # subshell exits. [v0.1.3: the @gpu TTL cache never once took effect
+    # for exactly that reason.] Only collectors a shown row needs run; a
+    # TTL collector runs when its cache key has gone stale.
+    _ps_plan_collectors
+    local c ttl
+    for c in "${_PS_ACTIVE_COLLECTORS[@]}"; do
+        ttl=${_PS_COLLECTOR_TTL[$c]}
+        if (( ttl > 0 )); then
+            cache_stale "collector:$c" "$ttl" || continue
+        fi
+        # A collector's exit status means nothing here (load's is 1 when
+        # the node is idle); `|| true` keeps an errexit shell rendering.
+        "${_PS_COLLECTOR_FUNC[$c]}" || true
+        (( ttl > 0 )) && cache_touch "collector:$c"
+    done
 
     local tw=${COLUMNS:-0}
     (( tw > 0 )) || tw=$(tput cols 2>/dev/null || echo 80)
@@ -467,263 +515,15 @@ prompt_build() {
     done
 
     PS1="$ps1"
-    cmd_timer_arm   # the next user command will record its start time
 }
 
-# ════════════════════════════════════════════════════════════════════════════
-# Built-in segment functions
-# Register any of these with:  prompt_segment <alias> <function_name>
-# Git segments read GIT_* globals (populated by git_info_refresh in
-# lib/git_info.sh) — no additional git subprocess cost.
-# ════════════════════════════════════════════════════════════════════════════
-
-# ── Identity ──────────────────────────────────────────────────────────────
-_ps_seg_user()      { printf '%s'    "${USER:-$(id -un)}"; }
-# Short hostname, domain stripped.
-_ps_seg_host()      { printf '%s'    "${HOSTNAME%%.*}"; }
-# Plain user@host, domain stripped. See prompt_example.sh for a colored variant.
-_ps_seg_user_host() { printf '%s@%s' "${USER:-$(id -un)}" "${HOSTNAME%%.*}"; }
-
-# Root/privileged-shell indicator — silent for normal users. $EUID is a
-# bash-managed, read-only builtin; nothing in the environment can spoof it.
-_ps_seg_root() {
-    (( EUID == 0 )) || return
-    printf '%s⚡%s' "$C_BRED" "$C_R"
-}
-
-# Working directory — $HOME collapsed to ~, capped at 35 visible chars.
-# Directory names may legally contain control bytes and escape sequences;
-# strip both before they can reach PS1. Truncation then uses str_width/cut
-# (code-point aware) instead of ${#p}/${p: -N}, which count/slice by byte
-# and can cut a multi-byte character in half outside a UTF-8 locale.
-_ps_seg_pwd() {
-    local p="${PWD/#$HOME/\~}"
-    p=$(strip_ansi "$p")
-    p=$(tr -d '\000-\037\177' <<< "$p")
-    local w; w=$(str_width "$p")
-    (( w > 35 )) && p="…$(LC_ALL=C.UTF-8 cut -c "$(( w - 31 ))-" <<< "$p")"
-    printf '%s' "$p"
-}
-
-# ── Git (all read GIT_* from lib/git_info.sh; no extra git calls) ─────────
-
-# Current branch name, or short SHA when HEAD is detached.
-_ps_seg_git_branch() {
-    (( GIT_IN_REPO )) || return
-    printf '%s' "$GIT_BRANCH"
-}
-
-# Upstream tracking branch, silent when the branch has no remote.
-_ps_seg_git_remote() {
-    (( GIT_IN_REPO )) && [[ -n "$GIT_REMOTE" ]] || return
-    printf '%s' "$GIT_REMOTE"
-}
-
-# ↑N ahead (green)  ↓N behind (yellow)  ✓ if up to date  — silent if no remote
-_ps_seg_git_ahead_behind() {
-    (( GIT_IN_REPO )) && [[ -n "$GIT_REMOTE" ]] || return
-    if (( GIT_AHEAD == 0 && GIT_BEHIND == 0 )); then
-        printf '%s✓%s' "$C_GREEN" "$C_R"
-        return
-    fi
-    local r=""
-    (( GIT_AHEAD  > 0 )) && r+="${C_GREEN}↑${GIT_AHEAD}${C_R} "
-    (( GIT_BEHIND > 0 )) && r+="${C_YELLOW}↓${GIT_BEHIND}${C_R}"
-    printf '%s' "${r% }"
-}
-
-# +N staged (green)  ~N modified (yellow)  ?N untracked (dim) — silent if clean
-_ps_seg_git_status() {
-    (( GIT_IN_REPO )) || return
-    local r=""
-    (( GIT_STAGED    > 0 )) && r+="${C_GREEN}+${GIT_STAGED}${C_R} "
-    (( GIT_MODIFIED  > 0 )) && r+="${C_YELLOW}~${GIT_MODIFIED}${C_R} "
-    (( GIT_UNTRACKED > 0 )) && r+="${C_DIM}?${GIT_UNTRACKED}${C_R}"
-    [[ -n "$r" ]] && printf '%s' "${r% }"
-}
-
-# ⚑N stash count — silent when no stashes or not in a repo
-_ps_seg_git_stash() {
-    (( GIT_IN_REPO && GIT_STASH > 0 )) || return
-    printf '⚑%d' "$GIT_STASH"
-}
-
-# ⚠N unmerged/conflicted paths (bold red) — silent when none or not in a repo
-_ps_seg_git_conflicts() {
-    (( GIT_IN_REPO && GIT_CONFLICTS > 0 )) || return
-    printf '%s⚠%d%s' "$C_BRED" "$GIT_CONFLICTS" "$C_R"
-}
-
-# ── Environment ───────────────────────────────────────────────────────────
-
-# tmux session:window.pane, sanitized (session names are user-settable).
-_ps_seg_tmux() {
-    [[ -z "${TMUX-}" ]] && return
-    local info; info=$(tmux display-message -p '#S:#I.#P' 2>/dev/null) || return
-    info=$(strip_ansi "$info")               # session names are user-settable
-    info=$(tr -d '\000-\037\177' <<< "$info")
-    printf '⧉ %s' "$info"
-}
-
-# $DISPLAY value, indicating X11 forwarding is active.
-_ps_seg_display() { [[ -n "${DISPLAY-}" ]] && printf '%s' "$DISPLAY"; }
-
-# Marker shown when this shell arrived over SSH.
-_ps_seg_ssh()     { [[ -n "${SSH_CLIENT-}" || -n "${SSH_TTY-}" ]] && printf '⇄ ssh'; }
-
-# Active Python virtualenv name in parentheses.
-_ps_seg_venv()    { [[ -n "${VIRTUAL_ENV-}" ]] && printf '(%s)' "$(basename "$VIRTUAL_ENV")"; }
-
-# Count of background jobs in this shell, silent when there are none.
-_ps_seg_jobs() {
-    local -a j; mapfile -t j < <(jobs 2>/dev/null)
-    (( ${#j[@]} > 0 )) && printf '⚙ %d' "${#j[@]}"
-}
-
-# Last command's exit status: a checkmark, or a cross plus the code.
-_ps_seg_exit() {
-    if (( ${PROMPT_LAST_EXIT:-0} == 0 )); then
-        printf '%s✓%s'    "$C_GREEN" "$C_R"
-    else
-        printf '%s✗ %d%s' "$C_RED" "${PROMPT_LAST_EXIT:-0}" "$C_R"
-    fi
-}
-
-# Current wall-clock time, HH:MM.
-_ps_seg_time() { date '+%H:%M'; }
-
-# ── Command duration ──────────────────────────────────────────────────────
-declare -gi _PS_CMD_TIME_MIN=2
-
-# Duration of the last command, shown only past _PS_CMD_TIME_MIN seconds.
-_ps_seg_cmd_time() {
-    (( _CMD_TIMER_ELAPSED >= _PS_CMD_TIME_MIN )) || return
-    local s=$_CMD_TIMER_ELAPSED
-    (( s >= 3600 )) && { printf '%dh%dm%ds' $(( s/3600 )) $(( (s%3600)/60 )) $(( s%60 )); return; }
-    (( s >=   60 )) && { printf '%dm%ds'    $(( s/60 ))   $(( s%60 ));         return; }
-    printf '%ds' "$s"
-}
-
-# ── Conda environment ─────────────────────────────────────────────────────
-_ps_seg_conda() {
-    [[ -z "${CONDA_DEFAULT_ENV-}" || "$CONDA_DEFAULT_ENV" == "base" ]] && return
-    printf '(%s)' "$CONDA_DEFAULT_ENV"
-}
-
-# ── Shell depth ───────────────────────────────────────────────────────────
-_ps_seg_shlvl() {
-    (( ${SHLVL:-1} > 1 )) && printf '%s⬇%d%s' "$C_YELLOW" "$SHLVL" "$C_R"
-}
-
-# 1-minute load average, shown only when the node is genuinely busy
-# (load exceeds core count) — quiet on an idle shared login node.
-# [v0.1.3] Collection (the /proc/loadavg read and the busy-threshold
-# check) moved to _ps_refresh_load, called from prompt_build and
-# TTL-cached (10s) via cache.sh. Previously this forked nproc AND awk on
-# *every* render, even the vast majority where it prints nothing — and
-# because it ran inside the segment (a command-substitution subshell),
-# nothing it computed could have been cached here even if it had tried.
-_ps_refresh_load() {
-    _PS_LOAD_CACHE_VAL=""
-    if [[ -r /proc/loadavg ]]; then
-        local load1; read -r load1 _ < /proc/loadavg
-        awk -v l="$load1" -v c="$_PS_CORES" 'BEGIN { exit !(l > c) }' &&
-            _PS_LOAD_CACHE_VAL="$load1"
-    fi
-    cache_touch load
-}
-# Formats the cached load average (collected by _ps_refresh_load).
-_ps_seg_load() {
-    [[ -n "$_PS_LOAD_CACHE_VAL" ]] && printf '⚖%s' "$_PS_LOAD_CACHE_VAL"
-}
-
-# Filesystem usage percent for $PWD, shown only near capacity (>=90%).
-# Uses df rather than true quota parsing -- quota semantics vary too much
-# across NFS/Lustre/GPFS to get generically right.
-# [v0.1.3] Same restructuring as load: collection is now
-# _ps_refresh_disk, TTL-cached (30s — usage doesn't need per-render
-# freshness) and run from prompt_build instead of inside the segment.
-_ps_refresh_disk() {
-    _PS_DISK_CACHE_VAL=""
-    local pct; pct=$(df -P . 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
-    [[ -n "$pct" ]] && (( pct >= 90 )) && _PS_DISK_CACHE_VAL="$pct"
-    cache_touch disk
-}
-# Formats the cached disk usage percent (collected by _ps_refresh_disk).
-_ps_seg_disk() {
-    [[ -n "$_PS_DISK_CACHE_VAL" ]] && printf '%s⛁%d%%%s' "$C_BYELLOW" "$_PS_DISK_CACHE_VAL" "$C_R"
-}
-
-# ── HPC module count ──────────────────────────────────────────────────────
-_ps_seg_modules() {
-    [[ -z "${LOADEDMODULES-}" ]] && return
-    # Some module systems emit a leading/trailing/doubled colon; squeeze and
-    # trim first or a bare colon-count overcounts entries that aren't there.
-    local mods; mods=$(tr -s ':' <<< "$LOADEDMODULES")
-    mods="${mods#:}"; mods="${mods%:}"
-    [[ -z "$mods" ]] && return
-    local colons="${mods//[^:]}"
-    printf '⊞ %d' $(( ${#colons} + 1 ))
-}
-
-# GPU utilization -- nvidia-smi is slow (~100ms+), so this is TTL-cached
-# (10s) with a timeout guard so a misbehaving driver can't stall every
-# prompt render. Silent on non-GPU nodes or if nvidia-smi is unavailable.
-#
-# [v0.1.3, CRITICAL FIX] This TTL cache never actually worked before —
-# collection ran inside _ps_seg_gpu, which _ps_expand calls as
-# val=$(_ps_seg_gpu): a command-substitution SUBSHELL. cache_touch and
-# the value assignment both happened in that subshell and were discarded
-# the instant it exited; the parent shell never saw them. Every render
-# re-forked nvidia-smi (with its 1s timeout) regardless of the 10s TTL —
-# verified directly: cache_age stayed -1 (never recorded) after repeated
-# renders. Collection now runs in _ps_refresh_gpu, called from
-# prompt_build in the parent shell, same as git and (as of this version)
-# load/disk. The rule generalizes: DATA COLLECTION HAPPENS IN
-# prompt_build; *_seg_* functions only format already-collected globals.
-# Never call cache_touch from inside a segment — it will silently no-op.
-_ps_refresh_gpu() {
-    _PS_GPU_CACHE_VAL=""
-    if command -v nvidia-smi &>/dev/null; then
-        _PS_GPU_CACHE_VAL=$(timeout 1 nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1)
-    fi
-    cache_touch gpu
-}
-# Formats the cached GPU utilization (collected by _ps_refresh_gpu).
-_ps_seg_gpu() {
-    [[ -n "$_PS_GPU_CACHE_VAL" ]] && printf '%sGPU %s%%%s' "$C_BCYAN" "$_PS_GPU_CACHE_VAL" "$C_R"
-}
-
-# ── PBS / Torque ──────────────────────────────────────────────────────────
-_ps_seg_pbs_job()   { [[ -n "${PBS_JOBID-}"   ]] && printf 'PBS %s'  "${PBS_JOBID%%.*}"; }
-# PBS queue name for the current job.
-_ps_seg_pbs_queue() { [[ -n "${PBS_QUEUE-}"   ]] && printf '%s'      "$PBS_QUEUE"; }
-# Count unique nodes allocated to the current PBS job.
-_ps_seg_pbs_nodes() {
-    [[ -f "${PBS_NODEFILE:-}" ]] || return
-    # sort -u | wc -l | tr -d ' ' replaced with a plain bash dedup: this
-    # segment has no TTL cache of its own and PBS_NODEFILE doesn't change
-    # during a job, so it forks all three, every render, for the entire
-    # life of the job — worth the small bit of extra code.
-    # Each variable is declared separately on purpose: `local -A seen=()
-    # line n=0` would apply -A to ALL THREE names, making `line` and `n`
-    # associative arrays too. That happened to still produce the right
-    # answer (bash routes the bare reads and increments through index
-    # [0]) but only by accident, not by any documented rule.
-    local -A seen=()
-    local line
-    local -i n=0
-    while IFS= read -r line; do
-        [[ -n "${seen[$line]-}" ]] && continue
-        seen["$line"]=1
-        (( n++ ))
-    done < "$PBS_NODEFILE"
-    (( n > 0 )) && printf '%d nodes' "$n"
-}
-
-# ── Slurm ─────────────────────────────────────────────────────────────────
-_ps_seg_slurm_job()   { [[ -n "${SLURM_JOB_ID-}"        ]] && printf 'SLURM %s' "$SLURM_JOB_ID"; }
-# Slurm partition name for the current job.
-_ps_seg_slurm_queue() { [[ -n "${SLURM_JOB_PARTITION-}" ]] && printf '%s'        "$SLURM_JOB_PARTITION"; }
-# Node count allocated to the current Slurm job.
-_ps_seg_slurm_nodes() { [[ -n "${SLURM_NNODES-}"        ]] && printf '%d nodes'  "$SLURM_NNODES"; }
+# ── Built-in segments ──────────────────────────────────────────────────────
+# Each file registers its collectors and needs through the API above, so
+# they are sourced after it. Order is collector run order: command first,
+# so @cmd_time's reading is taken before git or anything else spends time.
+for _ps_topic in identity command git shell system hpc; do
+    # Each topic file is checked on its own: shellcheck segments/*.sh
+    # shellcheck source=/dev/null
+    source "${_PS_ROOT}/segments/${_ps_topic}.sh"
+done
+unset _ps_topic _PS_ROOT

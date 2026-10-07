@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.4
+# Toolkit version: 0.1.5
 # ════════════════════════════════════════════════════════════════════════════
 # lib/cmd_timer.sh — Command-duration tracking via the DEBUG trap
 #
@@ -9,18 +9,20 @@
 #
 # Usage:
 #   source lib/cmd_timer.sh
+#   cmd_timer_install         # claim the DEBUG trap (once; later calls no-op)
 #   cmd_timer_arm             # call once, right after you display a prompt
 #   …user's command runs…
 #   cmd_timer_elapsed         # updates $_CMD_TIMER_ELAPSED; read the global
 #                              # directly rather than $(...) to stay fork-free
 #
-# Chains onto any DEBUG trap already installed (direnv, bash-preexec, etc.)
-# instead of silently replacing it. Set CMD_TIMER_SKIP_TRAP=1 before sourcing
-# to skip installing the trap yourself when combining with another
-# DEBUG-trap tool (bats, direnv) — see the toolkit README's version
-# history for why
-# automatic detection was tried and abandoned in favor of this explicit
-# opt-out.
+# Sourcing installs nothing: the trap is claimed by cmd_timer_install, so a
+# caller that never needs timing never pays for a DEBUG trap.
+#
+# Replaces any DEBUG trap already installed; it does not chain onto one
+# (chaining broke bats-core's own trap and was removed in v0.1.1 — see the
+# toolkit README's version history). When another tool owns the DEBUG trap
+# (bats, bash-preexec), set CMD_TIMER_SKIP_TRAP=1 before cmd_timer_install
+# runs, and lose only the timing.
 #
 # [v0.1.3] Clock source: EPOCHSECONDS (bash 5.0+) when available, since it
 # can't be clobbered by an unrelated `SECONDS=0` elsewhere in the shell —
@@ -51,9 +53,17 @@ _cmd_timer_preexec() {
     (( _CMD_TIMER_USE_EPOCH )) && _CMD_TIMER_START=$EPOCHSECONDS || _CMD_TIMER_START=$SECONDS
 }
 
-if [[ -z "${CMD_TIMER_SKIP_TRAP-}" ]]; then
+declare -gi _CMD_TIMER_INSTALLED=0  # 1 = cmd_timer_install has run
+
+# Claim the DEBUG trap for _cmd_timer_preexec, unless CMD_TIMER_SKIP_TRAP
+# is set. Runs once per shell; later calls return at the first test, so a
+# caller may run it before every prompt.
+cmd_timer_install() {
+    (( _CMD_TIMER_INSTALLED )) && return
+    _CMD_TIMER_INSTALLED=1
+    [[ -n "${CMD_TIMER_SKIP_TRAP-}" ]] && return
     trap '_cmd_timer_preexec' DEBUG
-fi
+}
 
 # Arm the timer: call once right after displaying a prompt, so the *next*
 # command's start time gets recorded.

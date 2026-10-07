@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.4
+# Toolkit version: 0.1.5
 # ════════════════════════════════════════════════════════════════════════════
 # lib/colors.sh — ANSI color variables for bash scripts and PS1 prompts
 #

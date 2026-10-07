@@ -1,8 +1,8 @@
 # 60-prompt.sh -- the prompt, drawn by bash-prompt-toolkit.
 #
-# prompt.sh and lib/ under ~/.config/bash/prompt/ are a vendored copy of
-# bash-prompt-toolkit (the version is in their headers); do not edit them
-# here.  layout.sh beside them is the configuration: which pieces of
+# prompt.sh, lib/ and segments/ under ~/.config/bash/prompt/ are a vendored
+# copy of bash-prompt-toolkit (the version is in their headers); do not edit
+# them here.  layout.sh beside them is the configuration: which pieces of
 # information, on which rows, in which box -- every piece is listed there
 # with a description.
 #

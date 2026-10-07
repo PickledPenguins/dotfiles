@@ -12,7 +12,7 @@ Changing the project.  Back to the [README](../README.md);
 | a per-machine difference | not in the repository: a knob (for a value) or a line in a hook file | document the knob in the module header and `docs/configuration.md` |
 | a `dots` behavior | the band that owns it (`docs/architecture.md`); output and exit code in the `cmd_*` | unit/CLI test, mutant line, `docs/cli.md`, catalog case |
 | a new dotfile | `dot_<name>` or `private_dot_<name>` at the mirrored path, with the standard header lines | a loader in `tests/test_options.py`; integration test through the real program; row in `docs/configuration.md` |
-| the prompt | `dot_config/bash/prompt/layout.sh` only; `prompt.sh` and `lib/` are upstream's | |
+| the prompt | `dot_config/bash/prompt/layout.sh` only; `prompt.sh`, `lib/` and `segments/` are upstream's | |
 | a decision not to build something | `docs/future-work.md`, labelled, with the evidence | |
 
 ## What enforces what
