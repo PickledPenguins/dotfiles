@@ -15,13 +15,17 @@ Names match the code.  Back to the [README](../README.md).
   the target name and remembered as a property of the entry:
   `dot_` (leading dot), `private_` (mode 600 for a file, 700 for a
   directory and everything below it), `executable_` (owner execute bit).
-  Prefixes stack in any order: `private_executable_dot_x`.
+  Prefixes stack in any order: `private_executable_dot_x`.  A home file
+  whose own name starts with a prefix word (`~/private_notes`,
+  `~/bin/dot_env`) cannot be managed: its name would be read as an
+  attribute, and `add` refuses it.
 - **entry** (`Entry`) -- one source file with its target, its attributes and
   the directories that must be 700 because of a `private_` component.
 - **managed** -- an entry that `dots` will act on.  Everything under the
-  source tree is managed except entries in the root whose name starts with
-  `.` (`.git`, `.gitignore`, `.dotsignore`) and target paths matching a
-  pattern in `.dotsignore`.
+  source tree is managed except directories whose name starts with `.`, at
+  any depth (`.git`), files whose name starts with `.` in the root
+  (`.gitignore`, `.dotsignore`; deeper ones are managed), and target paths
+  matching a pattern in `.dotsignore`.
 - **`.dotsignore`** -- one glob pattern per line, matched against the
   target-relative path and each of its leading directories, anchored at the
   top; `*` crosses `/`.  `#` starts a comment.

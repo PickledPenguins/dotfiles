@@ -48,8 +48,10 @@ CDPATH=":$HOME${DOTFILES_CDPATH:+:$DOTFILES_CDPATH}"
 
 # ── The directory stack ───────────────────────────────────────────────────
 
-# 1 to 9 go to that entry of the pushd stack (`d` numbers them).
-for _i in 1 2 3 4 5 6 7 8 9; do alias "$_i"="cd +$_i"; done
+# 1 to 9 go to that entry of the pushd stack (`d` numbers them).  ~N is the
+# stack entry as a path, so this works with the plain cd and with the
+# pushd-on-every-cd function below; cd has no +N of its own.
+for _i in 1 2 3 4 5 6 7 8 9; do alias "$_i"="cd ~$_i"; done
 unset _i
 
 # ── What cd does ──────────────────────────────────────────────────────────

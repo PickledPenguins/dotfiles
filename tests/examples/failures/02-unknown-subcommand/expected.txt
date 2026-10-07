@@ -1,4 +1,4 @@
 usage: dots [-h] [-S SOURCE]
             {apply,status,managed,add,forget,unlink,prune,options} ...
-dots: error: argument cmd: invalid choice: 'aply' (choose from 'apply', 'status', 'managed', 'add', 'forget', 'unlink', 'prune', 'options')
+dots: error: argument cmd: invalid choice: 'aply' (choose from apply, status, managed, add, forget, unlink, prune, options)
 exit 2

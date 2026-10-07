@@ -1,0 +1,15 @@
+link      .ssh/config  ->  SRC/private_dot_ssh/config
+1 change(s)
+exit 0
+add       .ssh/known_hosts  ->  private_dot_ssh/known_hosts
+private_dot_ssh
+700 HOME/.ssh
+644 SRC/private_dot_ssh/known_hosts
+forget    .ssh/known_hosts
+exit 0
+github.com ssh-ed25519 AAAA
+0 change(s)
+exit 0
+ok          .ssh/config
+ok: 1
+exit 0

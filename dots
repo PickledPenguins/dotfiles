@@ -13,16 +13,19 @@ stripping attribute prefixes from every component:
     dot_local/bin/executable_hi   ->  ~/.local/bin/hi        (mode u+x)
 
 Directories are created for real; every file is a symlink back into the
-source directory.  Entries whose name starts with "." (.git, .dotsignore)
-are never managed; .dotsignore lists further target paths to skip.
+source directory.  Directories whose name starts with "." (.git) are never
+managed, at any depth; neither are such files in the root (.dotsignore),
+while deeper ones are (private_dot_ssh/sockets/.keep).  .dotsignore lists
+further target paths to skip.  A home file whose name starts with an
+attribute prefix (~/private_notes) cannot be managed: add refuses it.
 
 `dots options` reads the settings back out of the configuration files that
 mention it: a comment directly above a setting describes it, and a setting
 whose comment character is followed directly by code ("#shopt -s x") is off.
 
 Exit status: 0 on success; 1 when apply leaves conflicts, status finds
-anything not ok, forget names an unmanaged path, or options matches
-nothing; 2 for usage errors and a missing source directory.
+anything not ok, forget names an unmanaged path or one it refuses, or
+options matches nothing; 2 for usage errors and a missing source directory.
 """
 
 import argparse
@@ -143,6 +146,16 @@ def state(entry, src):
     return "conflict"
 
 
+def linked_dir(entry, src, home):
+    """The directory above the target, below home, that is a symlink into the
+    source tree, or None.  Through such a link the target IS the source file."""
+    for rel in reversed(list(Path(entry.rel).parents)[:-1]):
+        directory = home / rel
+        if directory.is_symlink() and os.path.realpath(directory).startswith(str(src) + os.sep):
+            return rel
+    return None
+
+
 def set_mode(entry):
     """Apply private_/executable_ to the source file; the link shows the same bits."""
     mode = entry.source.stat().st_mode
@@ -176,10 +189,14 @@ def cmd_apply(args, src, home):
             if not args.dry_run:
                 set_mode(entry)
             continue
-        if current == "conflict" and not args.force:
-            print(f"conflict  {entry.rel}  (use --force to back it up and replace)")
-            conflicts += 1
-            continue
+        if current == "conflict":
+            through = linked_dir(entry, src, home)
+            if through or not args.force:
+                hint = (f"{through} links into the source; make it a real directory" if through
+                        else "use --force to back it up and replace")
+                print(f"conflict  {entry.rel}  ({hint})")
+                conflicts += 1
+                continue
         verb = {"missing": "link", "stale-link": "relink", "conflict": "replace"}[current]
         print(f"{verb:<9} {entry.rel}  ->  {entry.source}")
         changed += 1
@@ -362,6 +379,19 @@ def source_name(rel_path, private, executable):
     return Path(*parts)
 
 
+def reuse_source_dirs(src, source_rel):
+    """source_rel with each directory swapped for an existing source directory
+    that maps to the same target name: a file added under ~/.ssh goes into
+    private_dot_ssh/ when that exists, not into a new dot_ssh/ beside it."""
+    directory = src
+    for component in source_rel.parts[:-1]:
+        name = parse_name(component)[0]
+        existing = [d for d in sorted(directory.glob("*"))
+                    if d.is_dir() and not d.name.startswith(".") and parse_name(d.name)[0] == name]
+        directory = existing[0] if existing else directory / component
+    return directory / source_rel.name
+
+
 def cmd_add(args, src, home):
     """Move real files into the source tree and leave symlinks behind."""
     for raw in args.paths:
@@ -378,8 +408,12 @@ def cmd_add(args, src, home):
             print(f"skip      {rel}: not a regular file (add files, not directories)")
             continue
         mode = target.stat().st_mode
-        dest = src / source_name(rel, args.private or not mode & stat.S_IRWXO,
-                                 bool(mode & stat.S_IXUSR))
+        source_rel = source_name(rel, args.private or not mode & stat.S_IRWXO, bool(mode & stat.S_IXUSR))
+        if "/".join(parse_name(c)[0] for c in source_rel.parts) != str(rel):
+            # ~/private_notes would be stored as private_notes, the source of ~/notes
+            print(f"skip      {rel}: a name starts with dot_, private_ or executable_")
+            continue
+        dest = reuse_source_dirs(src, source_rel)
         if dest.exists():
             print(f"skip      {rel}: {dest} already exists")
             continue
@@ -395,10 +429,17 @@ def cmd_add(args, src, home):
 def cmd_forget(args, src, home):
     """Stop managing targets: the link becomes a real copy, the source file is removed."""
     wanted = {str(Path(os.path.abspath(os.path.expanduser(p)))) for p in args.paths}
+    refused = 0
     for entry in managed_entries(src, home):
         if str(entry.target) not in wanted:
             continue
         wanted.discard(str(entry.target))
+        through = linked_dir(entry, src, home)
+        if through:
+            # the target is the source file: removing the source removes both
+            print(f"skip      {entry.rel}: {through} links into the source; make it a real directory")
+            refused += 1
+            continue
         print(f"forget    {entry.rel}")
         if args.dry_run:
             continue
@@ -408,7 +449,7 @@ def cmd_forget(args, src, home):
         entry.source.unlink()
     for path in sorted(wanted):
         print(f"skip      {path}: not managed")
-    return 1 if wanted else 0
+    return 1 if wanted or refused else 0
 
 
 def selected(entry, paths, home):

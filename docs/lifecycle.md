@@ -9,8 +9,10 @@ What happens in what order.  Back to the [README](../README.md).
    script.  A source that does not exist stops here with exit 2.
 2. **Read `.dotsignore`** from the source root.  Unreadable is a hard error
    (a traceback), not a silent apply of everything.
-3. **Walk the source tree**, skipping root entries whose name starts with
-   `.`, dropping ignored targets, and refusing any entry whose target would
+3. **Walk the source tree**, skipping directories whose name starts with
+   `.` at every depth and such files in the root only (a deeper one, like
+   `private_dot_ssh/sockets/.keep`, is managed), dropping ignored targets,
+   and refusing any entry whose target would
    have an empty, `.` or `..` component (a file named just `dot_` would map
    to `~` itself) with a warning on stderr.  Entries are sorted by target.
 4. **Restrict to the paths given**, if any: only targets equal to or below
@@ -43,8 +45,10 @@ only links whose state is `ok`.
   arguments is the order of the moves.
 - `forget FILE`: if the target is our link, it is replaced by a **copy** of
   the source file; then the source file is removed.  A target in any other
-  state is left alone and only the source is removed.  Unmanaged paths are
-  reported and give exit 1.
+  state is left alone and only the source is removed, so its content is
+  then only in git.  A target reached through a directory link into the
+  source is the source file itself and is refused.  Unmanaged and refused
+  paths are reported and give exit 1.
 
 ## `dots prune`
 
@@ -69,10 +73,14 @@ valid links, broken links elsewhere, files -- is untouched.
    glob at all).  With `DOTFILES_DEBUG=1` each module's name and load time
    go to stderr.
 6. The last module, `90-local.sh`, sources **`~/.bashrc.local`** if present.
-7. On each prompt, `PROMPT_COMMAND` runs: `prompt_build` (the toolkit
-   prompt, which sets `PS1`), then whatever the modules chained -- the
-   title update (`65-title`), `history -a` (`10-options`), the venv
-   auto-activation if enabled (`75-python`).
+7. On each prompt, `PROMPT_COMMAND` runs.  Each module prepends its entry,
+   so the later module runs earlier: `_title_prompt;prompt_build;history -a`
+   by default, with `_venv_auto` (`75-python`, when enabled) first of all.
+   Anything ahead of `prompt_build` must return the `$?` it found, since
+   the prompt shows that status.  The toolkit arms its command timer in
+   `prompt_build`, and `history -a` after it starts the timer early, so
+   `@cmd_time` currently includes the time spent at the prompt
+   ([F.2.i](future-work.md)).
 
 ## vim
 

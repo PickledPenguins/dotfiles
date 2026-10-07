@@ -1,0 +1,16 @@
+missing     .bashrc
+conflict    .vim/rc/10-ui.vim
+conflict: 1  missing: 1
+exit 1
+link      .bashrc  ->  SRC/dot_bashrc
+conflict  .vim/rc/10-ui.vim  (.vim links into the source; make it a real directory)
+1 change(s), 1 conflict(s) left
+exit 1
+skip      .vim/rc/10-ui.vim: .vim links into the source; make it a real directory
+exit 1
+set nu
+link      .vim/rc/10-ui.vim  ->  SRC/dot_vim/rc/10-ui.vim
+1 change(s)
+exit 0
+ok: 2
+exit 0

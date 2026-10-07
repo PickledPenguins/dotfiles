@@ -20,6 +20,7 @@ absent: a program on PATH, or a path when it starts with ~ or /.
 """
 
 import fnmatch
+import importlib.util
 import os
 import pty
 import re
@@ -271,7 +272,9 @@ def inputrc(home, path):
 
 
 def gdb(home, path):
-    return problems(run(["gdb", "-batch", "-nx", "-x", str(path)], home))
+    error = problems(run(["gdb", "-batch", "-nx", "-x", str(path)], home))
+    # an optional feature this gdb was built without, not a bad setting
+    return "" if "is not compiled into GDB" in error else error
 
 
 def curl(home, path):
@@ -373,6 +376,8 @@ def ipython(home, path):
 
 
 def matplotlibrc(home, path):
+    if importlib.util.find_spec("matplotlib") is None:
+        pytest.skip(f"matplotlib not installed for {sys.executable}")
     config = home.parent / "mplconfig"
     config.mkdir(exist_ok=True)
     shutil.copy(path, config / "matplotlibrc")

@@ -225,6 +225,31 @@ def test_add_moves_files_and_infers_attributes(run, src, home):
     assert code == 1 and out.endswith("missing: 4  ok: 3\n")
 
 
+def test_add_under_a_private_directory_goes_into_that_source_directory(run, src, home):
+    # ~/.ssh is private_dot_ssh/ in the source; a new dot_ssh/ beside it
+    # would be a second source directory for the same target
+    (home / ".ssh").mkdir()
+    (home / ".ssh" / "known_hosts").write_text("h\n")
+    os.chmod(home / ".ssh" / "known_hosts", 0o644)
+    code, out, _ = run("add", str(home / ".ssh/known_hosts"))
+    assert (code, out) == (0, "add       .ssh/known_hosts  ->  private_dot_ssh/known_hosts\n")
+    assert (src / "private_dot_ssh" / "known_hosts").read_text() == "h\n"
+    assert not (src / "dot_ssh").exists()
+
+
+def test_add_refuses_names_that_start_with_an_attribute_prefix(run, src, home):
+    # stored under its own name, ~/private_notes would be the source of ~/notes
+    (home / "private_notes").write_text("n\n")
+    (home / "bin").mkdir()
+    (home / "bin" / "dot_env").write_text("e\n")
+    code, out, _ = run("add", str(home / "private_notes"), str(home / "bin/dot_env"))
+    assert (code, out) == (0, "skip      private_notes: a name starts with dot_, private_ or executable_\n"
+                              "skip      bin/dot_env: a name starts with dot_, private_ or executable_\n")
+    assert sorted(p.name for p in src.iterdir()) == [".dotsignore", ".git", "README.md", "dot_bashrc",
+                                                     "dot_config", "dot_local", "private_dot_ssh"]
+    assert not (home / "private_notes").is_symlink()
+
+
 def test_add_private_flag_forces_the_attribute(run, src, home):
     (home / ".token").write_text("t\n")          # 644: would not be private on its own
     code, out, _ = run("add", "--private", str(home / ".token"))

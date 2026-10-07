@@ -40,6 +40,64 @@ def test_force_replaces_a_directory_in_the_way_by_moving_it_whole(run, src, home
     assert next((home / ".dotfiles-backup").glob("*/.bashrc/inner")).read_text() == "i\n"
 
 
+def test_force_refuses_a_target_reached_through_a_directory_link_into_the_source(run, src, home):
+    # ~/.ssh -> SRC/private_dot_ssh: ~/.ssh/config IS the source file, so a
+    # backup would move the source away and the new link would point at itself
+    os.symlink(src / "private_dot_ssh", home / ".ssh")
+    code, out, _ = run("apply", "--force", str(home / ".ssh"))
+    assert (code, out) == (1, "conflict  .ssh/config  (.ssh links into the source; make it a real directory)\n"
+                              "0 change(s), 1 conflict(s) left\n")
+    assert not (src / "private_dot_ssh" / "config").is_symlink()
+    assert (src / "private_dot_ssh" / "config").read_text() == "Host *\n"
+    assert not (home / ".dotfiles-backup").exists()
+
+
+def test_force_still_replaces_a_target_reached_through_a_foreign_directory_link(run, src, home):
+    (home / "mine").mkdir()
+    (home / "mine" / "config").write_text("Host me\n")
+    os.symlink(home / "mine", home / ".ssh")
+    code, _, _ = run("apply", "--force", str(home / ".ssh"))
+    assert code == 0
+    assert os.readlink(home / "mine" / "config") == str(src / "private_dot_ssh" / "config")
+    assert next((home / ".dotfiles-backup").glob("*/.ssh/config")).read_text() == "Host me\n"
+
+
+def test_forget_refuses_a_target_reached_through_a_directory_link_into_the_source(run, src, home):
+    # the target IS the source file: removing the source would remove both
+    os.symlink(src / "private_dot_ssh", home / ".ssh")
+    code, out, _ = run("forget", str(home / ".ssh/config"))
+    assert (code, out) == (1, "skip      .ssh/config: .ssh links into the source; make it a real directory\n")
+    assert (src / "private_dot_ssh" / "config").read_text() == "Host *\n"
+def test_unwritable_directory_halfway_through_apply_raises_naming_it(run, src, home):
+    if os.geteuid() == 0:
+        pytest.skip("root writes everything")
+    (home / ".config").mkdir()
+    os.chmod(home / ".config", 0o500)
+    try:
+        with pytest.raises(PermissionError) as raised:
+            run("apply")
+    finally:
+        os.chmod(home / ".config", 0o700)
+    assert raised.value.filename == str(home / ".config" / "app")
+    assert os.readlink(home / ".bashrc") == str(src / "dot_bashrc")      # sorted before .config
+    assert not (home / ".ssh").exists()                                   # sorted after
+    assert (src / "dot_config" / "app" / "settings.ini").read_text() == "[app]\n"
+
+
+def test_unwritable_backup_root_under_force_raises_and_moves_nothing(run, src, home):
+    if os.geteuid() == 0:
+        pytest.skip("root writes everything")
+    (home / ".bashrc").write_text("mine\n")
+    (home / ".dotfiles-backup").mkdir()
+    os.chmod(home / ".dotfiles-backup", 0o500)
+    try:
+        with pytest.raises(PermissionError) as raised:
+            run("apply", "--force", str(home / ".bashrc"))
+    finally:
+        os.chmod(home / ".dotfiles-backup", 0o700)
+    assert raised.value.filename.startswith(str(home / ".dotfiles-backup") + os.sep)
+    assert not (home / ".bashrc").is_symlink() and (home / ".bashrc").read_text() == "mine\n"
+    assert (src / "dot_bashrc").read_text() == "# bashrc\n"
 def test_unlink_never_touches_real_files_or_foreign_links(run, home):
     (home / ".bashrc").write_text("mine\n")
     (home / "elsewhere").write_text("e\n")
@@ -162,10 +220,11 @@ def test_unreadable_ignore_file_is_an_error_not_a_silent_apply(run, src, home):
         pytest.skip("root reads everything")
     os.chmod(src / ".dotsignore", 0)
     try:
-        with pytest.raises(PermissionError):
+        with pytest.raises(PermissionError) as raised:
             run("managed")
     finally:
         os.chmod(src / ".dotsignore", 0o644)
+    assert raised.value.filename == str(src / ".dotsignore")
 
 
 def test_two_forced_applies_within_one_second_do_not_collide(run, src, home, monkeypatch):

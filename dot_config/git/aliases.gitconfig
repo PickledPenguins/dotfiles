@@ -60,11 +60,13 @@
     br = branch -av
     brdel = branch -D
 
-    # brclean: delete local branches already merged (not main or master).
-    brclean = "!git branch --merged | grep -vE '^\\*|main|master' | xargs -r git branch -d"
+    # brclean: delete local branches already merged (not main, master or the
+    # current branch; names are matched whole, so domain-fix goes too).
+    brclean = "!git branch --format='%(refname:short)' --merged | grep -vxF -e main -e master -e \"$(git branch --show-current)\" | xargs -r git branch -d"
 
-    # gone: delete local branches whose remote branch was deleted.
-    gone = "!git fetch --prune && git branch -vv | awk '/: gone]/ {print $1}' | xargs -r git branch -D"
+    # gone: delete local branches whose remote branch was deleted (not the
+    # current branch).
+    gone = "!git fetch --prune && git for-each-ref --format='%(HEAD)|%(refname:short)|%(upstream:track)' refs/heads | awk -F'|' '$1 != \"*\" && $3 == \"[gone]\" {print $2}' | xargs -r git branch -D"
 
     # recent: branches by their last commit, newest first, with its age.
     recent = branch --sort=-committerdate --format='%(committerdate:relative)%09%(refname:short)'

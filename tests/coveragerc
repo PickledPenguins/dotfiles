@@ -5,7 +5,7 @@ include = */dots
 data_file = .build/coverage
 
 [report]
-fail_under = 95
+fail_under = 100
 show_missing = True
 exclude_lines =
     if __name__ == "__main__":

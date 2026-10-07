@@ -150,7 +150,7 @@ Read-only variables the loader sets for modules and for you:
 | `40-functions.sh` | `mkcd tmpd up bd cdf extract targz ff fd_ rgv bak swap bigfiles count sha mkscript note tree retry timer histstat man reload calc genpass urlencode urldecode fromepoch title hr envg port cheat weather` |
 | `45-dirs.sh` | `mark jump unmark marks` bookmarks, `CDPATH`, `1`..`9` for the pushd stack.  Off: ls after cd, cd that pushes (auto_pushd) |
 | `50-completion.sh` | bash-completion, `completion.d/`, git completion for the `g` alias.  Off: no `/etc/hosts` in host completion, pip completion |
-| `60-prompt.sh` | the toolkit prompt: `prompt/prompt.sh` + `prompt/layout.sh` (every segment described and switchable there) |
+| `60-prompt.sh` | the toolkit prompt: `prompt/prompt.sh` + `prompt/layout.sh` (every segment described and switchable there).  The toolkit's own variables are in the headers of `prompt/prompt.sh` and `prompt/lib/`; `CMD_TIMER_SKIP_TRAP=1` leaves the DEBUG trap to another tool and drops `@cmd_time` |
 | `61-prompt-simple.sh.off` | one-line colored prompt with git branch.  Off inside: time, short directory, `PROMPT_DIRTRIM`, exit status |
 | `65-title.sh` | terminal title at each prompt.  Off: the running command in the title |
 | `70-conda.sh` | finds conda and sources its `conda.sh`; optional env activation; `ca cda cel` |

@@ -56,6 +56,8 @@ def run_case(case, tmp):
            .replace(str(REPO), "REPO").replace(str(tmp), "TMP"))
     out = re.sub(r"\d{8}-\d{6}", "TS", out)
     out = re.sub(r"pytest-of-\w+/pytest-\d+/[^/]+/", "TMP/", out)
+    # argparse quotes the choices on some Python versions and not on others
+    out = re.sub(r"\(choose from [^)]*\)", lambda m: m.group(0).replace("'", ""), out)
     return proc.returncode, out
 
 

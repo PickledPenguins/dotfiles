@@ -22,7 +22,7 @@ Changing the project.  Back to the [README](../README.md);
 | `tests/test_options.py` (fast) | a configuration file lacks the header that mentions `dots options`; a setting has no description above it |
 | `tests/test_options.py` (long) | a setting that is off does not load in its program once switched on |
 | `tests/test_docs.py` (fast) | a flag, exit code, knob, module, hook file or top-level target is missing from its document; a README example drifts from its catalog case; README over 150 lines; a `docs/` file unlinked; a dead link |
-| `run-tests.sh cov` | `dots` coverage below 95% line or branch |
+| `run-tests.sh cov` | `dots` coverage below 100% line or branch |
 | `run-tests.sh mutate` | a mutant in `tests/mutants.txt` survives the fast suite |
 | `test_catalog_has_enough_variety` (long) | fewer than 15/12/6/8 cases per level |
 | `test_bashrc_loads_every_module_in_order` (long) | a module added, removed or renamed without updating `BASH_MODULES` |

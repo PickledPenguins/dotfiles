@@ -24,7 +24,8 @@ set pagination off
 # and never download it (offline, or on a cluster).
 #set debuginfod enabled off
 
-# Always download debug information from debuginfod, without asking.
+# Always download debug information from debuginfod, without asking.  A
+# gdb built without debuginfod support rejects this line.
 #set debuginfod enabled on
 
 # ── Printing ──────────────────────────────────────────────────────────────

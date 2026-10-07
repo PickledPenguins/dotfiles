@@ -40,14 +40,17 @@ venv() {
 }
 
 # The function for the setting below: activate ./.venv when there is one,
-# deactivate after leaving its project.  Hands the exit status on for the
-# prompt.
+# deactivate after leaving its project.  A venv activated by hand is left
+# alone.  Hands the exit status on for the prompt.
 _venv_auto() {
     local status=$? dir="${DOTFILES_VENV_DIR:-.venv}"
     if [[ -f "$dir/bin/activate" && "${VIRTUAL_ENV-}" != "$PWD/$dir" ]]; then
         source "$dir/bin/activate"
-    elif [[ -n "${VIRTUAL_ENV-}" && "$PWD" != "${VIRTUAL_ENV%/*}"* ]]; then
+        _venv_auto_env=$VIRTUAL_ENV
+    elif [[ -n "${VIRTUAL_ENV-}" && "$VIRTUAL_ENV" == "${_venv_auto_env-}"
+            && "$PWD/" != "${VIRTUAL_ENV%/*}/"* ]]; then
         deactivate
+        unset _venv_auto_env
     fi
     return "$status"
 }

@@ -82,10 +82,13 @@ rgv() { vim -q <(rg --vimgrep "$@"); }
 # bak FILE -- copy FILE to FILE.YYYYmmdd-HHMMSS.bak, keeping its mode and times.
 bak() { command cp -a -- "$1" "$1.$(date +%Y%m%d-%H%M%S).bak"; }
 
-# swap A B -- exchange the names of two files.
+# swap A B -- exchange the names of two files.  When B cannot be moved, A
+# gets its name back rather than staying under the temporary one.
 swap() {
     local tmp; tmp=$(mktemp -u -- "${1}.XXXXXX")
-    command mv -- "$1" "$tmp" && command mv -- "$2" "$1" && command mv -- "$tmp" "$2"
+    command mv -- "$1" "$tmp" || return
+    command mv -- "$2" "$1" || { command mv -- "$tmp" "$1"; return 1; }
+    command mv -- "$tmp" "$2"
 }
 
 # bigfiles [DIR] [N] -- the N largest files under DIR, not crossing into

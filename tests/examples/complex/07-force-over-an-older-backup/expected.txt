@@ -1,0 +1,13 @@
+replace   .bashrc  ->  SRC/dot_bashrc
+backup
+1 change(s)
+exit 0
+replace   .bashrc  ->  SRC/dot_bashrc
+backup
+1 change(s)
+exit 0
+2
+theirs one
+theirs two
+ok: 1
+exit 0

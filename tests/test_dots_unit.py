@@ -39,16 +39,29 @@ def test_source_name(dots, rel, private, executable, expected):
     assert str(dots.source_name(rel, private, executable)) == expected
 
 
+RESERVED = ("dot_", "private_", "executable_")
+
+
 def test_source_name_then_parse_name_round_trips_generated_paths(dots):
-    """Property: every target path survives source_name -> parse_name unchanged."""
+    """Property: every target path survives source_name -> parse_name unchanged,
+    except one with a component that starts with a reserved prefix, which
+    is exactly the case add refuses."""
     rng = random.Random(1234)
     alphabet = string.ascii_letters + string.digits + "-_."
+    reserved_seen = 0
     for _ in range(500):
         parts = []
         for _ in range(rng.randint(1, 4)):
             body = "".join(rng.choice(alphabet) for _ in range(rng.randint(1, 8))).strip(".") or "x"
+            if rng.random() < 0.1:
+                body = rng.choice(RESERVED) + body
             parts.append(("." if rng.random() < 0.5 else "") + body)
         rel = "/".join(parts)
+        if any(p.startswith(RESERVED) for p in parts):
+            reserved_seen += 1
+            source = dots.source_name(rel, False, False)
+            assert "/".join(dots.parse_name(c)[0] for c in source.parts) != rel, source
+            continue
         private, executable = rng.random() < 0.3, rng.random() < 0.3
         source = dots.source_name(rel, private, executable)
         back, got_private, got_executable = [], False, False
@@ -59,6 +72,7 @@ def test_source_name_then_parse_name_round_trips_generated_paths(dots):
             got_executable |= e
         assert "/".join(back) == rel, source
         assert (got_private, got_executable) == (private, executable), source
+    assert reserved_seen > 20
 
 
 # ── ignores ───────────────────────────────────────────────────────────────

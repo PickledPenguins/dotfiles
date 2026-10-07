@@ -1,0 +1,15 @@
+exit 0
+missing     .config/tool/rc
+missing: 1  ok: 1
+exit 1
+prune     .config/app/rc  ->  SRC/dot_config/app/rc
+1 dangling link(s) removed (dry run)
+prune     .config/app/rc  ->  SRC/dot_config/app/rc
+1 dangling link(s) removed
+exit 0
+link      .config/tool/rc  ->  SRC/dot_config/tool/rc
+1 change(s)
+exit 0
+notes/todo is still a link: it resolves, so prune keeps it
+ok: 2
+exit 0

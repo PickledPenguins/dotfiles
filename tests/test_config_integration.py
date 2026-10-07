@@ -7,6 +7,7 @@ the test machine skip their tests by name.
 """
 
 import os
+import re
 import shutil
 import subprocess
 
@@ -155,6 +156,37 @@ def test_functions_use_command_to_bypass_verbose_aliases(linked):
     assert proc.stdout == "done\n"          # no 'mkdir: created directory' from the -pv alias
 
 
+def test_functions_swap_exchanges_names_and_restores_on_failure(linked):
+    proc = bash(linked, "echo A > a; echo B > b; swap a b; cat a b; swap a missing; echo $?; ls")
+    assert proc.stdout == "B\nA\n1\na\nb\n"
+    assert "missing" in proc.stderr
+
+
+def test_functions_mkscript_refuses_an_existing_file(linked):
+    proc = bash(linked, "echo keep > s; mkscript s; echo $?; cat s; EDITOR=true mkscript t; head -1 t; test -x t && echo x")
+    assert (proc.stdout, proc.stderr) == ("1\nkeep\n#!/usr/bin/env bash\nx\n", "mkscript: s exists")
+
+
+def test_functions_targz_archives_a_directory(linked):
+    proc = bash(linked, "command mkdir -p d/.git; echo f > d/f; echo s > d/f.swp; targz d/ >/dev/null; "
+                        "tar tzf d.tar.gz | sort")
+    assert proc.stdout == "d/\nd/f\n"
+
+
+def test_functions_bd_and_cdf_change_directory(linked):
+    proc = bash(linked, "command mkdir -p one/two/three; echo f > one/two/three/f; cd one/two/three; bd on; pwd; "
+                        "bd nothere; echo $?; cdf two/three/f; pwd")
+    assert proc.stdout == f"{linked}/one\n1\n{linked}/one/two/three\n"
+    assert proc.stderr == "bd: no parent directory starts with 'nothere'"
+
+
+def test_functions_retry_and_timer_hand_on_the_exit_status(linked):
+    proc = bash(linked, "retry 2 false; echo $?; retry 3 true; echo $?; timer bash -c 'exit 3'; echo $?")
+    assert proc.stdout == "1\n0\n3\n"
+    assert proc.stderr.splitlines()[:2] == ["retry: attempt 1/2 failed", "retry: attempt 2/2 failed"]
+    assert re.fullmatch(r"timer: \d+\.\d{3} s \(exit 3\)", proc.stderr.splitlines()[2])
+
+
 def test_functions_extract_unknown_extension(linked):
     proc = bash(linked, "touch f.xyz; extract f.xyz; echo $?")
     assert proc.stderr == "extract: don't know how to extract 'f.xyz'" and proc.stdout == "1\n"
@@ -168,6 +200,16 @@ def test_dirs_module_marks(linked):
 def test_dirs_module_cdpath_includes_home(linked):
     proc = bash(linked, 'echo "$CDPATH"', before=f"DOTFILES_CDPATH=/opt\n")
     assert proc.stdout == f":{linked}:/opt\n"
+
+
+AUTO_PUSHD = (REPO / "dot_config/bash/rc.d/45-dirs.sh").read_text().split("\n#cd() {\n")[1].split("\n#}\n")[0]
+
+
+@pytest.mark.parametrize("local", ["", "cd() {\n" + AUTO_PUSHD.replace("    #", "    ") + "\n}\n"],
+                         ids=["builtin-cd", "auto-pushd"])
+def test_dirs_module_number_goes_to_that_stack_entry(linked, local):
+    proc = bash(linked, "command mkdir -p a b; cd a; pushd ../b >/dev/null; 1; pwd", local=local)
+    assert (proc.stdout, proc.stderr) == (f"{linked}/a\n", "")
 
 
 def test_prompt_module_builds_ps1_with_the_toolkit(linked):
@@ -215,6 +257,20 @@ def test_conda_module_silent_without_conda(linked):
 def test_python_module_venv_function(linked):
     proc = bash(linked, "venv && echo \"${VIRTUAL_ENV##*/}\" && deactivate && echo \"${VIRTUAL_ENV:-none}\"")
     assert proc.stdout == ".venv\nnone\n"
+
+
+VENV_STUB = ('deactivate() { echo deactivated; unset VIRTUAL_ENV; }; command mkdir -p proj/.venv/bin proj2/sub; '
+             'echo "VIRTUAL_ENV=\\$PWD/.venv" > proj/.venv/bin/activate; ')
+
+
+def test_python_module_venv_auto_deactivates_in_a_sibling_whose_name_extends_the_project(linked):
+    proc = bash(linked, VENV_STUB + 'cd proj; _venv_auto; cd ../proj2/sub; _venv_auto; echo "${VIRTUAL_ENV:-none}"')
+    assert (proc.stdout, proc.stderr) == ("deactivated\nnone\n", "")
+
+
+def test_python_module_venv_auto_leaves_a_venv_activated_by_hand(linked):
+    proc = bash(linked, VENV_STUB + 'VIRTUAL_ENV=$HOME/venvs/x; cd proj2; _venv_auto; echo "${VIRTUAL_ENV:-none}"')
+    assert (proc.stdout, proc.stderr) == (f"{linked}/venvs/x\n", "")
 
 
 def test_hpc_module_defines_nothing_without_a_scheduler(linked):
@@ -371,6 +427,36 @@ def test_gitconfig_local_wins(linked):
     assert git_config(linked, "push.default") == "simple"
 
 
+def git_script(home, script):
+    env = dict(os.environ, HOME=str(home), GIT_AUTHOR_NAME="T", GIT_AUTHOR_EMAIL="t@example.com",
+               GIT_COMMITTER_NAME="T", GIT_COMMITTER_EMAIL="t@example.com")
+    env.pop("GIT_CONFIG_GLOBAL", None)
+    return subprocess.run(["bash", "-c", script], cwd=str(home), env=env, capture_output=True, text=True)
+
+
+def test_git_brclean_deletes_a_merged_branch_whose_name_contains_main(linked):
+    proc = git_script(linked, "git init -q -b main r && cd r && git commit -q --allow-empty -m one && "
+                              "git branch domain-fix && git branch old && git brclean >/dev/null && "
+                              "git branch --format='%(refname:short)'")
+    assert (proc.stdout, proc.stderr) == ("main\n", "")
+
+
+def test_git_gone_skips_the_current_branch_and_deletes_the_rest(linked):
+    proc = git_script(linked, "git init -q --bare -b main o.git && git clone -q o.git c 2>/dev/null && cd c && "
+                              "git commit -q --allow-empty -m one && git push -q -u origin main && "
+                              "git switch -q -c old && git push -q -u origin old && "
+                              "git switch -q -c feat && git push -q -u origin feat && "
+                              "git push -q origin --delete old feat && git gone >/dev/null; echo $?; "
+                              "git branch --format='%(refname:short)'")
+    assert (proc.stdout, proc.stderr) == ("0\nfeat\nmain\n", "")
+
+
+def test_git_snapshot_stashes_a_restore_point_and_leaves_the_tree_as_it_was(linked):
+    proc = git_script(linked, "git init -q -b main r && cd r && echo 1 > f && git add f && git commit -qm one && "
+                              "echo 2 > f && echo u > untracked && git snapshot >/dev/null && cat f untracked && "
+                              "git stash list --format=%s | sed 's/[0-9_:-]*$//' && git stash show -p --include-untracked "
+                              "| grep -c '^+[2u]$'")
+    assert (proc.stdout, proc.stderr) == ("2\nu\nOn main: snapshot \n2\n", "")
 def test_git_global_ignore_and_attributes_are_read(linked, tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()

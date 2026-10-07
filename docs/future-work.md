@@ -29,6 +29,34 @@ here is scheduled; an item is cited by its label.  Back to the
   `diff` and templating for the cost of a Go binary on every login node;
   the whole of `dots` is ~450 lines of stdlib Python and python3 is already
   there.
+- **F.1.f  `forget` of a target that is not linked keeps no copy.**
+  `dots:cmd_forget` copies the source to the target only when the target
+  is `ok`; when it is `missing` or in conflict the source file is removed
+  and its content then exists only in git, so uncommitted edits are lost
+  (`test_forget_unlinked_target_just_drops_the_source` pins this).  From
+  the 2026-10-07 creview and creadme audits; the architecture decision was
+  reworded to say what the code does.  Not changed silently because both
+  shapes are reasonable: for a `missing` target, copy the source there (the
+  user asked to keep the file); for a conflict, move the source into the
+  backup tree rather than delete it.  Either changes `forget`'s output (a
+  `backup` line) and what is left in `$HOME`, plus `docs/cli.md`,
+  `docs/lifecycle.md` and that test.
+- **F.1.g  A path that selects nothing is silent.**  `dots apply ~/.vimrcx`
+  prints `0 change(s)` and exits 0; `dots status ~/typo` prints `nothing
+  managed`; `unlink` likewise (`dots:selected` just matches nothing).  A
+  typo looks like success, while `forget` already says `skip ... not
+  managed` and exits 1.  From the 2026-10-07 creview.  Future work because
+  it adds a message and turns an exit 0 into 1 for an input that is
+  accepted today.  Fix: in `apply`, `status` and `unlink`, print `skip
+  PATH: not managed` for each path argument that selected no entry and
+  exit 1, as `forget` does; new catalog case under `failures/`.
+- **F.1.h  Managing a name that starts with a prefix word.**  `add` now
+  refuses `~/private_notes` or `~/bin/dot_env`, since stored under its own
+  name such a file would be read back as an attribute.  chezmoi solves it
+  with a `literal_` prefix that ends attribute parsing.  The same here
+  would be about five lines in `parse_name` and `source_name` plus a
+  naming rule in `docs/concepts.md`.  From the 2026-10-07 ctesting audit;
+  not built because no such file has turned up in a real home yet.
 
 ## F.2 configuration
 
@@ -66,6 +94,24 @@ here is scheduled; an item is cited by its label.  Back to the
   one assertion per setting, by hand; the integration tests do it for the
   settings that are on by default.
 
+- **F.2.i  `@cmd_time` counts the time spent at the prompt.**  The default
+  `PROMPT_COMMAND` is `_title_prompt;prompt_build;history -a`.
+  `prompt_build` arms the toolkit's timer, and the DEBUG trap fires for
+  `history -a` while `PROMPT_COMMAND` is still running, so the start time
+  is when the prompt was drawn (`prompt/lib/cmd_timer.sh:50`).  Wait 3.5 s,
+  run `true`, and the next prompt shows `[✓] 3s`; the box layout shows
+  `@cmd_time` on every prompt.  From the 2026-10-07 creview, ctesting and
+  creadme reports (the description in `layout.sh` is right for the
+  intended behavior).  Not fixed here: the code is the vendored toolkit,
+  fixed upstream only, and the fix has more than one shape.  Upstream:
+  arm from an entry the toolkit appends at the very end of
+  `PROMPT_COMMAND`, or ignore DEBUG while `PROMPT_COMMAND` runs; then
+  re-vendor, with an upstream bats test and a pty test here that idles
+  before a fast command and expects no duration.  A local stopgap is to
+  append `cmd_timer_arm` as the last `PROMPT_COMMAND` entry in
+  `90-local.sh`.  What changes for a user: the shown durations get
+  shorter and true.
+
 ## F.3 tests
 
 - **F.3.a  mutmut or cosmic-ray** instead of the hand-written mutant list,
@@ -74,3 +120,12 @@ here is scheduled; an item is cited by its label.  Back to the
 - **F.3.b  Visual check of the prompt** (render `PS1` through bash and
   compare a golden frame).  Upstream's bats suite covers the toolkit;
   here only "each layout builds" is asserted.
+- **F.3.c  A gate on shell startup time.**  Every new terminal pays for
+  `~/.bashrc`, and nothing fails when a module adds 200 ms.  Measured on
+  2026-10-07 in a throwaway home: `bash -i -c exit` 70-76 ms over 7 runs,
+  median 72 ms.  Fix: a `perf` command in `run-tests.sh` that times 15
+  starts in a temporary linked home and fails above a baseline median
+  stored in `.build/` plus 25%, with the baseline and machine recorded in
+  `docs/testing.md`.  From the 2026-10-07 ctesting audit.  Future work
+  because it is a new gate with a threshold to choose, and a timing gate
+  is noisy on a shared login node.

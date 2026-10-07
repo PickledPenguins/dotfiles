@@ -29,7 +29,10 @@ absolute lexically (`~` expanded, `..` collapsed, symlinks not followed).
 
 Create or repair the symlinks.  One line per action -- `link`, `relink`,
 `replace` + `backup`, or `conflict` -- then `N change(s)` with
-`, M conflict(s) left` when any were refused.
+`, M conflict(s) left` when any were refused.  A target reached through a
+directory that is itself a symlink into the source tree (`~/.vim ->
+SRC/dot_vim`) is the source file; it stays a conflict even under
+`--force`, with `(.vim links into the source; make it a real directory)`.
 
 | Flag | Effect |
 |------|--------|
@@ -67,7 +70,11 @@ Move regular files from `$HOME` into the source tree under their attribute
 names and leave symlinks behind.  `add  target  ->  source-relative name`
 per file; `skip  path: reason` for anything refused: not under `$HOME`,
 already a symlink, not a regular file (directories are not added -- name
-the files inside), or the source name already exists.
+the files inside), the source name already exists, or `a name starts with
+dot_, private_ or executable_` (such a name cannot be stored under itself:
+`~/private_notes` would become the source of `~/notes`).  A file below a
+directory the source already has under another attribute name goes into
+that directory: `~/.ssh/known_hosts` into `private_dot_ssh/`.
 
 | Flag | Effect |
 |------|--------|
@@ -82,7 +89,10 @@ has execute.  Exit 0 (skips are not errors).
 
 Stop managing targets.  A target that is our link becomes a real copy of
 the source file; the source file is removed.  `forget  target` per path;
-`skip  path: not managed` for the rest.
+`skip  path: not managed` for the rest.  A target reached through a
+directory link into the source tree is refused (`skip  path: .vim links
+into the source; make it a real directory`): there the target is the
+source file, and removing one would remove both.
 
 | Flag | Effect |
 |------|--------|
@@ -152,7 +162,7 @@ Exit 0.
 | Code | When |
 |------|------|
 | 0 | success |
-| 1 | `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path; `options` matched nothing; an unhandled error (a traceback, e.g. an unreadable `.dotsignore`) |
+| 1 | `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path or refused one; `options` matched nothing; an unhandled error (a traceback, e.g. an unreadable `.dotsignore`) |
 | 2 | usage error (argparse), or the source directory does not exist |
 
 ## Environment

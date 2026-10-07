@@ -14,17 +14,24 @@ if link.startswith(str(src) + os.sep): ||| if link.startswith(str(src)):
 mode &= ~(stat.S_IRWXG | stat.S_IRWXO) ||| mode &= ~stat.S_IRWXO
 mode |= stat.S_IXUSR ||| mode |= stat.S_IXGRP
 os.chmod(directory, 0o700) ||| os.chmod(directory, 0o750)
-if current == "conflict" and not args.force: ||| if current == "conflict":
+if through or not args.force: ||| if through:
+if through or not args.force: ||| if not args.force:
+if directory.is_symlink() and os.path.realpath(directory).startswith(str(src) + os.sep): ||| if directory.is_symlink():
 elif current == "stale-link": ||| elif current == "conflict":
 return 1 if conflicts else 0 ||| return 0
 return 0 if set(counts) <= {"ok"} else 1 ||| return 0
 if current != "ok" or args.all: ||| if current != "ok":
 if state(entry, src) == "ok": ||| if state(entry, src) != "conflict":
-dest = src / source_name(rel, args.private or not mode & stat.S_IRWXO, ||| dest = src / source_name(rel, args.private,
+source_rel = source_name(rel, args.private or not mode & stat.S_IRWXO, ||| source_rel = source_name(rel, args.private,
+directory = existing[0] if existing else directory / component ||| directory = directory / component
+if "/".join(parse_name(c)[0] for c in source_rel.parts) != str(rel): ||| if False:
+if through: ||| if False:
+return 1 if wanted or refused else 0 ||| return 1 if wanted else 0
+if d.is_dir() and not d.name.startswith(".") and parse_name(d.name)[0] == name] ||| if d.is_dir() and not d.name.startswith(".")]
 bool(mode & stat.S_IXUSR)) ||| False)
 if target.is_symlink(): ||| if False and target.is_symlink():
 wanted.discard(str(entry.target)) ||| pass
-return 1 if wanted else 0 ||| return 0
+return 1 if wanted or refused else 0 ||| return 0
 if entry.target == p or p in entry.target.parents: ||| if entry.target == p:
 if not link.startswith(str(src) + os.sep) or os.path.exists(link): ||| if not link.startswith(str(src) + os.sep):
 if root.is_dir() and not root.is_symlink(): ||| if False:

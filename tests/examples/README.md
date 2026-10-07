@@ -16,7 +16,9 @@ Levels:
   per-machine hook
 - `complex/` -- whole workflows: bootstrapping a used machine, importing a
   home into a new repository, reorganizing the source, every local hook at
-  once, a hostile source tree, a home in every state
+  once, a hostile source tree, a home in every state, a second `--force`
+  over an older backup, a private directory round trip, `prune` after a
+  reorganization, directory links from an older scheme
 - `failures/` -- the mistakes a user makes, with the exact message and exit code
 
 Run them:
