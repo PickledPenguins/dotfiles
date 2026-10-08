@@ -71,6 +71,20 @@ def test_bashrc_loads_silently_without_debug(linked):
     assert (proc.returncode, proc.stdout, proc.stderr) == (0, "ok\n", "")
 
 
+def test_bashrc_sources_again_silently(linked):
+    proc = bash(linked, "source ~/.bashrc && echo ok")
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, "ok\n", "")
+
+
+def test_bashrc_loads_silently_with_tree_installed(linked):
+    tree = linked / "bin" / "tree"
+    tree.parent.mkdir(exist_ok=True)
+    tree.write_text("#!/bin/sh\necho real tree \"$@\"\n")
+    tree.chmod(0o755)
+    proc = bash(linked, "source ~/.bashrc && tree")
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, "real tree -C\n", "")
+
+
 def test_bashrc_non_interactive_shell_loads_nothing(linked):
     proc = subprocess.run(["bash", "--rcfile", str(linked / ".bashrc"), "-c", "type -t mkcd || echo none"],
                           env=dict(os.environ, HOME=str(linked)), capture_output=True, text=True)

@@ -115,9 +115,11 @@ note() {
 }
 
 # tree fallback, only where the real tree is missing: an indented listing
-# that skips .git.
-if ! command -v tree >/dev/null; then
-    tree() { find "${1:-.}" -not -path '*/.git/*' | sed -e 's/[^-][^\/]*\//  |/g' -e 's/|\([^ ]\)/|-\1/'; }
+# that skips .git.  type -P, so a second `source ~/.bashrc` does not take
+# this function for the program; `function tree`, because bash expands the
+# alias 30-aliases.sh sets in `tree()` while it reads this block, taken or not.
+if ! type -P tree >/dev/null; then
+    function tree { find "${1:-.}" -not -path '*/.git/*' | sed -e 's/[^-][^\/]*\//  |/g' -e 's/|\([^ ]\)/|-\1/'; }
 fi
 
 # ── Running commands ──────────────────────────────────────────────────────

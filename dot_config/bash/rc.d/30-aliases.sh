@@ -173,7 +173,7 @@ alias epoch='date +%s'
 alias ping='ping -c 5'
 
 # tree in color (40-functions.sh defines a plain one when tree is missing).
-command -v tree >/dev/null && alias tree='tree -C'
+type -P tree >/dev/null && alias tree='tree -C'
 
 # serve: share this directory over HTTP on port 8000 until Ctrl-C.  Anyone
 # who can reach the port can read every file below it.
