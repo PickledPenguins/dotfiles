@@ -24,8 +24,8 @@ indent_size = 2
 # Editors that support it mark or wrap lines at 100 columns.
 #max_line_length = 100
 
-[*.{py,rs,java,c,cpp,h,sh,bash}]
-# Four spaces for python, rust, java, C, C++ and shell.
+[*.{rs,java,c,cpp,h,sh,bash}]
+# Four spaces for rust, java, C, C++ and shell.
 indent_size = 4
 
 [{Makefile,makefile,*.mk,*.go}]

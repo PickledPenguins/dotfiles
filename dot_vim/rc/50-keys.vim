@@ -132,6 +132,17 @@ xnoremap <leader>p "_dP
 " file (gdefault in 20-search.vim makes it every match on a line).
 nnoremap <leader>rw :%s/\<<C-r><C-w>\>//<Left>
 
+" ,ww (the local leader, then ww) fixes whitespace when asked, never on its
+" own: strips trailing whitespace and turns tabs into spaces, tabstop wide
+" (:retab; a buffer with noexpandtab, make or go, keeps its tabs).
+function! s:FixWhitespace() abort
+  let l:view = winsaveview()
+  keeppatterns %s/\s\+$//e
+  retab
+  call winrestview(l:view)
+endfunction
+nnoremap <silent> <localleader>ww :call <SID>FixWhitespace()<CR>
+
 " gV selects the text just pasted or changed.
 nnoremap gV `[v`]
 

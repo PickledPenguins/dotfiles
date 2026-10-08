@@ -169,11 +169,11 @@ Read-only variables the loader sets for modules and for you:
 | `15-statusline.vim` | status line with buffer, path, flags, filetype, encoding, git branch, position.  Off: spelling language |
 | `20-search.vim` | `hlsearch incsearch ignorecase smartcase wrapscan gdefault`, `inccommand`, `rg` as `grepprg`, quickfix auto-open, visual `*`/`#`.  Off: `nowrapscan`, very magic search, Esc clears highlight |
 | `25-completion.vim` | `wildmenu`/`wildmode`/`wildignore`, popup menu, `completeopt`, omni completion, spelling.  Off: bash-style wildmode, fuzzy, popup info, `noinsert`, `kspell`, Tab completion |
-| `30-indent.vim` | width from the knob, spaces; 4 for python/rust/c/java/sh, tabs for make/go, 2 for yaml/json/web; `<`/`>` keep the selection.  Off: tabs by default, `copyindent` |
+| `30-indent.vim` | width from the knob, spaces; 4 for rust/c/java/sh, tabs for make/go, 2 for python/yaml/json/web; `<`/`>` keep the selection.  Off: tabs by default, `copyindent` |
 | `35-folding.vim` | fold method from the knob, all open at start, custom fold text.  Off: `foldenable`, `foldcolumn`, saved views |
 | `40-files.vim` | swap/backup/undo under `~/.vim/tmp/`, persistent undo, no backups for secrets, last position, mkdir on write, strip trailing whitespace.  Off: `noswapfile`, autosave on focus loss |
 | `45-filetypes.vim` | prose wrap+spell, gitcommit columns, python columns, `q` closes help, `g:is_bash`, `.pbs`/`.slurm`/`.env` filetypes, `:Make`.  Off: markdown conceal, soft-wrapped text, F5 runs python, fenced-code highlighting |
-| `50-keys.vim` | leader maps (`<space> w q Q ev sv cd x y P p rw v s n p d b ss tw tn tl tc co cc`), `Y`, `j`/`k`, `n`/`N`, F5 runs the file, `Ctrl-hjkl`, `Ctrl-arrows` resize, `Tab`/`S-Tab` buffers, visual `J`/`K`, `gV`, `]q [q ]l [l`, `w!!`, `F2` paste.  Off: `jk`, `;` as `:`, `Q` as `gq`, `Ctrl-S`, centered `Ctrl-D`/`Ctrl-U`, `J` in place, no arrow keys, emacs keys on the command line, `Esc Esc` in `:terminal` |
+| `50-keys.vim` | leader maps (`<space> w q Q ev sv cd x y P p rw v s n p d b ss tw tn tl tc co cc`), `,ww` fixes whitespace, `Y`, `j`/`k`, `n`/`N`, F5 runs the file, `Ctrl-hjkl`, `Ctrl-arrows` resize, `Tab`/`S-Tab` buffers, visual `J`/`K`, `gV`, `]q [q ]l [l`, `w!!`, `F2` paste.  Off: `jk`, `;` as `:`, `Q` as `gq`, `Ctrl-S`, centered `Ctrl-D`/`Ctrl-U`, `J` in place, no arrow keys, emacs keys on the command line, `Esc Esc` in `:terminal` |
 | `55-netrw.vim` | tree-style netrw, `-` and `<leader>e`.  Off: hide dotfiles, netrw off |
 | `60-plugins.vim.off` | vim-plug with commentary, surround, repeat, fugitive, gitgutter, fzf, editorconfig; about 25 more described and off |
 
@@ -209,13 +209,13 @@ Read-only variables the loader sets for modules and for you:
 | `~/.bash_profile` | `.profile`, then `profile.d/*.sh`, then `.bashrc`.  Off: tmux on ssh login, `startx` on tty1 |
 | `~/.bash_logout` | `clear_console` on a top-level logout.  Off: `clear` |
 | `~/.inputrc` | readline: case-insensitive completion, single-Tab listing, colored stats, history search on Up/Down, Ctrl-arrows by word, Ctrl-Delete, Alt-S sudo.  Off: vi mode with mode strings and cursor shapes, `keyseq-timeout`, hidden files, horizontal lists, menu completion, `mark-modified-lines`, `expand-tilde`, Ctrl-P/N prefix search, `search-ignore-case`, Ctrl-W by path, Ctrl-Backspace, Alt-L, vi `jj`/`gg`/`G` |
-| `~/.editorconfig` | 2-space default, 4 for python/rust/c/java/sh, tabs for make/go.  Off: `max_line_length`, CRLF for batch files |
+| `~/.editorconfig` | 2-space default (python too), 4 for rust/c/java/sh, tabs for make/go.  Off: `max_line_length`, CRLF for batch files |
 | `~/.curlrc` | follow redirects, connect timeout, stalled-transfer limit, retries, progress bar.  Off: whole-transfer time limit, silent, compressed, fail, newline after output, remote time, create dirs, netrc, IPv4, user agent, proxy |
 | `~/.wgetrc` | timeouts, retries.  Off: timestamping, resume, wait, no parent, HSTS file in `~/.cache`, user agent, proxy |
 | `~/.screenrc` | no splash, 10000 lines, status line, tmux-like keys.  Off: `C-b` escape, mouse, windows from 1, login shells |
 | `~/.dircolors` | `dircolors -p` with `OTHER_WRITABLE` readable on dark terminals |
 | `~/.gdbinit` | history, no pagination, pretty printing, intel syntax.  Off: history dedup, debuginfod on or off, full-length printing, null-stop, quiet thread events, auto-load from every directory or from `~/work`, GEF, gdb-dashboard |
-| `~/.nanorc` | autoindent, 4-space tabs, line numbers, soft wrap, syntax files.  Off: cut from cursor, guide stripe, no help, minibar, position and search history, backups, common editor keys |
+| `~/.nanorc` | autoindent, 4-space tabs (2 in python), line numbers, soft wrap, syntax files.  Off: cut from cursor, guide stripe, no help, minibar, position and search history, backups, common editor keys |
 | `~/.condarc` | `auto_activate_base: false`, `changeps1: false`, conda-forge only.  Off: `pkgs_dirs`, outdated notice, self-update, default packages, threads, `env_prompt`, error reports, proxy |
 | `~/.Xresources` | xterm font, colors, scrollback, clipboard keys; urxvt basics.  Off: Xft rendering and dpi, URL double-click, light scheme |
 | `~/.local/bin/dots` | this checkout's `dots`, on `PATH` through `~/.local/bin`; `dots unlink` removes it |

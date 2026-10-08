@@ -85,3 +85,6 @@ set mouse
 
 # Every syntax definition nano ships.
 include "/usr/share/nano/*.nanorc"
+
+# Tab in a python file inserts two spaces.
+extendsyntax python tabgives "  "

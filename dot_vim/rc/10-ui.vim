@@ -66,9 +66,10 @@ set splitbelow splitright
 
 " ── Characters ──────────────────────────────────────────────────────────
 
-" Show tabs as », trailing spaces as ·, non-breaking spaces as ␣, and
-" › ‹ where a line runs off the screen.
-set list listchars=tab:»\ ,trail:·,nbsp:␣,extends:›,precedes:‹
+" Show tabs as » filled with · to their width (»··· at tabstop 4), trailing
+" spaces as ·, non-breaking spaces as ␣, and › ‹ where a line runs off the
+" screen.
+set list listchars=tab:»·,trail:·,nbsp:␣,extends:›,precedes:‹
 
 " Mark line ends with ¬ as well.
 "set listchars+=eol:¬

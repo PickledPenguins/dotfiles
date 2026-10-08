@@ -35,13 +35,14 @@ set smartindent
 " A new line copies the previous line's exact mix of tabs and spaces.
 "set copyindent preserveindent
 
-" Widths per filetype: 4 for python, rust, java, C, C++ and shell; real
-" tabs 8 wide for make and go; 2 for yaml, json and the web languages.
+" Widths per filetype: 4 for rust, java, C, C++ and shell; real tabs 8 wide
+" for make and go; 2 for python, yaml, json and the web languages (python's
+" own ftplugin sets 4, and softtabstop 4, which these replace).
 augroup dotfiles_indent
   autocmd!
-  autocmd FileType python,rust,java,c,cpp,sh,bash   setlocal shiftwidth=4 tabstop=4
-  autocmd FileType make,go                          setlocal noexpandtab shiftwidth=8 tabstop=8
-  autocmd FileType yaml,json,html,css,javascript    setlocal shiftwidth=2 tabstop=2
+  autocmd FileType rust,java,c,cpp,sh,bash                setlocal shiftwidth=4 tabstop=4
+  autocmd FileType make,go                                setlocal noexpandtab shiftwidth=8 tabstop=8
+  autocmd FileType python,yaml,json,html,css,javascript   setlocal shiftwidth=2 tabstop=2 softtabstop=-1
 augroup END
 
 " Shifting a visual selection with < or > keeps it selected, for shifting again.

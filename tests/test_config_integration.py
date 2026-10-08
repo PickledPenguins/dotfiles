@@ -614,6 +614,28 @@ def test_vim_strips_trailing_whitespace_on_write_except_in_a_binary_file(linked)
 
 
 @needs("vim")
+def test_vim_python_indents_two_and_tabs_show_their_width(linked):
+    (linked / "a.py").write_text("x = 1\n")
+    out = vim(linked, f"edit {linked}/a.py", "set shiftwidth?", "set tabstop?", "set softtabstop?",
+              "set listchars?")
+    assert out.split()[-4:] == ["shiftwidth=2", "tabstop=2", "softtabstop=-1",
+                                "listchars=tab:»·,trail:·,nbsp:␣,extends:›,precedes:‹"]
+
+
+@needs("vim")
+def test_vim_comma_ww_strips_trailing_whitespace_and_tabs_but_not_in_make(linked):
+    # noautocmd: the write's own stripping would hide what ,ww did.
+    notes, make = linked / "n.txt", linked / "Makefile"
+    notes.write_bytes(b"a \n\tb\t \n")
+    make.write_bytes(b"all:\n\techo hi\n")
+    for path in (notes, make):
+        subprocess.run(["vim", "-es", "-u", str(linked / ".vimrc"), str(path), "-c", "normal ,ww",
+                        "-c", "noautocmd wq"],
+                       env=dict(os.environ, HOME=str(linked), TERM="xterm-256color"), timeout=30)
+    assert (notes.read_bytes(), make.read_bytes()) == (b"a\n  b\n", b"all:\n\techo hi\n")
+
+
+@needs("vim")
 def test_vim_filetype_module_maps_pbs_scripts_to_sh(linked):
     (linked / "job.pbs").write_text("#!/bin/bash\n")
     assert vim(linked, f"edit {linked}/job.pbs", "set filetype?").endswith("filetype=sh")
