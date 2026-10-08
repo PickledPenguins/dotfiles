@@ -96,7 +96,7 @@ prompt_segment disk             _ps_seg_disk
 # @pbs_job: the PBS job this shell runs in.
 prompt_segment pbs_job          _ps_seg_pbs_job
 
-# @pbs_queue: your queued and running PBS jobs.
+# @pbs_queue: the queue of the PBS job this shell runs in.
 prompt_segment pbs_queue        _ps_seg_pbs_queue
 
 # @pbs_nodes: nodes of the current PBS job.
@@ -105,7 +105,7 @@ prompt_segment pbs_nodes        _ps_seg_pbs_nodes
 # @slurm_job: the Slurm job this shell runs in.
 prompt_segment slurm_job        _ps_seg_slurm_job
 
-# @slurm_queue: your queued and running Slurm jobs.
+# @slurm_queue: the partition of the Slurm job this shell runs in.
 prompt_segment slurm_queue      _ps_seg_slurm_queue
 
 # @slurm_nodes: nodes of the current Slurm job.

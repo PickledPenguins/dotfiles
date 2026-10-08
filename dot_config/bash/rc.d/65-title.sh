@@ -19,10 +19,12 @@ esac
 [[ -t 1 ]] || return 0
 
 # At each prompt the title becomes "user@host: ~/dir" (the knob changes the
-# format).  The exit status is handed on untouched for the prompt to show.
+# format); ~ replaces $HOME only at a path boundary, so /home/a2 is not ~2.
+# The exit status is handed on untouched for the prompt to show.
 _title_fmt="${DOTFILES_TITLE_FORMAT:-%u@%h: %d}"
 _title_prompt() {
-    local status=$? d="${PWD/#$HOME/\~}" t="$_title_fmt"
+    local status=$? d=$PWD t="$_title_fmt"
+    [[ -n "$HOME" && ( "$PWD" == "$HOME" || "$PWD" == "$HOME"/* ) ]] && d="~${PWD#"$HOME"}"
     t="${t//%u/$USER}"; t="${t//%h/${HOSTNAME%%.*}}"; t="${t//%d/$d}"
     printf '\e]0;%s\a' "$t"
     return "$status"

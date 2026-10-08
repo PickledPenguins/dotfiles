@@ -699,6 +699,16 @@ def test_title_shows_the_running_command_when_switched_on(linked):
     assert "✗ 1" in screen                          # and the exit status still reaches the prompt
 
 
+def test_title_collapses_home_only_at_a_path_boundary(linked):
+    sibling = linked.parent / (linked.name + "2")
+    sibling.mkdir()
+    screen = pty_session(linked, [f"cd {sibling}"], before="DOTFILES_PROMPT_LAYOUT=minimal\n")
+    assert f": {sibling}\x07" in screen             # was ~2
+    (linked / "sub").mkdir()
+    screen = pty_session(linked, ["cd sub"], before="DOTFILES_PROMPT_LAYOUT=minimal\n")
+    assert ": ~/sub\x07" in screen
+
+
 def test_ssh_agent_module_starts_one_agent_and_later_shells_reuse_it(linked):
     off = linked / ".config/bash/rc.d/25-ssh-agent.sh.off"
     os.symlink(os.readlink(off), linked / ".config/bash/rc.d/25-ssh-agent.sh")
