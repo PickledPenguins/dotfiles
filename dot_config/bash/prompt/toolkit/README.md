@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.9
+**Version:** 0.1.10
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -264,6 +264,28 @@ run code or act as a prompt escape. A segment that wants a prompt escape
 `--box` is taken as the style only when it names one of these, so
 `prompt_layout --box top cmd` is a rounded box with rows `top` and `cmd`.
 
+**Box edges:** `--box` draws the top, right and left edges; `--closed`
+adds the bottom one. `--sides SPEC` draws only the edges named, any of
+`t`, `r`, `b` and `l`, commas optional, and turns the box on by itself
+(`--box <style>` still picks the style). With `COLUMNS=10` and rows
+`X`, `X`, `X \$ `:
+
+```
+--sides l          --sides l,b        --sides t,l
+╭X                 ╭X                 ╭X────────
+│X                 │X                 │X
+╰X $               ╰X $ ────          ╰X $
+                   $
+```
+
+A rail ends in its corners (`╭`/`╰`, `╮`/`╯`) whatever else is drawn,
+and takes one column. A row is filled out only where an edge needs it:
+the first row with `─` under `t`, the last row with `─` under `b` (which
+also puts the cursor on its own line below), the rows between with
+spaces under `r`. A left rail alone leaves no trailing spaces. An
+unknown letter prints `prompt_layout: --sides 'SPEC': use the letters
+t, r, b and l` and returns 1, leaving the layout as it was.
+
 ## Configuration and API reference
 
 All configuration happens by calling these functions from a config file
@@ -279,7 +301,7 @@ executable, and takes one optional positional argument.
 | `prompt_collector` | `<name> <ttl_seconds> <function>` | Register a data collector. `prompt_build` runs it in the shell's own process while a shown row needs it: every prompt at TTL `0`, at most once per TTL seconds otherwise. Re-registering a name replaces its TTL and function and keeps its place in the run order. Returns 1 on a name that is not an identifier, a TTL that is not a whole number, or an undefined function. |
 | `prompt_segment_needs` | `<function> <collector>…` | Declare the collectors a segment function reads from (`cmd_time`, `git`, `load`, `disk`, `gpu`, or your own). Order relative to `prompt_segment` does not matter; the collectors must already be registered. Built-in segments are pre-declared. |
 | `prompt_row` | `<name> <template>` | Define a named row template: literal text, `@segment` tokens, and at most one `@fill`. A row whose segments all print nothing is left out of the prompt, unless it is the last row. |
-| `prompt_layout` | `[--box [style]] [--closed] [--no-box] <row>…` | Set the ordered row list and box decoration, and wire `prompt_build` into `PROMPT_COMMAND`. Idempotent. |
+| `prompt_layout` | `[--box [style]] [--sides SPEC] [--closed] [--no-box] <row>…` | Set the ordered row list and box decoration, and wire `prompt_build` into `PROMPT_COMMAND`. Idempotent. `--sides` draws only the edges in SPEC (`t`, `r`, `b`, `l`); returns 1 on any other letter. |
 | `prompt_build` | none | Rebuild `PS1`. Called automatically via `PROMPT_COMMAND`; rarely called directly. |
 | `prompt_debug` | none | Print the layout, rows, segments with their needs, and each collector's TTL, whether a shown row needs it, and its age, to stderr. |
 | `prompt_cache_ttl` | `<seconds>` | Set the git-state staleness window (default 5). |
@@ -389,7 +411,8 @@ Segment → Row → Layout → PS1
   that remain; a row with no segments, and the last row, are always
   drawn.
 - **Layout** — an ordered list of rows, optionally wrapped in a Unicode
-  box (`--box <style>`), open or `--closed`.
+  box (`--box <style>`), open or `--closed`, or in only some of its
+  edges (`--sides l,b`).
 - **Collector** — a function that gathers data for segments into globals
   (git state, load, disk, GPU, command duration), registered with a TTL.
   Segments declare which collectors they read with
@@ -466,7 +489,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**151 tests across 9 files**, all passing against v0.1.9:
+**163 tests across 9 files**, all passing against v0.1.10:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -474,7 +497,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
 | `git_info.bats` | 26 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
-| `prompt_box.bats` | 14 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing |
+| `prompt_box.bats` | 26 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
 | `prompt_segments.bats` | 16 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit and conflict segments |
 | `security.bats` | 8 | segment text shown as typed (`$(...)`, backticks, `\w`, `@fill`, `$` for root), `promptvars` left on for `PS0`, `CDPATH` |
 | `term_utils.bats` | 10 | ANSI stripping, width (with no UTF-8 locale), repeat |
@@ -527,6 +550,16 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.10
+
+**Added:** `prompt_layout --sides SPEC` draws only some edges of the
+box: any of `t`, `r`, `b` and `l`, so a left rail alone (`l`) or a left
+rail and a bottom line (`l,b`). `--box` is `--sides t,r,l` and
+`--closed` adds `b`; both draw what they drew before. The width a row
+gets is the terminal's less one column per side rail, so a left rail
+alone gives rows one more column than `--box`. `prompt_debug` prints
+`sides=` in place of `closed=`. 12 tests in `prompt_box.bats`.
 
 ### v0.1.9
 

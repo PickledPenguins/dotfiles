@@ -144,3 +144,124 @@ setup() {
     prompt_segment bare _bare
     _ps_expand_into '<@bare>' 40;                                 [ "$_PS_EXPANDED_EMPTY" -eq 1 ]
 }
+
+# ── v0.1.10: --sides draws only the edges named ───────────────────────────
+# COLUMNS=10. A rail takes one column; rows fill out only where an edge
+# needs it, so a left rail alone leaves no trailing spaces.
+
+_three_rows() {
+    prompt_row r1 '@solo'
+    prompt_row r2 '@solo'
+    prompt_row r3 '@solo \$ '
+    COLUMNS=10
+}
+
+@test "--box and --closed draw exactly what they drew before --sides" {
+    _three_rows
+    prompt_layout --box r1 r2 r3;           prompt_build
+    [ "$PS1" = '╭X───────╮\n│X       │\n╰X \$ ' ]
+    prompt_layout --box --closed r1 r2 r3;  prompt_build
+    [ "$PS1" = '╭X───────╮\n│X       │\n╰X \$ ───╯'$'\n''\$ ' ]
+    prompt_layout --box --closed r1;        prompt_build
+    [ "$PS1" = '╭X───────╯'$'\n''\$ ' ]
+}
+
+@test "--sides l: a left rail with its corners, no fill" {
+    _three_rows
+    prompt_layout --sides l r1 r2 r3
+    prompt_build
+    [ "$PS1" = '╭X\n│X\n╰X \$ ' ]
+}
+
+@test "--sides l,b: the last row filled with ─, the cursor on a new line" {
+    _three_rows
+    prompt_layout --sides l,b r1 r2 r3
+    prompt_build
+    [ "$PS1" = '╭X\n│X\n╰X \$ ────'$'\n''\$ ' ]
+}
+
+@test "--sides tl: the first row filled with ─ to full width" {
+    _three_rows
+    prompt_layout --sides tl r1 r2 r3
+    prompt_build
+    [ "$PS1" = '╭X────────\n│X\n╰X \$ ' ]
+}
+
+@test "--sides r: rows filled with spaces up to the right rail" {
+    _three_rows
+    prompt_layout --sides r r1 r2 r3
+    prompt_build
+    [ "$PS1" = 'X        ╮\nX        │\nX \$ ' ]
+}
+
+@test "--sides b alone: no rail, no corner, the last row filled" {
+    _three_rows
+    prompt_layout --sides b r1 r3
+    prompt_build
+    [ "$PS1" = 'X\nX \$ ─────'$'\n''\$ ' ]
+}
+
+@test "--sides on a single row takes the top-left corner" {
+    _three_rows
+    prompt_layout --sides lb r3
+    prompt_build
+    [ "$PS1" = '╭X \$ ────'$'\n''\$ ' ]
+    prompt_layout --sides l r3
+    prompt_build
+    [ "$PS1" = '╭X \$ ' ]
+}
+
+@test "--box is --sides trl, --closed adds b, and the order does not matter" {
+    _three_rows
+    prompt_layout --sides trl r1 r2 r3;  prompt_build;  local sides=$PS1
+    prompt_layout --box r1 r2 r3;        prompt_build
+    [ "$PS1" = "$sides" ]
+    prompt_layout --closed --box r1 r3;  prompt_build;  local closed=$PS1
+    prompt_layout --sides r,l,t,b r1 r3; prompt_build
+    [ "$PS1" = "$closed" ]
+    [ "$_PS_SIDES" = trbl ]
+    prompt_layout --sides l --closed r1;  [ "$_PS_SIDES" = bl ]
+}
+
+@test "--box STYLE with --sides draws those edges in that style" {
+    _three_rows
+    prompt_layout --box sharp --sides l r1 r3
+    prompt_build
+    [ "$PS1" = '┌X\n└X \$ ' ]
+}
+
+@test "--no-box after --sides turns the box off" {
+    _three_rows
+    prompt_layout --sides l --no-box r1 r3
+    prompt_build
+    [ "$PS1" = 'X\nX \$ ' ]
+    [ "$_PS_SIDES" = "" ]
+    # and forgets them: a --box after it draws the --box edges
+    prompt_layout --sides l --no-box --box r1 r3
+    [ "$_PS_SIDES" = "trl" ]
+}
+
+@test "--sides with a bad letter, a row name or nothing: an error, layout kept" {
+    _three_rows
+    prompt_layout --sides lb r1 r3
+    run prompt_layout --sides lx r1
+    [ "$status" -eq 1 ]
+    [ "$output" = "prompt_layout: --sides 'lx': use the letters t, r, b and l" ]
+    run prompt_layout --sides r1
+    [ "$output" = "prompt_layout: --sides 'r1': use the letters t, r, b and l" ]
+    run prompt_layout --sides
+    [ "$status" -eq 1 ]
+    prompt_layout --sides l,x r2 || true
+    [ "$_PS_SIDES" = bl ]
+    [ "${_PS_ORDER[*]}" = "r1 r3" ]
+}
+
+@test "prompt_debug shows the edges drawn" {
+    _three_rows
+    prompt_layout --sides l,b r1 r3
+    run prompt_debug
+    [[ "${lines[0]}" == "=== prompt.sh  box=1  sides=bl  style=rounded ===" ]]
+    prompt_layout r1 r3
+    run prompt_debug
+    [[ "${lines[0]}" == "=== prompt.sh  box=0  sides=-  style=rounded ===" ]]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.9
+# Toolkit version: 0.1.10
 # ════════════════════════════════════════════════════════════════════════════
 # lib/git_info.sh — Cached git repository state for bash scripts
 #

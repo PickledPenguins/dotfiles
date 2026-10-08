@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.9
+# Toolkit version: 0.1.10
 # ════════════════════════════════════════════════════════════════════════════
 # segments/git.sh — branch, upstream, ahead/behind, working tree, stash,
 # conflicts

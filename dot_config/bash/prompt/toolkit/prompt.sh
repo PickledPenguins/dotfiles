@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.9
+# Toolkit version: 0.1.10
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1
@@ -100,7 +100,7 @@ declare -gA _PS_ROWS=()          # row name → template string
 declare -ga _PS_ORDER=()         # row names in display order
 declare -ga _PS_SEGS_SORTED=()   # segment names, longest-first (expansion order)
 declare -g    _PS_BOX=0            # 1 = wrap rows in a unicode box
-declare -g    _PS_CLOSED=0         # 1 = close box (╯) on last row; 0 = open
+declare -g    _PS_SIDES=""         # edges drawn, a subset of "trbl" in that order
 declare -g    _PS_STYLE="rounded"
 declare -g    _PS_EXPANDED=""      # _ps_expand_into's result
 declare -gi   _PS_EXPANDED_EMPTY=0 # 1 = that row names segments and none printed anything
@@ -399,31 +399,54 @@ prompt_row() {
 
 # Set the prompt layout: ordered rows + optional box decoration.
 #
-# Usage: prompt_layout [--box [style]] [--closed] <row1> [row2…]
+# Usage: prompt_layout [--box [style]] [--sides SPEC] [--closed] <row1> [row2…]
 #
-#   --box [style]   Draw a unicode box.  Styles: rounded (default) | sharp |
-#                   double | ascii.  The next word is the style only when
-#                   it names one; otherwise it is the first row.
-#   --closed        Close box with ╯ on last row; cursor on new line below.
+#   --box [style]   Draw a unicode box: the top, right and left edges.
+#                   Styles: rounded (default) | sharp | double | ascii.  The
+#                   next word is the style only when it names one; otherwise
+#                   it is the first row.
+#   --sides SPEC    Draw only these edges: any of t (top), r (right),
+#                   b (bottom) and l (left), commas optional -- l, l,b, tl.
+#                   Turns the box on; --box still picks the style.  A rail
+#                   ends in its corners (╭ ╰, ╮ ╯) whatever else is drawn.
+#   --closed        Add the bottom edge: the last row is filled out with ─
+#                   and the cursor goes on a new line below.
 #   --no-box        No box decoration (default).
+#
+# A bad SPEC prints an error and returns 1, leaving the layout as it was.
 #
 # Prepends prompt_build to PROMPT_COMMAND so it always runs first and
 # captures $? before any other handler can clobber it.
 prompt_layout() {
-    _PS_ORDER=(); _PS_BOX=0; _PS_CLOSED=0; _PS_STYLE="rounded"
+    local -a order=()
+    local box=0 closed=0 style="rounded" sides="" edge
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --box)
-                _PS_BOX=1
-                [[ -n "${2-}" && -n "${_PS_CHARS[${2}_h]-}" ]] && { _PS_STYLE="$2"; shift; }
+                box=1
+                [[ -n "${2-}" && -n "${_PS_CHARS[${2}_h]-}" ]] && { style="$2"; shift; }
                 ;;
-            --closed) _PS_CLOSED=1 ;;
-            --no-box) _PS_BOX=0    ;;
-            *)        _PS_ORDER+=("$1") ;;
+            --sides)
+                sides=${2-}; sides=${sides//,/}
+                if [[ -z "$sides" || "$sides" == *[!trbl]* ]]; then
+                    printf "prompt_layout: --sides '%s': use the letters t, r, b and l\n" "${2-}" >&2
+                    return 1
+                fi
+                box=1; shift
+                ;;
+            --closed) closed=1 ;;
+            --no-box) box=0; sides="" ;;
+            *)        order+=("$1") ;;
         esac
         shift
     done
+    (( box )) && [[ -z "$sides" ]] && sides=trl
+    (( box && closed )) && sides+=b
+    _PS_ORDER=(${order[@]+"${order[@]}"}); _PS_BOX=$box; _PS_STYLE=$style; _PS_SIDES=""
+    if (( box )); then
+        for edge in t r b l; do [[ "$sides" == *"$edge"* ]] && _PS_SIDES+=$edge; done
+    fi
     _PS_PLAN_DIRTY=1
 
     # Prepend once — checks the exact call token (start of string, or right
@@ -437,8 +460,8 @@ prompt_layout() {
 # Print current configuration to stderr — useful during layout development.
 prompt_debug() {
     _ps_plan_collectors
-    printf '=== prompt.sh  box=%d  closed=%d  style=%s ===\n' \
-        "$_PS_BOX" "$_PS_CLOSED" "$_PS_STYLE" >&2
+    printf '=== prompt.sh  box=%d  sides=%s  style=%s ===\n' \
+        "$_PS_BOX" "${_PS_SIDES:--}" "$_PS_STYLE" >&2
     printf 'rows:\n' >&2
     local r; for r in "${_PS_ORDER[@]}"; do
         printf '  %-16s %s\n' "$r" "${_PS_ROWS[$r]:-<undefined>}" >&2
@@ -502,7 +525,12 @@ prompt_build() {
     # left out, rather than drawn as a blank line, so the corners below go
     # on the first and last rows that remain. The last row is always kept:
     # it holds the prompt character the cursor follows.
-    local budget=$tw; (( _PS_BOX )) && budget=$(( tw - 2 ))
+    local e_t=0 e_r=0 e_b=0 e_l=0
+    [[ "$_PS_SIDES" == *t* ]] && e_t=1
+    [[ "$_PS_SIDES" == *r* ]] && e_r=1
+    [[ "$_PS_SIDES" == *b* ]] && e_b=1
+    [[ "$_PS_SIDES" == *l* ]] && e_l=1
+    local budget=$(( tw - e_l - e_r ))   # one column per side rail
     local -a contents=() fills=()
     local i tmpl
     for (( i=0; i<nrows; i++ )); do
@@ -531,44 +559,46 @@ prompt_build() {
         # border with no prompt escape at all, in either --closed or open
         # mode, since i==0 was checked first and unconditionally won.
         #
-        # Auto-fill rows without @fill.
-        # Closed last row (incl. single-row closed): pad with bar char.
-        # Open last row (incl. single-row open): no padding — cursor follows.
-        # Top border of a real multi-row box: pad with bar char.
-        # Inner rows: pad with spaces.
-        if (( ! has_fill )); then
+        # A row without @fill is filled out only where an edge needs it:
+        #   last row (incl. a single row): ─ for the bottom edge; else
+        #     nothing — the cursor follows the content.
+        #   first row: ─ for the top edge.
+        #   other rows: spaces, when the right rail is drawn.
+        local fill_char=""
+        if (( is_last )); then
+            (( e_b )) && fill_char=$c_h
+        elif (( i == 0 && e_t )); then
+            fill_char=$c_h
+        elif (( e_r )); then
+            fill_char=" "
+        fi
+        if (( ! has_fill )) && [[ -n "$fill_char" ]]; then
             local plain=$content
             _ps_unescape_into plain
             plain=$(strip_ansi "$plain")
-            local pad=$(( budget - $(str_width "$plain") ))
-            if (( pad > 0 )); then
-                if (( is_last && _PS_CLOSED )); then
-                    content+=$(str_repeat "$c_h" "$pad")
-                elif (( is_last )); then
-                    :   # open last row: intentionally no pad, cursor follows
-                elif (( i == 0 )); then
-                    content+=$(str_repeat "$c_h" "$pad")
-                else
-                    content+=$(printf '%*s' "$pad" '')
-                fi
-            fi
+            content+=$(str_repeat "$fill_char" $(( budget - $(str_width "$plain") )))
         fi
 
-        if (( is_last && _PS_CLOSED )); then
-            # Closed: seal the box, cursor on new line with \$ prompt char.
-            # A single row (i==0 too) opens with the top-left corner, since
-            # nothing is drawn above it.
-            local left=$c_bl; (( i == 0 )) && left=$c_tl
-            ps1+="${left}${content}${c_br}"$'\n''\$ '
-        elif (( is_last )); then
-            # Open: no right corner — cursor follows content directly
-            local left=$c_bl; (( i == 0 )) && left=$c_tl
-            ps1+="${left}${content}"
-        elif (( i == 0 )); then
-            ps1+="${c_tl}${content}${c_tr}\n"
-        else
-            ps1+="${c_v}${content}${c_v}\n"
+        # A rail ends in its corners: the first row takes the top ones (a
+        # single row too, nothing being drawn above it), the last row the
+        # bottom ones. The last row has a right corner only under a bottom
+        # edge; open, the cursor follows the content. The bottom edge puts
+        # the cursor on a new line, with the \$ prompt character.
+        local left="" right="" end="\n"
+        if (( e_l )); then
+            if (( i == 0 )); then left=$c_tl
+            elif (( is_last )); then left=$c_bl
+            else left=$c_v
+            fi
         fi
+        if (( is_last )); then
+            end=""
+            (( e_b )) && end=$'\n''\$ '
+            (( e_r && e_b )) && right=$c_br
+        elif (( e_r )); then
+            if (( i == 0 )); then right=$c_tr; else right=$c_v; fi
+        fi
+        ps1+="${left}${content}${right}${end}"
     done
 
     PS1="$ps1"
