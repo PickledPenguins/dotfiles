@@ -6,7 +6,7 @@ Back to the [README](../README.md).
 
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
-| `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every commit (`.git/hooks/pre-commit`, installed by `./run-tests.sh hook`) | ~2 s |
+| `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every commit, on the staged tree (`.git/hooks/pre-commit`, installed by `./run-tests.sh hook`) | ~2 s |
 | `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~110 s |
 | `./run-tests.sh all` | both | | ~115 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
