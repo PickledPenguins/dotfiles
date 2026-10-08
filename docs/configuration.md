@@ -145,7 +145,7 @@ Read-only variables the loader sets for modules and for you:
 |--------|----------|
 | `00-env.sh` | `EDITOR`, `PAGER`, `LESS`, colored man pages, `GREP_COLORS`, `COLORTERM`, XDG variables, `RIPGREP_CONFIG_PATH`, `PYTHONSTARTUP`, locale fallback, `TIME_STYLE`, `PYTHONDONTWRITEBYTECODE`.  Off: less mouse/chop/centering, bat or vim as `MANPAGER`, `MANWIDTH`, `NO_COLOR`, a dozen moves of tool files out of `$HOME`, `LC_COLLATE=C`, `PYTHONPYCACHEPREFIX`, `GPG_TTY`, `BROWSER` |
 | `10-options.sh` | `globstar extglob autocd cdspell dirspell checkjobs huponexit histappend cmdhist lithist checkwinsize`, history sizes and control, history written after every command, `stty -ixon`, `umask 022`.  Off: `dotglob nocaseglob nullglob failglob nocasematch cdable_vars direxpand notify noclobber pipefail IGNOREEOF histexpand TMOUT histverify histreedit`, XDG history file, live history sharing, no mail check, `umask 077/027`, `ulimit` core and stack |
-| `20-path.sh` | `path_prepend`/`path_append`/`path_remove`; `~/.local/bin`, `~/bin`, the dotfiles dir, cargo/go/npm bins; `MANPATH`.  Off: deno, bun, .NET, juliaup, ghcup/cabal, pixi, CUDA, Flatpak, snap |
+| `20-path.sh` | `path_prepend`/`path_append`/`path_remove`; `~/.local/bin`, `~/bin`, cargo/go/npm bins; `MANPATH`.  Off: deno, bun, .NET, juliaup, ghcup/cabal, pixi, CUDA, Flatpak, snap |
 | `25-ssh-agent.sh.off` | one shared ssh-agent per machine, environment in `~/.ssh/agent.env`.  Off inside: keychain or gpg-agent instead |
 | `30-aliases.sh` | ls/grep/diff/ip color, `ll la l lt ltr lS lsd`, `.. ... .... ..... cd.. - d cdg`, `rm -I cp -i mv -i`, `mkdir -pv ln -v chmox`, `df du free dus psg top ports j mnt`, `c clc h hg e v sb vb path now week timestamp epoch ping tree serve cpv myip :q`, `pbcopy`/`pbpaste`, `g gs gl gd gp`, `alert`.  Off: grep skipping VCS dirs, `rm -i`, `--preserve-root`, `sudo ` alias expansion, `vi`→vim, `vim`→nvim, `open`, the oh-my-zsh git set |
 | `40-functions.sh` | `mkcd tmpd up bd cdf extract targz ff fd_ rgv bak swap bigfiles count sha mkscript note tree retry timer histstat man reload calc genpass urlencode urldecode fromepoch title hr envg port cheat weather` |
@@ -218,6 +218,8 @@ Read-only variables the loader sets for modules and for you:
 | `~/.nanorc` | autoindent, 4-space tabs, line numbers, soft wrap, syntax files.  Off: cut from cursor, guide stripe, no help, minibar, position and search history, backups, common editor keys |
 | `~/.condarc` | `auto_activate_base: false`, `changeps1: false`, conda-forge first.  Off: `pkgs_dirs`, outdated notice, self-update, default packages, threads, `env_prompt`, error reports, proxy |
 | `~/.Xresources` | xterm font, colors, scrollback, clipboard keys; urxvt basics.  Off: Xft rendering and dpi, URL double-click, light scheme |
+| `~/.local/bin/dots` | this checkout's `dots`, on `PATH` through `~/.local/bin`; `dots unlink` removes it |
+| `~/.local/share/bash-completion/completions/dots` | Tab completion of the `dots` subcommands and their options, loaded by bash-completion on first use (`50-completion.sh`) |
 | `~/.ssh/config` (600, `~/.ssh` 700) | includes, keepalive, multiplexing (`~/.ssh/sockets/`), `AddKeysToAgent`, `IdentitiesOnly`, no agent/X11 forwarding by default.  Off: example hosts (cluster, bastion, GitHub on 443, Jupyter tunnel), `accept-new`, `UpdateHostKeys`, `ConnectTimeout`, IPv4, no GSSAPI, quiet log, `SetEnv TERM`, `SendEnv`, `ExitOnForwardFailure`, legacy ssh-rsa |
 | `~/.config/ripgrep/config` | smart case, hidden files, ignores, colors.  Off: follow links, sorted output, no VCS ignores, minified files |
 | `~/.config/python/pythonrc.py` | REPL history and completion before 3.13; `json math re Path pp` imported.  Off: datetime, numpy/pandas, pretty display, rich, colored prompt |
@@ -235,5 +237,5 @@ In the source root.  One glob per line, `#` comments, matched with
 it: `README.md` matches only at the top; `tests` skips everything under
 `tests/`; `*.local` matches at any depth because `*` crosses `/`.  The
 shipped file lists `README.md CLAUDE.md HANDOFF.md LICENSE dots
-run-tests.sh install.sh tests docs reviews __pycache__`.  To not link a file you do
+run-tests.sh tests docs reviews __pycache__`.  To not link a file you do
 not want on any machine, add its target path here.

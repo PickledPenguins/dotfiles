@@ -6,7 +6,6 @@ HANDOFF.md
 LICENSE
 dots
 run-tests.sh
-install.sh
 tests
 docs
 reviews

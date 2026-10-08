@@ -43,11 +43,10 @@ printf '[user]\n\tname = You\n\temail = you@example.com\n' > ~/.gitconfig.local
 exec bash
 ```
 
-`dots` is on `PATH` from the next shell (`20-path.sh` adds the repository).
-For a shell that does not load these files yet, or a machine where the
-repository lives elsewhere, `~/.dotfiles/install.sh` links `~/.local/bin/dots`
-to it (`install.sh DIR` links `DIR/dots`); an existing `dots` there is left
-alone, exit 1.
+`apply` links `~/.local/bin/dots` to this checkout, so `dots` is a command
+from then on, with Tab completion of its subcommands and options
+(`~/.local/share/bash-completion/completions/dots`).  `dots unlink`
+uninstalls: it removes every link `apply` made, these two included.
 
 ## Quick start
 

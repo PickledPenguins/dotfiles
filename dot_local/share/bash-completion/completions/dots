@@ -1,0 +1,40 @@
+# bash completion for dots: its subcommands, each one's options, and paths.
+#
+# dots apply links this file to ~/.local/share/bash-completion/completions/dots,
+# where bash-completion finds it the first time Tab is pressed after `dots`.
+# Paths complete as file names.  tests/test_docs.py fails when a subcommand or
+# option of the parser in dots is missing here.
+
+_dots() {
+    local cur=${COMP_WORDS[COMP_CWORD]} prev=${COMP_WORDS[COMP_CWORD-1]}
+    local i cmd='' words
+    for ((i = 1; i < COMP_CWORD; i++)); do
+        case ${COMP_WORDS[i]} in
+            -S|--source) ((i++)) ;;
+            -*) ;;
+            *) cmd=${COMP_WORDS[i]}; break ;;
+        esac
+    done
+    if [[ $prev == -S || $prev == --source ]]; then
+        mapfile -t COMPREPLY < <(compgen -d -- "$cur")
+        return
+    fi
+    case $cmd in
+        '')      words='apply status managed add forget unlink prune options'
+                 [[ $cur == -* ]] && words='-S --source -h --help' ;;
+        apply)   words='-n --dry-run --force -h --help' ;;
+        status)  words='-a --all -h --help' ;;
+        managed) words='-s --show-source -h --help' ;;
+        add)     words='-n --dry-run --private -h --help' ;;
+        forget)  words='-n --dry-run -h --help' ;;
+        unlink)  words='-n --dry-run -h --help' ;;
+        prune)   words='-n --dry-run -h --help' ;;
+        options) words='--on --off -f --full -h --help' ;;
+        *)       return ;;
+    esac
+    # Options only once a dash is typed, except where nothing else can follow.
+    if [[ -z $cmd || $cur == -* || $cmd == managed || $cmd == prune ]]; then
+        mapfile -t COMPREPLY < <(compgen -W "$words" -- "$cur")
+    fi
+}
+complete -o default -F _dots dots

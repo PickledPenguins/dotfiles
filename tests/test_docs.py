@@ -91,6 +91,19 @@ def test_every_flag_of_every_subcommand_is_in_the_cli_reference(dots):
                 assert f"`{flag}`" in cli, f"docs/cli.md lacks global flag `{flag}`"
 
 
+def test_the_completion_offers_exactly_what_the_parser_accepts(dots):
+    parser = build_parser(dots)
+    completion = text(REPO / "dot_local/share/bash-completion/completions/dots")
+    offered = dict(re.findall(r"^\s+(\w+)\)\s+words='([^']*)'", completion, re.M))
+    commands = set(re.search(r"''\)\s+words='([^']*)'", completion).group(1).split())
+    flags = set(re.search(r"words='(-S[^']*)'", completion).group(1).split())
+    assert commands == set(subparsers(parser)) == set(offered)
+    assert flags == {flag for action in parser._actions for flag in action.option_strings}
+    for name, sub in subparsers(parser).items():
+        accepted = {flag for action in sub._actions for flag in action.option_strings}
+        assert set(offered[name].split()) == accepted, f"completion for `dots {name}`"
+
+
 def test_every_exit_code_in_dots_is_documented(dots):
     source = Path(dots.__file__).read_text()
     codes = set(re.findall(r"^\s+return (\d)\b", source, re.M))

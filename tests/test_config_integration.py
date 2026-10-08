@@ -170,14 +170,14 @@ def test_options_module_opinionated_options_default_off(linked):
     assert proc.stdout == "on\n"
 
 
-def test_path_module_prepends_private_bins_once_and_adds_dotfiles(linked):
+def test_path_module_prepends_private_bins_once_and_leaves_the_repository_off(linked):
     (linked / ".local" / "bin").mkdir(parents=True, exist_ok=True)
     (linked / "bin").mkdir(exist_ok=True)
     proc = bash(linked, 'tr : "\\n" <<<"$PATH"', env={"PATH": f"{linked}/.local/bin:{os.environ['PATH']}"})
     entries = proc.stdout.splitlines()
     assert entries[:2] == [f"{linked}/.local/bin", f"{linked}/bin"]
     assert entries.count(f"{linked}/.local/bin") == 1
-    assert str(REPO) in entries
+    assert str(REPO) not in entries  # dots comes from ~/.local/bin; run-tests.sh must not
 
 
 def test_path_helpers_are_idempotent_and_skip_missing_dirs(linked):

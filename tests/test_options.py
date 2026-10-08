@@ -42,6 +42,8 @@ NOT_IN_THE_FORMAT = {
     ".dircolors": "dircolors -p output: a table of file types and colors, not options",
     ".config/bash/prompt/toolkit/*": "bash-prompt-toolkit subtree; a library, not a configuration file",
     ".ssh/sockets/.keep": "empty placeholder that makes git keep the directory",
+    ".local/bin/dots": "the dots program itself, linked onto PATH; code, not options",
+    ".local/share/bash-completion/completions/dots": "bash completion for dots; code, not options",
 }
 
 #: Code lines that are structure rather than a setting, so need no description.

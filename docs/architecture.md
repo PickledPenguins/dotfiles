@@ -17,7 +17,7 @@ character directly in front.
 ```
 dots                            the linker (python3, stdlib, no .py suffix)
 run-tests.sh                    test runner and gates
-install.sh                      links ~/.local/bin/dots (or DIR/dots) to this checkout
+
 .dotsignore                     targets dots never links (README.md, dots, tests, docs ...)
 dot_bashrc  dot_bash_profile  dot_bash_logout  dot_profile      bash entry points (loaders)
 dot_config/bash/rc.d/NN-*.sh    bash modules, one concern each
@@ -29,6 +29,8 @@ dot_inputrc  dot_editorconfig  dot_curlrc  dot_wgetrc  dot_screenrc  dot_dircolo
 dot_gdbinit  dot_nanorc  dot_condarc  dot_Xresources  dot_ctags.d/  dot_config/{ripgrep,python,pip}/
 dot_config/{kitty,matplotlib}/  dot_ipython/profile_default/  dot_sqliterc     shipped with every setting off
 private_dot_ssh/config          ~/.ssh/config (600) and ~/.ssh/sockets/ for ControlMaster
+dot_local/bin/dots              -> ../../dots: apply puts dots on PATH; unlink takes it off
+dot_local/share/bash-completion/completions/dots   Tab completion for dots
 tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, coveragerc
 docs/                           this set
 reviews/                        friction logs and review reports (caddressreview works through them)

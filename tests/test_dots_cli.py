@@ -514,13 +514,17 @@ def test_options_on_and_off_together_is_a_usage_error(home, src):
     assert proc.returncode == 2 and "not allowed with argument" in proc.stderr
 
 
-# ── install.sh ────────────────────────────────────────────────────────────
+# ── dots on PATH, and its completion ──────────────────────────────────────
+
+COMPLETION = REPO / "dot_local/share/bash-completion/completions/dots"
 
 
-def install(home, *args, path="/usr/bin:/bin"):
+def apply_local(home):
+    """`dots apply ~/.local` from the repository, as a first install runs it."""
     import subprocess
 
-    return subprocess.run([str(REPO / "install.sh"), *args], env={"HOME": str(home), "PATH": path},
+    return subprocess.run([str(REPO / "dots"), "-S", str(REPO), "apply", ".local"],
+                          env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
                           capture_output=True, text=True, cwd=home)
 
 
@@ -534,39 +538,57 @@ def linked_dots(home, *args):
                           capture_output=True, text=True)
 
 
-def test_install_links_dots_into_local_bin_and_it_runs_this_checkout(home):
-    proc = install(home)
-    link = home / ".local/bin/dots"
-    assert (proc.returncode, proc.stdout) == (0, f"linked: {link} -> {REPO}/dots\n")
-    assert proc.stderr == f"note: {home}/.local/bin is not on PATH\n"
-    assert os.readlink(link) == str(REPO / "dots")
+def test_apply_links_dots_into_local_bin_and_it_runs_this_checkout(home):
+    proc = apply_local(home)
+    assert proc.returncode == 0, proc.stderr
+    assert os.readlink(home / ".local/bin/dots") == str(REPO / "dot_local/bin/dots")
+    assert os.readlink(home / ".local/share/bash-completion/completions/dots") == str(COMPLETION)
     managed = linked_dots(home, "managed")
     assert (managed.returncode, managed.stdout.splitlines()[0]) == (0, ".Xresources")
 
 
-def test_install_again_says_already_linked(home):
-    install(home)
-    proc = install(home, path=f"{home}/.local/bin:/usr/bin:/bin")
-    assert (proc.returncode, proc.stdout, proc.stderr) == (
-        0, f"already linked: {home}/.local/bin/dots -> {REPO}/dots\n", "")
-
-
-def test_install_into_a_named_directory(home):
-    proc = install(home, str(home / "tools"))
-    assert proc.returncode == 0
-    assert os.readlink(home / "tools/dots") == str(REPO / "dots")
-    assert not (home / ".local").exists()
-
-
-def test_install_leaves_an_existing_dots_alone_and_exits_1(home):
+def test_apply_repairs_the_link_an_old_install_sh_made(home):
     (home / ".local/bin").mkdir(parents=True)
-    (home / ".local/bin/dots").write_text("mine\n")
-    proc = install(home)
-    assert (proc.returncode, proc.stdout) == (1, "")
-    assert proc.stderr == f"install.sh: {home}/.local/bin/dots exists; remove it first\n"
-    assert (home / ".local/bin/dots").read_text() == "mine\n"
+    os.symlink(REPO / "dots", home / ".local/bin/dots")
+    assert apply_local(home).returncode == 0
+    assert os.readlink(home / ".local/bin/dots") == str(REPO / "dot_local/bin/dots")
 
 
-def test_install_two_directories_is_a_usage_error(home):
-    assert install(home, "a", "b").returncode == 2
-    assert not (home / "a").exists()
+def test_unlink_uninstalls_dots_and_its_completion(home):
+    apply_local(home)
+    proc = linked_dots(home, "unlink", str(home / ".local"))
+    assert proc.returncode == 0, proc.stderr
+    assert not (home / ".local/bin/dots").is_symlink()
+    assert not (home / ".local/share/bash-completion/completions/dots").is_symlink()
+
+
+def complete(tmp_path, *words):
+    """What _dots offers for the command line WORDS, the last being the one
+    under the cursor."""
+    import subprocess
+
+    script = (f"source {COMPLETION}\nCOMP_WORDS=(\"$@\"); COMP_CWORD=$(($# - 1))\n"
+              "_dots; printf '%s\\n' \"${COMPREPLY[@]}\"\n")
+    proc = subprocess.run(["bash", "-c", script, "bash", "dots", *words], capture_output=True,
+                          text=True, cwd=tmp_path)
+    assert proc.stderr == ""
+    return proc.stdout.split()
+
+
+@pytest.mark.parametrize("words, offered", [
+    ((""), ["apply", "status", "managed", "add", "forget", "unlink", "prune", "options"]),
+    (("ap",), ["apply"]),
+    (("-",), ["-S", "--source", "-h", "--help"]),
+    (("apply", "-"), ["-n", "--dry-run", "--force", "-h", "--help"]),
+    (("options", "--o"), ["--on", "--off"]),
+    (("-S", "somewhere", "a"), ["apply", "add"]),
+    (("--source", "s"), ["srcdir"]),
+    (("managed", ""), ["-s", "--show-source", "-h", "--help"]),
+    (("apply", ""), []),
+    (("nosuch", "-"), []),
+], ids=lambda value: " ".join(value) if isinstance(value, tuple) else None)
+def test_completion_offers(tmp_path, words, offered):
+    (tmp_path / "srcdir").mkdir()
+    (tmp_path / "somefile").write_text("")
+    words = words if isinstance(words, tuple) else (words,)
+    assert complete(tmp_path, *words) == offered

@@ -64,16 +64,15 @@ here is scheduled; an item is cited by its label.  Back to the
   `source_dir` (`dots:46`) tries `$DOTS_SOURCE`, then `~/.dotfiles`, and
   only then the directory holding `dots`.  So `./dots apply` from a
   worktree or a second clone acts on `~/.dotfiles`, and on a machine where
-  `~/.dotfiles` belongs to another tool the command `install.sh` linked
-  manages that other tree.  `docs/cli.md` documents the order, so this is
-  a trap rather than a misdescription; the README's install line ("a
-  machine where the repository lives elsewhere") reads as if the linked
-  command used its own checkout.  From the 2026-10-07 creview.  Future work
-  because the fix is a design call with two shapes: prefer the directory
-  holding `dots` when it contains `.dotsignore` (changes which tree a
-  plain `dots` uses from a second checkout), or have `install.sh` print the
-  source tree the command will use (changes nothing at run time).  Either
-  way `docs/cli.md`'s `--source` row and the catalog cases follow.
+  `~/.dotfiles` belongs to another tool the `~/.local/bin/dots` a
+  checkout's `apply` linked manages that other tree.  `docs/cli.md`
+  documents the order, so this is a trap rather than a misdescription.
+  From the 2026-10-07 creview.  Future work because the fix is a design
+  call with two shapes: prefer the directory holding `dots` when it
+  contains `.dotsignore` (changes which tree a plain `dots` uses from a
+  second checkout), or have `apply` print the source tree it used
+  (changes its output).  Either way `docs/cli.md`'s `--source` row and the
+  catalog cases follow.
 
 ## F.2 configuration
 
@@ -148,17 +147,7 @@ here is scheduled; an item is cited by its label.  Back to the
   drop the space after `@cmd_time` in both rows and have a `layout.sh`
   segment wrap the toolkit's `@cmd_time` with a trailing space when it
   prints anything (as `_my_user_host` wraps `@user_host`).
-- **F.2.l  The repository root on `PATH`.**  `rc.d/20-path.sh:34`
-  (`path_append "$DOTFILES_DIR"`) makes `dots` a command and also every
-  root script: `run-tests.sh` typed without `./` in another project runs
-  this suite (the owner's other projects use the same name), and
-  `install.sh` anywhere runs this one.  Since `install.sh` links
-  `~/.local/bin/dots`, which `20-path.sh` already puts first, the line is
-  no longer needed for `dots`.  From the 2026-10-07 creview.  Future work
-  because it removes a `PATH` entry existing machines rely on until
-  `install.sh` has run there.  Fix: drop the line, have the README's
-  install section say `install.sh` runs once per machine, and update the
-  `20-path.sh` row in `docs/configuration.md`.
+
 - **F.2.m  `merge.conflictStyle = zdiff3` on old git.**  The value needs
   git 2.35 (`dot_config/git/core.gitconfig`, now with a `Needs:` line);
   older git (Ubuntu 20.04 has 2.25, RHEL 7 1.8) rejects it and merge,
@@ -431,5 +420,5 @@ handoff.
   `run-tests.sh` passes `-p no:benchmark`).  Future work because each move
   changes a documented path: `.dotsignore`, the `CLAUDE.md` root list,
   `docs/testing.md` and the pre-commit hook all name `run-tests.sh` and
-  `reviews/`.  `dots` stays in the root, since `install.sh` and the README
-  use `~/.dotfiles/dots`.
+  `reviews/`.  `dots` stays in the root, since `dot_local/bin/dots` and the
+  README use `~/.dotfiles/dots`.

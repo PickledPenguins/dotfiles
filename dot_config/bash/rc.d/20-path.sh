@@ -30,9 +30,6 @@ path_append()  { [[ -d "$1" ]] || return 0; path_remove "$1"; PATH="${PATH:+$PAT
 path_prepend "$HOME/bin"
 path_prepend "$HOME/.local/bin"
 
-# The dotfiles repository, for the `dots` command.
-path_append "$DOTFILES_DIR"
-
 # ── Language toolchains, when installed ───────────────────────────────────
 
 # Rust: programs from rustup and `cargo install`.

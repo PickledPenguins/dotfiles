@@ -151,7 +151,9 @@ delete or add the comment character in front of the setting.
 
 Remove every symlink whose state is `ok`; real files, foreign links and
 the source tree are untouched.  `unlink  target` per link, then
-`N link(s) removed`.
+`N link(s) removed`.  This is the uninstall: `~/.local/bin/dots` and its
+completion are links like the rest, so a plain `dots unlink` takes the
+command off `PATH` too (run `~/.dotfiles/dots` from then on).
 
 | Flag | Effect |
 |------|--------|
@@ -187,3 +189,5 @@ not stdout is a terminal; there is no color.
 |------|------|
 | `SOURCE/.dotsignore` | target paths never managed; glob per line, `#` comments |
 | `~/.dotfiles-backup/<YYYYmmdd-HHMMSS>/` | where `apply --force` moves what it replaces |
+| `~/.local/bin/dots` | the command on `PATH`, a link `apply` makes to `SOURCE/dot_local/bin/dots`, itself a link to `SOURCE/dots` |
+| `~/.local/share/bash-completion/completions/dots` | Tab completion: subcommands, each one's options, directories after `-S`, file names for paths |
