@@ -105,3 +105,22 @@ setup() {
     cd "$HOME/sub"
     [[ "$(_ps_seg_pwd)" == "~/sub" ]]
 }
+
+@test "disk collector shows usage at 90% and above" {
+    mkdir "$BATS_TEST_TMPDIR/bin"
+    printf '#!/bin/sh\necho "Filesystem 1024-blocks Used Available Capacity Mounted on"\necho "/dev/x 100 95 5 95%% /"\n' \
+        > "$BATS_TEST_TMPDIR/bin/df"
+    chmod +x "$BATS_TEST_TMPDIR/bin/df"
+    PATH="$BATS_TEST_TMPDIR/bin:$PATH" _ps_collect_disk
+    [[ "$(plain "$(_ps_seg_disk)")" == "⛁95%" ]]
+}
+
+@test "disk collector gives up on a df that hangs (a stuck network mount)" {
+    mkdir "$BATS_TEST_TMPDIR/bin"
+    printf '#!/bin/sh\nexec sleep 10\n' > "$BATS_TEST_TMPDIR/bin/df"
+    chmod +x "$BATS_TEST_TMPDIR/bin/df"
+    SECONDS=0
+    PATH="$BATS_TEST_TMPDIR/bin:$PATH" _ps_collect_disk || true
+    (( SECONDS < 3 ))
+    [ -z "$_PS_DISK_CACHE_VAL" ]
+}

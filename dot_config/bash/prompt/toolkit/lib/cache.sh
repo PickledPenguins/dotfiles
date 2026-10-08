@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.10
+# Toolkit version: 0.1.11
 # ════════════════════════════════════════════════════════════════════════════
 # lib/cache.sh — Generic TTL bookkeeping for bash scripts
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.10
+# Toolkit version: 0.1.11
 # ════════════════════════════════════════════════════════════════════════════
 # segments/system.sh — machine resources: load average, disk usage, GPU
 #
@@ -52,10 +52,12 @@ _ps_seg_load() {
 # across NFS/Lustre/GPFS to get generically right.
 # [v0.1.3] Same restructuring as load: collection is _ps_collect_disk,
 # TTL-cached (30s — usage doesn't need per-render freshness) and run from
-# prompt_build instead of inside the segment.
+# prompt_build instead of inside the segment. df runs under a 1s timeout,
+# like nvidia-smi below: statfs on a hung NFS or loaded Lustre mount can
+# block, and the prompt would block with it.
 _ps_collect_disk() {
     _PS_DISK_CACHE_VAL=""
-    local pct; pct=$(df -P . 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
+    local pct; pct=$(timeout 1 df -P . 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
     [[ -n "$pct" ]] && (( pct >= 90 )) && _PS_DISK_CACHE_VAL="$pct"
 }
 # Formats the cached disk usage percent (collected by _ps_collect_disk).

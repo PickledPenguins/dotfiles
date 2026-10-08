@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.10
+**Version:** 0.1.11
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -498,7 +498,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 | `git_info.bats` | 26 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 26 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
-| `prompt_segments.bats` | 16 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit and conflict segments |
+| `prompt_segments.bats` | 18 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit and conflict segments, disk usage and a hung `df` |
 | `security.bats` | 8 | segment text shown as typed (`$(...)`, backticks, `\w`, `@fill`, `$` for root), `promptvars` left on for `PS0`, `CDPATH` |
 | `term_utils.bats` | 10 | ANSI stripping, width (with no UTF-8 locale), repeat |
 | `test_v012_changes.bats` | 31 | everything added or fixed in v0.1.2 – v0.1.4 |
@@ -550,6 +550,13 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.11
+
+**Fixed:** the `@disk` collector runs `df` under `timeout 1`, as `@gpu`
+runs `nvidia-smi`. `statfs` on a hung NFS mount, or a loaded Lustre or
+GPFS one, could block `df`, and every prompt with it. Two tests in
+`prompt_segments.bats`.
 
 ### v0.1.10
 
