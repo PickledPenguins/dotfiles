@@ -140,14 +140,6 @@ here is scheduled; an item is cited by its label.  Back to the
   local stopgap is to append `cmd_timer_arm` as the last `PROMPT_COMMAND`
   entry in `90-local.sh`.  What changes for a user: the shown durations get
   shorter and true.
-- **F.2.k  Two spaces before `$` when `@cmd_time` is empty.**  The `cmd`
-  row (`prompt/layout.sh:148`, `'─[@exit] @cmd_time \$ '`) and `line2`
-  render `─[✓]  $` on most prompts.  From the 2026-10-07 creview of the
-  toolkit.  Future work because it changes what the prompt shows.  Fix:
-  drop the space after `@cmd_time` in both rows and have a `layout.sh`
-  segment wrap the toolkit's `@cmd_time` with a trailing space when it
-  prints anything (as `_my_user_host` wraps `@user_host`).
-
 - **F.2.m  `merge.conflictStyle = zdiff3` on old git.**  The value needs
   git 2.35 (`dot_config/git/core.gitconfig`, now with a `Needs:` line);
   older git (Ubuntu 20.04 has 2.25, RHEL 7 1.8) rejects it and merge,
@@ -158,51 +150,6 @@ here is scheduled; an item is cited by its label.  Back to the
   three sections with less trimming; keeping `zdiff3` and putting
   `conflictStyle = diff3` in `~/.gitconfig.local` on an old machine works
   too, and is what the `Needs:` line now tells the reader.
-- **F.2.n  The prompt rewrite in the working tree.**  On 2026-10-08 the
-  owner's uncommitted `dot_config/bash/prompt/layout.sh` (rows `top git
-  env cmd` drawn with `prompt_layout --sides l`) and a new
-  `_ps_seg_git_full_state` in `prompt/toolkit/segments/git.sh` were
-  reviewed but not touched, since both are work in progress.  From the
-  2026-10-08 creview, ctesting and creadme reports; to settle before they
-  are committed:
-  - *The pre-commit gate fails.*  `test_every_setting_has_a_description`
-    reports layout.sh lines 68, 75, 81, 87, 94 and 109: blank lines inside
-    `_env_seg` and `_git_seg` split each function into fragments, and
-    `_env_seg`, `_git_seg` and the `prompt_layout` line have no comment
-    directly above them.  Fix: no blank lines inside a function body, and
-    a description above each function and above `prompt_layout`.
-  - *`DOTFILES_PROMPT_LAYOUT` is read by nothing.*  The rewrite removed
-    the `case`, so `box`, `hpc`, `minimal` and the warning for an unknown
-    value are gone, while `layout.sh:19`, `rc.d/60-prompt.sh:17`,
-    `docs/configuration.md`, `docs/usage.md`, `docs/concepts.md`, the
-    README and catalog cases `moderate/09` and `complex/04` still promise
-    them; four long tests fail (`test_prompt_layout_knob[minimal]`, the
-    unknown-value warning, the hostile-directory test, which looks for the
-    `box` layout's ` ]`, and `moderate/09`).  A design call: restore the
-    `case` with the new rows as one of its arms, or retire the knob from
-    every place listed (`test_docs.py` will not notice a retired knob left
-    in `configuration.md`), in the same commit.
-  - *The git row shows `()` and a doubled SHA.*  In a fresh `git init` it
-    renders `(✓) ⎇  main ()`, since `_ps_seg_git_sha` is empty; on a
-    detached HEAD `⎇  0550348 (0550348)`, since the branch segment already
-    shows the SHA.  Fix: add `(SHA)` only when it is not empty and differs
-    from the branch text.
-  - *About 15 subshells per prompt.*  The composite segments (`_top_seg`,
-    `_user_host_seg`, `_env_seg`, `_git_seg`) make 4, 3, 4 and up to 6
-    command substitutions on top of the toolkit's one per segment.  Fix:
-    rows written as templates of toolkit segments, which the toolkit
-    already leaves out when empty, keeping a composite only where a
-    separator depends on its neighbors.
-  - *Stale comments and separators.*  Line 52 says the directory is at
-    the right (nothing is); `_top_seg` prints a leading space; `_env_seg`
-    writes `|conda:` with no space after the bar and leaves a trailing
-    space; the `cmd` row has the two spaces of F.2.k.  Fix: correct the
-    comments and add each separator only next to a part that printed.
-  - *`_ps_seg_git_full_state`* says "silent if clean" but prints `(✓)`,
-    its clean-tree `printf` is indented one level short, and it has no row
-    in the toolkit README's segment table and no bats test.  Fix: correct
-    the comment, add the row and a `git_info.bats` test, bump the toolkit
-    version, and commit it on its own, the toolkit way.
 - **F.2.o  curl's `--max-time 300` ends long downloads.**  `dot_curlrc`
   limits every transfer that reads `~/.curlrc` to five minutes, so a large
   download on a cluster link, or an installer run as `curl ... | sh`,
@@ -343,11 +290,9 @@ here is scheduled; an item is cited by its label.  Back to the
   prompt_build`; a hook added in front with `;` and no space hides it, and
   a second `prompt_layout` adds `prompt_build` again.  `65-title.sh` was
   the one such hook here and now joins with `; ` (the 2026-10-08 settings
-  creview's first finding, fixed with a guard on each prepend).  Future
-  work because a toolkit release bumps the version line of every toolkit
-  file, `segments/git.sh` among them, which holds the owner's staged edit.
-  Fix: also match `*';prompt_build'*`, with a bats test, in its own commit
-  sent upstream.
+  creview's first finding, fixed with a guard on each prepend).  Fix: also
+  match `*';prompt_build'*`, with a bats test, in its own commit sent
+  upstream.
 
 ## F.3 tests
 

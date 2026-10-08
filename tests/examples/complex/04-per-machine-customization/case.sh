@@ -2,8 +2,6 @@
 dots apply > /dev/null
 mkdir ~/tools
 cat > ~/.bashrc.before <<EOF
-DOTFILES_PROMPT_LAYOUT=minimal
-
 DOTFILES_PATH_PREPEND=$HOME/tools
 EOF
 printf 'conda\nhpc\ntitle\n' > ~/.config/bash/disabled

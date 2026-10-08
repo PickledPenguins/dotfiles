@@ -114,7 +114,7 @@ Find a setting and switch it, turn a module off, or tune one:
 dots options history                           # every setting that mentions history, on and off
 dots options --off -f tmux                     # tmux's offered settings in full
 echo conda >> ~/.config/bash/disabled          # this machine only
-echo 'DOTFILES_PROMPT_LAYOUT=minimal' >> ~/.bashrc.before
+echo 'DOTFILES_HISTSIZE=5000' >> ~/.bashrc.before   # a knob, read before the modules run
 DOTFILES_DEBUG=1 bash -i -c true               # each module and its load time
 ```
 

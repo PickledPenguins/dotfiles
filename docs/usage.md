@@ -89,7 +89,6 @@ in `~/.gitconfig`.
 
 ```sh
 cat > ~/.bashrc.before <<'EOF'
-DOTFILES_PROMPT_LAYOUT=minimal
 DOTFILES_PATH_PREPEND=$HOME/tools
 EOF
 printf 'conda\nhpc\n' > ~/.config/bash/disabled

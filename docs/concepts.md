@@ -97,5 +97,5 @@ Modes live on the source file, since a symlink has none of its own.
 [bash-prompt-toolkit](../dot_config/bash/prompt/toolkit/README.md), kept here as a
 **git subtree** (its version is in the file headers).  `layout.sh` is the
 local configuration -- which **segments** are
-registered, the **row** templates, and which **layout** `DOTFILES_PROMPT_LAYOUT`
-selects.
+registered, the **row** templates, and the **layout** that puts the rows in
+order.

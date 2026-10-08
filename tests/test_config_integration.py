@@ -35,8 +35,13 @@ def linked(home):
     return home
 
 
+# The runner's PATH without this checkout: a shell started before 20-path.sh
+# stopped adding it still has it, and the tests check that nothing adds it.
+RUNNER_PATH = ":".join(p for p in os.environ["PATH"].split(":") if p != str(REPO))
+
+
 def shell_env(home, env=None):
-    environment = dict(os.environ, HOME=str(home), TERM="xterm-256color", PATH=os.environ["PATH"])
+    environment = dict(os.environ, HOME=str(home), TERM="xterm-256color", PATH=RUNNER_PATH)
     # The runner's own session (tmux pane, display, conda or venv, ssh) would
     # otherwise show in the prompt and the modules under test.
     for var in list(environment):
@@ -173,7 +178,7 @@ def test_options_module_opinionated_options_default_off(linked):
 def test_path_module_prepends_private_bins_once_and_leaves_the_repository_off(linked):
     (linked / ".local" / "bin").mkdir(parents=True, exist_ok=True)
     (linked / "bin").mkdir(exist_ok=True)
-    proc = bash(linked, 'tr : "\\n" <<<"$PATH"', env={"PATH": f"{linked}/.local/bin:{os.environ['PATH']}"})
+    proc = bash(linked, 'tr : "\\n" <<<"$PATH"', env={"PATH": f"{linked}/.local/bin:{RUNNER_PATH}"})
     entries = proc.stdout.splitlines()
     assert entries[:2] == [f"{linked}/.local/bin", f"{linked}/bin"]
     assert entries.count(f"{linked}/.local/bin") == 1
@@ -355,7 +360,7 @@ def test_prompt_leaves_promptvars_on_for_ps0_and_shows_a_hostile_directory_as_ty
                           capture_output=True, text=True, cwd=str(linked), errors="replace")
     assert "<ps0 ran>" in proc.stdout
     assert "$(printf" not in proc.stdout
-    assert f"/{name} ]" in proc.stdout       # the prompt's directory box, not the echoed cd
+    assert f":~/{name}" in proc.stdout       # the prompt's user@host:directory, not the echoed cd
     assert list(linked.rglob("PWNED")) == []
 
 
@@ -377,17 +382,28 @@ def test_prompt_toolkit_bats_suite_passes():
     assert plan and failed == [] and proc.stdout.count("\nok ") == int(plan[1]), proc.stdout[-4000:]
 
 
-@pytest.mark.parametrize("layout, marker", [("minimal", "[ "), ("hpc", "╭"), ("box", "╭")])
-def test_prompt_layout_knob(linked, layout, marker):
-    proc = bash(linked, "prompt_build; echo \"$PS1\" | head -1", before=f"DOTFILES_PROMPT_LAYOUT={layout}\n")
-    assert marker in proc.stdout
+def shown_prompt(home, setup="", env=None):
+    # PS1 as the terminal shows it, colors and \001/\002 markers removed.
+    proc = bash(home, setup + 'prompt_build; printf "%s\\n" "${PS1@P}"', env=env)
     assert proc.stderr == ""
+    return re.sub(r"\x1b\[[0-9;]*m|[\x01\x02]", "", proc.stdout).splitlines()
 
 
-def test_prompt_layout_knob_unknown_value_warns_and_falls_back(linked):
-    proc = bash(linked, "prompt_build; echo \"$PS1\" | head -1", before="DOTFILES_PROMPT_LAYOUT=nope\n")
-    assert proc.stderr == "layout.sh: unknown DOTFILES_PROMPT_LAYOUT 'nope'"
-    assert "╭" in proc.stdout
+def test_prompt_rows_outside_a_repository(linked):
+    rows = shown_prompt(linked, env={"DISPLAY": ":9", "CONDA_DEFAULT_ENV": "e", "VIRTUAL_ENV": "/x/v"})
+    assert rows[0].startswith("╭ ") and rows[0].endswith(":~")
+    assert rows[1:] == ["│ :9 | (e) (v)", "╰ ✓ $ "]       # no git row; one space before $
+    assert shown_prompt(linked, env={"CONDA_DEFAULT_ENV": "e"})[1] == "│ (e)"   # no bar alone
+
+
+def test_prompt_git_row_leaves_out_a_missing_or_repeated_commit(linked):
+    git = "git -c user.name=t -c user.email=t@t"
+    rows = shown_prompt(linked, f"{git} init -q -b main r; cd r; ")
+    assert rows[1] == "│ ⎇  (✓) main"                 # before the first commit: no ()
+    rows = shown_prompt(linked, f"{git} init -q -b main d; cd d; {git} commit -q --allow-empty -m x; "
+                                f"{git} checkout -q --detach; ")
+    sha = rows[1].split()[-1]
+    assert rows[1] == f"│ ⎇  (✓) {sha}"                # detached: the SHA once
 
 
 def test_simple_prompt_module_when_enabled(linked):
@@ -910,7 +926,7 @@ def pty_session(home, typed, before="", local="", seconds=3.0):
 def test_prompt_shows_a_failed_command_even_with_the_title_module(linked):
     # 65-title's hook runs before prompt_build and used to hand it its own
     # exit status, so the prompt said ✓ after `false` on every terminal.
-    screen = pty_session(linked, ["false"], before="DOTFILES_PROMPT_LAYOUT=minimal\n")
+    screen = pty_session(linked, ["false"])
     assert "\x1b]0;" in screen                      # the title module is active
     assert "✗ 1" in screen
 
@@ -919,7 +935,7 @@ def test_title_shows_the_running_command_when_switched_on(linked):
     line = next(l for l in (REPO / "dot_config/bash/rc.d/65-title.sh").read_text().splitlines()
                 if l.startswith("#PROMPT_COMMAND="))
     screen = pty_session(linked, ["sleep 0.2", "trap -p DEBUG", "false"],
-                         before="DOTFILES_PROMPT_LAYOUT=minimal\n", local=line[1:] + "\n")
+                         local=line[1:] + "\n")
     assert "\x1b]0;sleep 0.2\x07" in screen
     assert "_cmd_timer_preexec; _title_command" in screen   # the prompt's timer trap is kept
     assert "✗ 1" in screen                          # and the exit status still reaches the prompt
@@ -928,10 +944,10 @@ def test_title_shows_the_running_command_when_switched_on(linked):
 def test_title_collapses_home_only_at_a_path_boundary(linked):
     sibling = linked.parent / (linked.name + "2")
     sibling.mkdir()
-    screen = pty_session(linked, [f"cd {sibling}"], before="DOTFILES_PROMPT_LAYOUT=minimal\n")
+    screen = pty_session(linked, [f"cd {sibling}"])
     assert f": {sibling}\x07" in screen             # was ~2
     (linked / "sub").mkdir()
-    screen = pty_session(linked, ["cd sub"], before="DOTFILES_PROMPT_LAYOUT=minimal\n")
+    screen = pty_session(linked, ["cd sub"])
     assert ": ~/sub\x07" in screen
 
 

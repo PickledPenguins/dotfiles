@@ -106,7 +106,7 @@ Identity, hostnames and secrets go in these files, never in the repository.
 | `DOTFILES_SSH_AGENT_KEYS` | ssh-agent (off) | none | keys to `ssh-add` when the agent starts |
 | `DOTFILES_MARKS_DIR` | dirs | `~/.local/share/marks` | where `mark` keeps bookmarks |
 | `DOTFILES_CDPATH` | dirs | none | extra `CDPATH` entries after `$HOME` |
-| `DOTFILES_PROMPT_LAYOUT` | prompt | `box` | `box`, `hpc` or `minimal` (see `prompt/layout.sh`) |
+
 | `DOTFILES_PROMPT_GIT` | prompt-simple (off) | `1` | `0`: no branch in the simple prompt |
 | `DOTFILES_PROMPT_COLOR` | prompt-simple (off) | auto | `0`/`1`: force color off/on |
 | `DOTFILES_TITLE_FORMAT` | title | `%u@%h: %d` | terminal title; `%u` user, `%h` host, `%d` directory |

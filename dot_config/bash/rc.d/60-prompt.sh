@@ -12,9 +12,6 @@
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off.  `dots options WORD` searches every file.
-#
-# Knobs (set in ~/.bashrc.before):
-#   DOTFILES_PROMPT_LAYOUT   box (default), hpc or minimal -- see layout.sh
 
 # The toolkit, then the layout that says what it draws.
 source "$DOTFILES_BASH_DIR/prompt/toolkit/prompt.sh"
