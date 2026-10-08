@@ -141,17 +141,6 @@ here is scheduled; an item is cited by its label.  Back to the
   local stopgap is to append `cmd_timer_arm` as the last `PROMPT_COMMAND`
   entry in `90-local.sh`.  What changes for a user: the shown durations get
   shorter and true.
-- **F.2.j  Empty rows in the default box outside a repository.**  The
-  `git` row in `prompt/layout.sh:139` puts literal `⎇` and `→` around
-  segments that print nothing outside git, and the toolkit never drops a
-  row whose segments are all empty: a plain directory shows `│  ⎇    →  │`,
-  a blank `status` row, and on a workstation a blank `env` row.  From the
-  2026-10-07 creview of the toolkit.  Future work because it is a design
-  call: either the toolkit skips a row when every segment in it printed
-  nothing (a toolkit change, sent upstream, that changes every layout
-  using it), or the glyphs move into the git segments (changes what
-  `@git_branch` and `@git_remote` print).  What changes for a user: two or
-  three fewer rows on every prompt outside git.
 - **F.2.k  Two spaces before `$` when `@cmd_time` is empty.**  The `cmd`
   row (`prompt/layout.sh:148`, `'─[@exit] @cmd_time \$ '`) and `line2`
   render `─[✓]  $` on most prompts.  From the 2026-10-07 creview of the
