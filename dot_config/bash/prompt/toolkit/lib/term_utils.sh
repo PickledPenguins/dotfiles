@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.6
+# Toolkit version: 0.1.7
 # ════════════════════════════════════════════════════════════════════════════
 # lib/term_utils.sh — Terminal string utilities
 #
@@ -25,13 +25,12 @@
 #     colored segments calls these dozens of times per render; each used to
 #     be a sed or awk fork, which is real, measurable latency on every
 #     keystroke, not just a style concern.
-#   • str_width still forks `wc` for non-ASCII input (ASCII input is free —
-#     ${#s} is exact in any locale). A locale-independent UTF-8 codepoint
-#     count is possible in pure bash but needs a byte-scanning loop tricky
-#     enough to be a net loss for maintainability against one fork per
-#     colored segment; left as-is deliberately, not an oversight.
-#     LC_ALL=C.UTF-8 forces correct multi-byte counting (─ ═ ╭ etc. as 1
-#     column) even in a POSIX/C locale, which is common on HPC login nodes.
+#   • str_width is pure bash too, as of v0.1.7: it counts the bytes that
+#     start a UTF-8 character, under LC_ALL=C. The earlier
+#     `LC_ALL=C.UTF-8 wc -m` forked once per non-ASCII string and counted
+#     bytes wherever C.UTF-8 is missing (RHEL/CentOS 7), so every ─ counted
+#     as 3 and every @fill row came out short on exactly the HPC login
+#     nodes this design is for.
 # ════════════════════════════════════════════════════════════════════════════
 
 [[ -n "${_TERM_UTILS_SH_LOADED-}" ]] && return 0
@@ -55,16 +54,19 @@ strip_ansi() {
 
 # Count the visible Unicode columns (code points) in a string.
 #
-# Fast path: pure-ASCII strings have ${#} == visible width in any locale,
-# so we skip the subprocess entirely.  Non-ASCII strings (containing
-# box-drawing chars, arrows, checkmarks, etc.) are piped through
-# LC_ALL=C.UTF-8 wc -m which counts code points independent of locale.
+# Fast path: pure-ASCII strings have ${#} == visible width in any locale.
+# Otherwise, under LC_ALL=C (which always exists) bash counts bytes, so
+# delete the UTF-8 continuation bytes (0x80-0xBF) and count what is left:
+# one lead byte per code point, whatever locales the machine has.
 # Precondition: input must already be ANSI-free (run strip_ansi first) —
 # escape bytes are not code points and would inflate the count.
 str_width() {
     case "$1" in
-        *[![:ascii:]]*) printf '%s' "$1" | LC_ALL=C.UTF-8 wc -m | tr -d ' \t' ;;
-        *)              echo "${#1}" ;;
+        *[![:ascii:]]*)
+            local LC_ALL=C s="$1"
+            s="${s//[$'\x80'-$'\xbf']/}"
+            echo "${#s}" ;;
+        *)  echo "${#1}" ;;
     esac
 }
 

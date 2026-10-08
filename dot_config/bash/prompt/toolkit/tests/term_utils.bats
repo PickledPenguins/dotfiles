@@ -40,3 +40,10 @@ setup() {
 @test "str_repeat with count 0 produces empty output" {
     [[ "$(str_repeat '-' 0)" == "" ]]
 }
+
+@test "str_width counts code points without wc or a UTF-8 locale (RHEL 7 has no C.UTF-8)" {
+    (
+        PATH=/nonexistent LC_ALL=C
+        [[ "$(str_width '─╭⎇é')" == "4" ]]
+    )
+}

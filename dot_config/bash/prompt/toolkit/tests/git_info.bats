@@ -101,3 +101,11 @@ setup() {
     git_info_refresh
     [[ "$GIT_STASH" == "1" ]]
 }
+
+@test "a refresh does not rewrite the index (another git command would find index.lock)" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    touch -d '+1 minute' f.txt
+    before=$(stat -c %y .git/index)
+    git_info_refresh
+    [[ "$(stat -c %y .git/index)" == "$before" ]]
+}

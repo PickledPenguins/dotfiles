@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.6
+**Version:** 0.1.7
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -260,7 +260,9 @@ run code or act as a prompt escape. A segment that wants a prompt escape
 (`\u`, `\$`) cannot print one; put it in the row template instead.
 
 **Box styles:** `rounded` (╭╮╰╯), `sharp` (┌┐└┘), `double` (╔╗╚╝),
-`ascii` (++++) — pass as `prompt_layout --box <style> ...`.
+`ascii` (++++) — pass as `prompt_layout --box <style> ...`. The word after
+`--box` is taken as the style only when it names one of these, so
+`prompt_layout --box top cmd` is a rounded box with rows `top` and `cmd`.
 
 ## Configuration and API reference
 
@@ -455,18 +457,18 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**123 tests across 9 files**, all passing against v0.1.6:
+**131 tests across 9 files**, all passing against v0.1.7:
 
 | File | Tests | Covers |
 |---|---|---|
 | `collectors.bats` | 28 | collector planning by layout, TTLs, run order, argument checks, `DEBUG` trap claimed only when needed, `install.sh` copying `segments/` |
-| `colors.bats` | 11 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors |
-| `git_info.bats` | 11 | counts, conflicts, detached HEAD, ahead/behind, stash, cache validity |
+| `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
+| `git_info.bats` | 12 | counts, conflicts, detached HEAD, ahead/behind, stash, cache validity, index left alone |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
-| `prompt_box.bats` | 7 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence |
-| `prompt_segments.bats` | 14 | pwd truncation/sanitizing, module counting, exit and conflict segments |
-| `security.bats` | 6 | segment text shown as typed (`$(...)`, backticks, `\w`, `$` for root), `promptvars` left on for `PS0` |
-| `term_utils.bats` | 9 | ANSI stripping, width, repeat |
+| `prompt_box.bats` | 8 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing |
+| `prompt_segments.bats` | 16 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit and conflict segments |
+| `security.bats` | 8 | segment text shown as typed (`$(...)`, backticks, `\w`, `@fill`, `$` for root), `promptvars` left on for `PS0`, `CDPATH` |
+| `term_utils.bats` | 10 | ANSI stripping, width (with no UTF-8 locale), repeat |
 | `test_v012_changes.bats` | 31 | everything added or fixed in v0.1.2 – v0.1.4 |
 
 `tests/test_helper.bash` provides `$DOTFILES_ROOT`, `load_prompt_lib`,
@@ -516,6 +518,33 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.7
+
+**Fixed:**
+
+- **`@fill` printed by a segment was taken for the spacer.** A directory
+  or branch named `@fill` moved the fill into the name and made the row
+  about 70 columns too wide. The spacer placeholder is now a `\x1f` byte,
+  deleted from segment output first.
+- **The prompt's `git status` rewrote the index.** It took `index.lock`
+  while refreshing stat data, so a `git add` or `git commit` in another
+  shell could fail. It now runs with `GIT_OPTIONAL_LOCKS=0`.
+- **`prompt_layout --box ROW ...` took the row name as the box style.**
+  The next word is the style only when it names one.
+- **`@pwd` truncation cut UTF-8 characters in half.** `cut -c` counts
+  bytes, not characters; truncation now drops whole characters in bash.
+- **`str_width` needed the `C.UTF-8` locale.** Without it (RHEL/CentOS 7)
+  every `─` counted as 3 and `@fill` rows came out short. It now counts
+  UTF-8 lead bytes in pure bash, with no `wc` fork.
+- **`@pwd` turned `/home/a2` into `~2`** for `HOME=/home/a`; `~` now
+  replaces `$HOME` only at a path boundary.
+- `colors_init` no longer deletes a user function named `_e` (its helper
+  is `_colors_e`).
+- Sourcing `prompt.sh` by a relative path with a matching `CDPATH` entry
+  no longer breaks every `source` (`CDPATH='' cd --`).
+
+**Added:** eight tests, one per fix above.
 
 ### v0.1.6
 

@@ -89,3 +89,19 @@ setup() {
     GIT_CONFLICTS=2
     [[ "$(plain "$(_ps_seg_git_conflicts)")" == "⚠2" ]]
 }
+
+@test "pwd segment truncation keeps whole characters when they reach the cut" {
+    long=$(printf 'é%.0s' {1..40})
+    mkdir -p "$BATS_TEST_TMPDIR/$long"
+    cd "$BATS_TEST_TMPDIR/$long"
+    [[ "$(_ps_seg_pwd)" == "…$(printf 'é%.0s' {1..32})" ]]
+}
+
+@test "pwd segment collapses \$HOME only at a path boundary" {
+    HOME="$BATS_TEST_TMPDIR/a"
+    mkdir -p "$HOME/sub" "${HOME}2"
+    cd "${HOME}2"
+    [[ "$(_ps_seg_pwd)" != "~"* ]]
+    cd "$HOME/sub"
+    [[ "$(_ps_seg_pwd)" == "~/sub" ]]
+}

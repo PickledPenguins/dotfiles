@@ -64,3 +64,12 @@ setup() {
     [[ "$PS1" != *"╭"* ]]
     [[ "$PS1" != *"│"* ]]
 }
+
+@test "prompt_layout --box takes the next word as the style only when it names one" {
+    prompt_layout --box r1 r2
+    [[ "$_PS_STYLE" == "rounded" ]]
+    [[ "${_PS_ORDER[*]}" == "r1 r2" ]]
+    prompt_layout --box sharp r1
+    [[ "$_PS_STYLE" == "sharp" ]]
+    [[ "${_PS_ORDER[*]}" == "r1" ]]
+}

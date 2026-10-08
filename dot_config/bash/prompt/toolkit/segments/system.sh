@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.6
+# Toolkit version: 0.1.7
 # ════════════════════════════════════════════════════════════════════════════
 # segments/system.sh — machine resources: load average, disk usage, GPU
 #

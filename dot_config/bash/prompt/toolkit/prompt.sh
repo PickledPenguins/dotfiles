@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.6
+# Toolkit version: 0.1.7
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1
@@ -83,7 +83,7 @@ _ps_unescape_into() {
 
 # Source library modules relative to this file's location. _PS_ROOT stays
 # set until the segment files at the bottom have been sourced.
-_PS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_PS_ROOT="$(CDPATH='' cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_PS_ROOT}/lib/cache.sh"
 source "${_PS_ROOT}/lib/term_utils.sh"
 source "${_PS_ROOT}/lib/colors.sh"
@@ -136,7 +136,9 @@ declare -gA _PS_CHARS=(
 #   1. @segname expands to segment output, longest names first so
 #      @git_branch is matched before a shorter @git prefix could shadow it.
 #   2. @fill is left as a placeholder, resolved in a second pass below once
-#      the full line's width is known.
+#      the full line's width is known. The placeholder is a \x1f byte,
+#      deleted from segment output first, so text a segment prints
+#      (a directory or branch named @fill) can never be taken for it.
 #
 # [v0.1.2] Rewritten from repeated whole-string substitution, which had a
 # real bug: replacing @name globally across the *entire accumulated result*
@@ -151,7 +153,7 @@ declare -gA _PS_CHARS=(
 # $2  effective terminal width (caller reduces by box border char count)
 _ps_expand() {
     local tmpl="$1" tw="${2:-${COLUMNS:-80}}"
-    local result="" plain="" rest="$tmpl"
+    local result="" plain="" rest="$tmpl" fill=$'\x1f'
     local name val matched
 
     # [v0.1.3 fix] _ps_resort_segments is a no-op unless something
@@ -174,7 +176,7 @@ _ps_expand() {
         fi
 
         if [[ "$rest" == '@fill'* ]]; then
-            result+='@fill'; plain+='@fill'
+            result+="$fill"; plain+="$fill"
             rest="${rest#@fill}"
             continue
         fi
@@ -193,6 +195,7 @@ _ps_expand() {
             else
                 val=$("${_PS_SEGS[$name]}" 2>/dev/null) || val=""
             fi
+            val=${val//"$fill"/}
             # plain keeps the raw text: it measures what the row shows.
             local shown=$val
             _ps_escape_into shown
@@ -212,12 +215,12 @@ _ps_expand() {
         fi
     done
 
-    if [[ "$result" == *"@fill"* ]]; then
+    if [[ "$result" == *"$fill"* ]]; then
         # Measure text flanking @fill in the stripped copy.
         # str_width gives code-point count so ─ counts as 1, not 3 bytes.
-        local pre="${plain%%@fill*}" post="${plain##*@fill}"
+        local pre="${plain%%"$fill"*}" post="${plain##*"$fill"}"
         local fill_len=$(( tw - $(str_width "$pre") - $(str_width "$post") ))
-        result="${result//@fill/$(str_repeat "${_PS_CHARS[${_PS_STYLE}_h]:-─}" "$fill_len")}"
+        result="${result//"$fill"/$(str_repeat "${_PS_CHARS[${_PS_STYLE}_h]:-─}" "$fill_len")}"
     fi
 
     printf '%s' "$result"
@@ -384,7 +387,8 @@ prompt_row() {
 # Usage: prompt_layout [--box [style]] [--closed] <row1> [row2…]
 #
 #   --box [style]   Draw a unicode box.  Styles: rounded (default) | sharp |
-#                   double | ascii
+#                   double | ascii.  The next word is the style only when
+#                   it names one; otherwise it is the first row.
 #   --closed        Close box with ╯ on last row; cursor on new line below.
 #   --no-box        No box decoration (default).
 #
@@ -397,7 +401,7 @@ prompt_layout() {
         case "$1" in
             --box)
                 _PS_BOX=1
-                [[ -n "${2-}" && "${2}" != --* ]] && { _PS_STYLE="$2"; shift; }
+                [[ -n "${2-}" && -n "${_PS_CHARS[${2}_h]-}" ]] && { _PS_STYLE="$2"; shift; }
                 ;;
             --closed) _PS_CLOSED=1 ;;
             --no-box) _PS_BOX=0    ;;

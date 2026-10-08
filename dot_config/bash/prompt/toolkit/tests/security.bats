@@ -97,3 +97,18 @@ INPUT
     [[ "$out" == *'$(touch'* ]]
     [[ ! -f "PWNED_VENV" ]]
 }
+
+@test "@fill in a segment's output renders as typed, not as the spacer" {
+    _test_dirname() { printf '%s' 'x@filly'; }
+    prompt_segment dirname _test_dirname
+    PS1=$(_ps_expand '@dirname@fill|' 20)
+    [[ "${PS1@P}" == "x@filly$(str_repeat '─' 12)|" ]]
+}
+
+@test "sourcing prompt.sh by a relative path ignores CDPATH" {
+    mkdir -p "$BATS_TEST_TMPDIR/cdp/${DOTFILES_ROOT##*/}"
+    cd "${DOTFILES_ROOT%/*}"
+    run env CDPATH="$BATS_TEST_TMPDIR/cdp" PS_SKIP_DEBUG_TRAP=1 bash -c \
+        'source "$1/prompt.sh" && printf "%s|%s" "$(type -t _ps_seg_pwd)" "$(type -t git_info_refresh)"' _ "${DOTFILES_ROOT##*/}"
+    [ "$output" = "function|function" ]
+}

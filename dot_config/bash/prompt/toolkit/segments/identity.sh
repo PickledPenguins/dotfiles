@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.6
+# Toolkit version: 0.1.7
 # ════════════════════════════════════════════════════════════════════════════
 # segments/identity.sh — who and where: user, host, root marker, directory
 #
@@ -24,16 +24,28 @@ _ps_seg_root() {
     printf '%s⚡%s' "$C_BRED" "$C_R"
 }
 
-# Working directory — $HOME collapsed to ~, capped at 35 visible chars.
+# Working directory — $HOME collapsed to ~ (only at a path boundary, so
+# /home/a2 stays as it is for HOME=/home/a), capped at 35 visible chars.
 # Directory names may legally contain control bytes and escape sequences;
-# strip both before they can reach PS1. Truncation then uses str_width/cut
-# (code-point aware) instead of ${#p}/${p: -N}, which count/slice by byte
-# and can cut a multi-byte character in half outside a UTF-8 locale.
+# strip both before they can reach PS1. Truncation drops whole characters
+# from the front: under LC_ALL=C each step removes one byte and then the
+# UTF-8 continuation bytes after it. `cut -c` counted bytes, not
+# characters, even in a UTF-8 locale, and cut accented names in half.
 _ps_seg_pwd() {
-    local p="${PWD/#$HOME/\~}"
+    local p="$PWD" i
+    if [[ -n "$HOME" && "$PWD" == "$HOME" ]]; then p='~'
+    elif [[ -n "$HOME" && "$PWD" == "$HOME"/* ]]; then p="~${PWD#"$HOME"}"
+    fi
     p=$(strip_ansi "$p")
     p=$(tr -d '\000-\037\177' <<< "$p")
     local w; w=$(str_width "$p")
-    (( w > 35 )) && p="…$(LC_ALL=C.UTF-8 cut -c "$(( w - 31 ))-" <<< "$p")"
+    if (( w > 35 )); then
+        local LC_ALL=C
+        for (( i = w - 32; i > 0; i-- )); do
+            p="${p:1}"
+            while [[ "$p" == [$'\x80'-$'\xbf']* ]]; do p="${p:1}"; done
+        done
+        p="…$p"
+    fi
     printf '%s' "$p"
 }

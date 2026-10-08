@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.6
+# Toolkit version: 0.1.7
 # ════════════════════════════════════════════════════════════════════════════
 # lib/git_info.sh — Cached git repository state for bash scripts
 #
@@ -46,7 +46,7 @@
 [[ -n "${_GIT_INFO_SH_LOADED-}" ]] && return 0
 readonly _GIT_INFO_SH_LOADED=1
 
-_GIT_INFO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_GIT_INFO_DIR="$(CDPATH='' cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_GIT_INFO_DIR}/cache.sh"
 unset _GIT_INFO_DIR
 
@@ -149,7 +149,11 @@ git_info_refresh() {
     # GIT_* var holding two lines instead of one — a bash arithmetic error
     # on nearly every clean-file-status refresh). Unmerged paths get their
     # own category so a conflicted repo doesn't read as "clean".
-    local porcelain; porcelain=$(git status --porcelain 2>/dev/null) || true
+    # GIT_OPTIONAL_LOCKS=0: a background status must not refresh and write
+    # the index, or a git add/commit in another shell can hit index.lock.
+    # (--no-optional-locks does the same but is git 2.15+; old git ignores
+    # the variable.)
+    local porcelain; porcelain=$(GIT_OPTIONAL_LOCKS=0 git status --porcelain 2>/dev/null) || true
     if [[ -n "$porcelain" ]]; then
         local counts; counts=$(awk '
             { xy = substr($0,1,2) }

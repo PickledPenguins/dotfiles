@@ -58,7 +58,13 @@ setup() {
     [[ -z "$output" ]]
 }
 
-@test "_e helper function is cleaned up after colors_init (no leaked internal function)" {
+@test "_colors_e helper function is cleaned up after colors_init (no leaked internal function)" {
     colors_init prompt
-    ! declare -f _e >/dev/null
+    ! declare -f _colors_e >/dev/null
+}
+
+@test "colors_init leaves a user function named _e alone" {
+    _e() { echo mine; }
+    colors_init prompt
+    [[ "$(_e)" == "mine" ]]
 }

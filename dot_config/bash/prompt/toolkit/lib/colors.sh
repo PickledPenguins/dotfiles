@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.6
+# Toolkit version: 0.1.7
 # ════════════════════════════════════════════════════════════════════════════
 # lib/colors.sh — ANSI color variables for bash scripts and PS1 prompts
 #
@@ -54,25 +54,25 @@ declare -g _COLORS_MODE="raw"
 colors_init() {
     _COLORS_MODE="${1:-raw}"
 
-    # _e VAR code: assign VAR directly via printf -v — no subshell fork
+    # _colors_e VAR code: assign VAR directly via printf -v — no subshell fork
     # (previously $(_e code) x16, forking a subshell per color on every init).
     # Also picks the NO_COLOR / non-tty case once, up front, rather than
     # per variable.
     if [[ -n "${NO_COLOR-}" ]] || { [[ "$_COLORS_MODE" != "prompt" ]] && [[ ! -t 1 ]]; }; then
-        _e() { printf -v "$1" ''; }
+        _colors_e() { printf -v "$1" ''; }
     elif [[ "$_COLORS_MODE" == "prompt" ]]; then
-        _e() { printf -v "$1" '\001\033[%sm\002' "$2"; }
+        _colors_e() { printf -v "$1" '\001\033[%sm\002' "$2"; }
     else
-        _e() { printf -v "$1" '\033[%sm' "$2"; }
+        _colors_e() { printf -v "$1" '\033[%sm' "$2"; }
     fi
 
-    _e C_R 0
-    _e C_BOLD 1;        _e C_DIM 2
-    _e C_RED 31;        _e C_GREEN 32;    _e C_YELLOW 33
-    _e C_BLUE 34;       _e C_MAGENTA 35;  _e C_CYAN 36
-    _e C_WHITE 37
-    _e C_BRED '1;31';   _e C_BGREEN '1;32';   _e C_BYELLOW '1;33'
-    _e C_BBLUE '1;34';  _e C_BCYAN '1;36';    _e C_BWHITE '1;37'
+    _colors_e C_R 0
+    _colors_e C_BOLD 1;        _colors_e C_DIM 2
+    _colors_e C_RED 31;        _colors_e C_GREEN 32;    _colors_e C_YELLOW 33
+    _colors_e C_BLUE 34;       _colors_e C_MAGENTA 35;  _colors_e C_CYAN 36
+    _colors_e C_WHITE 37
+    _colors_e C_BRED '1;31';   _colors_e C_BGREEN '1;32';   _colors_e C_BYELLOW '1;33'
+    _colors_e C_BBLUE '1;34';  _colors_e C_BCYAN '1;36';    _colors_e C_BWHITE '1;37'
 
     # In prompt mode, mirror every C_* as PS_* for backward compatibility
     # with segment functions and user configs that reference PS_RED, PS_GREEN…
@@ -86,7 +86,7 @@ colors_init() {
         PS_BBLUE=$C_BBLUE     PS_BCYAN=$C_BCYAN     PS_BWHITE=$C_BWHITE
     fi
 
-    unset -f _e
+    unset -f _colors_e
 }
 
 # 256-color foreground/background escape — mode-aware.
