@@ -181,7 +181,7 @@ Read-only variables the loader sets for modules and for you:
 
 | Module | Provides |
 |--------|----------|
-| `00-options.conf` | `tmux-256color` + true color, cursor shapes, focus events, `escape-time 0`, OSC 52 clipboard, 50000 lines, mouse, base index 1, renumber, names, vi copy mode, titles, activity monitoring.  Off: `screen-256color`, `terminal-features`, passthrough, extended keys, directory as window name, vi status keys, `repeat-time`, `remain-on-exit`, non-login shells, lock |
+| `00-options.conf` | `tmux-256color` + true color, cursor shapes, focus events, `escape-time 0`, OSC 52 clipboard, 50000 lines, mouse, base index 1, renumber, names, vi copy mode, titles, activity monitoring.  Off: `screen-256color`, `terminal-features`, passthrough, extended keys, directory as window name, vi status keys, `repeat-time`, switch session on destroy, `remain-on-exit`, non-login shells, lock |
 | `10-keys.conf` | `r` reload, `\|`/`-` splits and `c` keeping the directory, `hjkl` panes, `HJKL` resize, `x`/`X` kill, `z` zoom, `b` break, `@` join, `y` synchronize panes, `Tab` last window, `M-arrows`, `S`/`C-s`/`R` sessions, `g` popup shell, `C-l` clear, `C-p` log pane, `m` mouse toggle.  Off: `C-a` or `C-Space` prefix, `"`/`%` keeping the directory, `M-hjkl`, vim-tmux-navigator, `S-arrows`, lazygit popup |
 | `20-status.conf` | status line: session, windows, prefix indicator, window count, host, clock; the palette in the header.  Off: top, centered, load and date, pane border titles |
 | `30-copy.conf` | `v V C-v y Y Esc` in copy mode, mouse drag and clicks, piping to xclip/xsel/wl-copy/pbcopy, `P` paste from clipboard.  Off: `H`/`L` line ends, one-line wheel, `Enter` copy mode |
