@@ -18,6 +18,16 @@ PYTEST="python3 -m pytest -q -p no:cacheprovider -p no:benchmark"
 command=${1:-fast}
 [ $# -gt 0 ] && shift
 
+# pytest comes from python3 on PATH; where that one lacks it, from the
+# pytesting conda environment through in-env (the skills tools) when on PATH.
+if [ "$command" != hook ] && ! python3 -c 'import pytest' 2>/dev/null; then
+    if command -v in-env >/dev/null 2>&1 && in-env python3 -c 'import pytest' 2>/dev/null; then
+        exec in-env ./run-tests.sh "$command" "$@"
+    fi
+    echo "run-tests.sh: python3 ($(command -v python3)) has no pytest: install it, or put in-env on PATH" >&2
+    exit 2
+fi
+
 case "$command" in
     fast) exec $PYTEST -m "not long" "$@" ;;
     long) exec $PYTEST -m long "$@" ;;

@@ -13,6 +13,11 @@ Back to the [README](../README.md).
 | `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
 
 Anything after the suite name goes to pytest (`./run-tests.sh fast -k add`).
+pytest comes from `python3` on `PATH`; where that one has none (the
+system Python, as in a commit from a shell with no conda environment
+active), the runner reruns itself under `in-env` from the skills tools,
+whose default environment has it, and otherwise stops with exit 2 and a
+message naming the interpreter.
 Generated files (coverage data) land in `.build/`; the pytest cache is
 disabled.  Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
@@ -46,6 +51,7 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_docs.py` | the documentation against the code, both directions (see below) | fast |
 | `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
 | `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags (long) | fast + long |
+| `tests/test_runner.py` | `run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` needs none | fast |
 | `tests/test_examples.py` | the example catalog: 50 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
 | `tests/mutants.txt`, `tests/coveragerc`, `tests/hooks/pre-commit` | the gates | |
