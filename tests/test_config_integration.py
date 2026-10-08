@@ -646,6 +646,14 @@ def test_tmux_conf_parses_and_each_module_sets_something(linked):
 
 
 @needs("tmux")
+def test_tmux_cursor_shape_override_keeps_its_escape(linked):
+    # "\E" in double quotes reaches tmux as "E": the outer terminal then
+    # prints "E[2 q" over vim's view instead of changing the cursor.
+    proc = tmux(linked, "show", "-s", "terminal-overrides")
+    assert r'] "*:Ss=\\E[%p1%d q:Se=\\E[2 q"' in proc.stdout
+
+
+@needs("tmux")
 def test_tmux_local_override_and_off_module(linked):
     (linked / ".tmux.conf.local").write_text("set -g history-limit 7\n")
     proc = tmux(linked, "show", "-g", "history-limit", ";", "show", "-g", "@plugin")
