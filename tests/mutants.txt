@@ -25,6 +25,7 @@ if state(entry, src) == "ok": ||| if state(entry, src) != "conflict":
 source_rel = source_name(rel, args.private or not mode & stat.S_IRWXO, ||| source_rel = source_name(rel, args.private,
 directory = existing[0] if existing else directory / component ||| directory = directory / component
 if "/".join(parse_name(c)[0] for c in source_rel.parts) != str(rel): ||| if False:
+if ignored(str(rel), load_ignores(src)): ||| if False:
 if through: ||| if False:
 return 1 if wanted or refused else 0 ||| return 1 if wanted else 0
 if d.is_dir() and not d.name.startswith(".") and parse_name(d.name)[0] == name] ||| if d.is_dir() and not d.name.startswith(".")]

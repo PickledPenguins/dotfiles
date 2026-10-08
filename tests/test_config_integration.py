@@ -6,10 +6,13 @@ module that silently fails to load is caught.  Programs not installed on
 the test machine skip their tests by name.
 """
 
+import email.utils
+import http.server
 import os
 import re
 import shutil
 import subprocess
+import threading
 
 import pytest
 
@@ -169,6 +172,11 @@ def test_functions_swap_exchanges_names_and_restores_on_failure(linked):
 def test_functions_mkscript_refuses_an_existing_file(linked):
     proc = bash(linked, "echo keep > s; mkscript s; echo $?; cat s; EDITOR=true mkscript t; head -1 t; test -x t && echo x")
     assert (proc.stdout, proc.stderr) == ("1\nkeep\n#!/usr/bin/env bash\nx\n", "mkscript: s exists")
+
+
+def test_functions_mkscript_opens_a_multi_word_editor(linked):
+    proc = bash(linked, 'EDITOR="true -x" mkscript t; echo $?')
+    assert (proc.stdout, proc.stderr) == ("0\n", "")
 
 
 def test_functions_targz_archives_a_directory(linked):
@@ -448,6 +456,11 @@ def test_gitconfig_every_include_contributes(linked):
     assert git_config(linked, "commit.gpgsign") == ""               # signing is commented out
 
 
+def test_gitconfig_leaves_the_editor_to_editor(linked):
+    proc = git_script(linked, "unset GIT_EDITOR; EDITOR=nano VISUAL=nano git var GIT_EDITOR")
+    assert proc.stdout == "nano\n"
+
+
 def test_gitconfig_local_wins(linked):
     (linked / ".gitconfig.local").write_text("[user]\n\tname = Tester\n[push]\n\tdefault = simple\n")
     assert git_config(linked, "user.name") == "Tester"
@@ -526,6 +539,17 @@ def test_gdbinit_parses(linked):
     assert proc.stderr == "" and proc.stdout.strip() == "Pretty formatting of structures is on."
 
 
+@needs("gdb")
+def test_gdbinit_does_not_run_a_strange_directorys_gdbinit(linked, tmp_path):
+    # set auto-load safe-path / ran any directory's .gdbinit, shell commands included.
+    (tmp_path / ".gdbinit").write_text("shell touch planted-ran\n")
+    proc = subprocess.run(["gdb", "-batch", "-ex", "show print pretty"], cwd=tmp_path,
+                          env=dict(os.environ, HOME=str(linked)), capture_output=True, text=True, timeout=30)
+    assert proc.stdout.splitlines()[-1] == "Pretty formatting of structures is on."
+    assert "auto-loading has been declined" in proc.stderr
+    assert not (tmp_path / "planted-ran").exists()
+
+
 @needs("curl")
 def test_curlrc_parses(linked):
     proc = subprocess.run(["curl", "--config", str(linked / ".curlrc"), "--max-time", "1", "http://127.0.0.1:1/"],
@@ -539,6 +563,58 @@ def test_wgetrc_parses(linked):
     proc = subprocess.run(["wget", "-q", "--tries=1", "--timeout=1", "http://127.0.0.1:1/"],
                           env=dict(os.environ, HOME=str(linked)), capture_output=True, text=True, timeout=30)
     assert "wgetrc" not in proc.stderr and "Error" not in proc.stderr
+
+
+class RangeHandler(http.server.BaseHTTPRequestHandler):
+    """Serves self.server.body with Last-Modified and byte ranges, as most servers do."""
+
+    def send_body(self, with_body):
+        data, start = self.server.body, 0
+        if "Range" in self.headers:
+            start = int(self.headers["Range"].split("=")[1].split("-")[0])
+            if start >= len(data):
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{len(data)}")
+                self.end_headers()
+                return
+            self.send_response(206)
+            self.send_header("Content-Range", f"bytes {start}-{len(data) - 1}/{len(data)}")
+        else:
+            self.send_response(200)
+        self.send_header("Content-Length", str(len(data) - start))
+        self.send_header("Last-Modified", email.utils.formatdate(self.server.mtime, usegmt=True))
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        if with_body:
+            self.wfile.write(data[start:])
+
+    def do_GET(self):
+        self.send_body(True)
+
+    def do_HEAD(self):
+        self.send_body(False)
+
+    def log_message(self, *args):
+        pass
+
+
+@needs("wget")
+@pytest.mark.parametrize("new", [b"VERSION TWO, longer than before\n", b"v2\n"])
+def test_wgetrc_refetch_replaces_a_changed_file(linked, tmp_path, new):
+    # continue = on with timestamping = on resumed from the old file's size:
+    # the old prefix spliced onto the new tail, or a shorter file kept stale.
+    server = http.server.HTTPServer(("127.0.0.1", 0), RangeHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{server.server_port}/f.txt"
+    try:
+        for body, mtime in ((b"version one\n", 1_000_000_000), (new, 1_100_000_000)):
+            server.body, server.mtime = body, mtime
+            proc = subprocess.run(["wget", "-q", url], cwd=tmp_path, env=dict(os.environ, HOME=str(linked)),
+                                  capture_output=True, text=True, timeout=30)
+            assert proc.returncode == 0, proc.stderr
+    finally:
+        server.shutdown()
+    assert (tmp_path / "f.txt").read_bytes() == new
 
 
 @needs("dircolors")

@@ -13,7 +13,7 @@ set -e
 cd "$(dirname "$0")"
 mkdir -p .build
 export PYTHONDONTWRITEBYTECODE=1
-PYTEST="python3 -m pytest -q -p no:cacheprovider"
+PYTEST="python3 -m pytest -q -p no:cacheprovider -p no:benchmark"
 
 command=${1:-fast}
 [ $# -gt 0 ] && shift
@@ -29,6 +29,12 @@ case "$command" in
     mutate)
         breaks_it=$(command -v breaks-it || echo "$HOME/work/ai/skills/bin/breaks-it")
         [ -x "$breaks_it" ] || { echo "run-tests.sh: breaks-it not found" >&2; exit 2; }
+        # Mutate a copy: this checkout is ~/.dotfiles, so a dots run (or a
+        # suite) during the pass would otherwise execute a mutant.
+        rm -rf .build/mutate
+        mkdir .build/mutate
+        tar -c --exclude=./.git --exclude=./.build . | tar -x -C .build/mutate
+        cd .build/mutate
         failed=0; total=0
         while IFS= read -r line; do
             case "$line" in ''|'#'*) continue ;; esac

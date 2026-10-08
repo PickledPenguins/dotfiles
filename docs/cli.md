@@ -72,7 +72,9 @@ per file; `skip  path: reason` for anything refused: not under `$HOME`,
 already a symlink, not a regular file (directories are not added -- name
 the files inside), the source name already exists, or `a name starts with
 dot_, private_ or executable_` (such a name cannot be stored under itself:
-`~/private_notes` would become the source of `~/notes`).  A file below a
+`~/private_notes` would become the source of `~/notes`), or `ignored by
+.dotsignore` (a path such as `~/docs/plan.txt` would land among the
+repository's own files and never be linked).  A file below a
 directory the source already has under another attribute name goes into
 that directory: `~/.ssh/known_hosts` into `private_dot_ssh/`.
 

@@ -59,11 +59,12 @@ set disassembly-flavor intel
 # A breakpoint in a shared library not loaded yet is kept for when it loads.
 set breakpoint pending on
 
-# Every directory's .gdbinit and gdb scripts are trusted and run.
-set auto-load safe-path /
+# Every directory's .gdbinit and gdb scripts are trusted and run.  Off
+# because a .gdbinit in a cloned repository, an unpacked tarball or a
+# shared directory then runs as you, shell commands included.
+#set auto-load safe-path /
 
-# Only your projects' .gdbinit files run, instead of every directory's
-# (turn the line above off).
+# Your projects' .gdbinit files run as well as gdb's own defaults.
 #add-auto-load-safe-path ~/work
 
 # ── Extensions ────────────────────────────────────────────────────────────

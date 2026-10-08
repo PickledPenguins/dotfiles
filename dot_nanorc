@@ -28,9 +28,13 @@ unset casesensitive
 
 # ── Display ───────────────────────────────────────────────────────────────
 
-# Line numbers, the cursor position always shown, and a scroll indicator.
+# Line numbers and the cursor position always shown.
 set linenumbers
 set constantshow
+
+# A scroll indicator at the right edge.  Older nano stops at every start
+# with an unknown-option message.
+# Needs: nano 5.0+
 set indicator
 
 # Long lines wrap on screen at a space, not mid-word.

@@ -60,6 +60,20 @@ here is scheduled; an item is cited by its label.  Back to the
   would be about five lines in `parse_name` and `source_name` plus a
   naming rule in `docs/concepts.md`.  From the 2026-10-07 ctesting audit;
   not built because no such file has turned up in a real home yet.
+- **F.1.i  A second checkout manages `~/.dotfiles`, not itself.**
+  `source_dir` (`dots:46`) tries `$DOTS_SOURCE`, then `~/.dotfiles`, and
+  only then the directory holding `dots`.  So `./dots apply` from a
+  worktree or a second clone acts on `~/.dotfiles`, and on a machine where
+  `~/.dotfiles` belongs to another tool the command `install.sh` linked
+  manages that other tree.  `docs/cli.md` documents the order, so this is
+  a trap rather than a misdescription; the README's install line ("a
+  machine where the repository lives elsewhere") reads as if the linked
+  command used its own checkout.  From the 2026-10-07 creview.  Future work
+  because the fix is a design call with two shapes: prefer the directory
+  holding `dots` when it contains `.dotsignore` (changes which tree a
+  plain `dots` uses from a second checkout), or have `install.sh` print the
+  source tree the command will use (changes nothing at run time).  Either
+  way `docs/cli.md`'s `--source` row and the catalog cases follow.
 
 ## F.2 configuration
 
@@ -127,6 +141,45 @@ here is scheduled; an item is cited by its label.  Back to the
   local stopgap is to append `cmd_timer_arm` as the last `PROMPT_COMMAND`
   entry in `90-local.sh`.  What changes for a user: the shown durations get
   shorter and true.
+- **F.2.j  Empty rows in the default box outside a repository.**  The
+  `git` row in `prompt/layout.sh:139` puts literal `⎇` and `→` around
+  segments that print nothing outside git, and the toolkit never drops a
+  row whose segments are all empty: a plain directory shows `│  ⎇    →  │`,
+  a blank `status` row, and on a workstation a blank `env` row.  From the
+  2026-10-07 creview of the toolkit.  Future work because it is a design
+  call: either the toolkit skips a row when every segment in it printed
+  nothing (a toolkit change, sent upstream, that changes every layout
+  using it), or the glyphs move into the git segments (changes what
+  `@git_branch` and `@git_remote` print).  What changes for a user: two or
+  three fewer rows on every prompt outside git.
+- **F.2.k  Two spaces before `$` when `@cmd_time` is empty.**  The `cmd`
+  row (`prompt/layout.sh:148`, `'─[@exit] @cmd_time \$ '`) and `line2`
+  render `─[✓]  $` on most prompts.  From the 2026-10-07 creview of the
+  toolkit.  Future work because it changes what the prompt shows.  Fix:
+  drop the space after `@cmd_time` in both rows and have a `layout.sh`
+  segment wrap the toolkit's `@cmd_time` with a trailing space when it
+  prints anything (as `_my_user_host` wraps `@user_host`).
+- **F.2.l  The repository root on `PATH`.**  `rc.d/20-path.sh:34`
+  (`path_append "$DOTFILES_DIR"`) makes `dots` a command and also every
+  root script: `run-tests.sh` typed without `./` in another project runs
+  this suite (the owner's other projects use the same name), and
+  `install.sh` anywhere runs this one.  Since `install.sh` links
+  `~/.local/bin/dots`, which `20-path.sh` already puts first, the line is
+  no longer needed for `dots`.  From the 2026-10-07 creview.  Future work
+  because it removes a `PATH` entry existing machines rely on until
+  `install.sh` has run there.  Fix: drop the line, have the README's
+  install section say `install.sh` runs once per machine, and update the
+  `20-path.sh` row in `docs/configuration.md`.
+- **F.2.m  `merge.conflictStyle = zdiff3` on old git.**  The value needs
+  git 2.35 (`dot_config/git/core.gitconfig`, now with a `Needs:` line);
+  older git (Ubuntu 20.04 has 2.25, RHEL 7 1.8) rejects it and merge,
+  rebase, pull and `checkout -m` die on the config.  Not reproduced: only
+  current git is installed here.  From the 2026-10-07 creview.  Future
+  work because the choice trades the better markers on new git against
+  working on old machines: `diff3` works everywhere and shows the same
+  three sections with less trimming; keeping `zdiff3` and putting
+  `conflictStyle = diff3` in `~/.gitconfig.local` on an old machine works
+  too, and is what the `Needs:` line now tells the reader.
 
 ## F.3 tests
 
@@ -167,3 +220,13 @@ handoff.
   `IdentityFile`; a host that worked with any agent key needs an
   `IdentityFile` line in `~/.ssh/config.local`.  Not checked against the
   owner's hosts.
+- **F.4.e  Agent files and generated paths in the root.**  The
+  workspace layout standard puts `CLAUDE.md` in `.claude/`, `HANDOFF.md`
+  and `reviews/` in `.agent/`, and the test runner under `tests/`.  Here
+  they sit in the root, as this repository's `CLAUDE.md` lists them.  From
+  the 2026-10-07 creview (the `.benchmarks/` half was fixed:
+  `run-tests.sh` passes `-p no:benchmark`).  Future work because each move
+  changes a documented path: `.dotsignore`, the `CLAUDE.md` root list,
+  `docs/testing.md` and the pre-commit hook all name `run-tests.sh` and
+  `reviews/`.  `dots` stays in the root, since `install.sh` and the README
+  use `~/.dotfiles/dots`.

@@ -105,7 +105,7 @@ sha() { sha256sum -- "$1" | cut -d' ' -f1; }
 # opened in $EDITOR.  Refuses to overwrite.
 mkscript() {
     [[ -e "${1:?mkscript NAME}" ]] && { echo "mkscript: $1 exists" >&2; return 1; }
-    printf '#!/usr/bin/env bash\nset -euo pipefail\n\n' > "$1" && chmod +x "$1" && "${EDITOR:-vi}" "$1"
+    printf '#!/usr/bin/env bash\nset -euo pipefail\n\n' > "$1" && chmod +x "$1" && ${EDITOR:-vi} "$1"
 }
 
 # note [TEXT] -- append TEXT, with the date, to ~/notes.md; alone, show the notes.
@@ -134,6 +134,8 @@ retry() {
 }
 
 # timer CMD... -- run CMD and print its wall time to the millisecond.
+# Bash 4 has no EPOCHREALTIME and prints 0.000 s.
+# Needs: bash 5+
 timer() {
     local t0=${EPOCHREALTIME/./}
     "$@"

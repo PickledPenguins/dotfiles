@@ -8,8 +8,10 @@
 # For one machine only, put the line in ~/.gitconfig.local instead.
 
 [core]
-    # Commit messages and interactive rebases open in vim.
-    editor = vim
+    # Commit messages and interactive rebases open in vim, whatever $EDITOR
+    # says.  Off, git opens $EDITOR like everything else: 00-env.sh sets it
+    # (DOTFILES_EDITOR picks another), and a machine with only vi works.
+    #editor = vim
 
     # The same pager options as $LESS: quit if one screen, colors, no clear,
     # case-insensitive search.
@@ -93,6 +95,8 @@
 
 [merge]
     # Conflict markers show the common ancestor as well as both sides.
+    # Older git rejects the value, and merge, rebase and pull then fail.
+    # Needs: git 2.35+
     conflictStyle = zdiff3
 
     # git merge refuses anything but a fast-forward; merge commits then need

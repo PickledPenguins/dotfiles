@@ -11,8 +11,11 @@ timeout = 30
 tries = 3
 retry_connrefused = on
 
-# Resume a partial download instead of starting again.
-continue = on
+# Resume a partial download instead of starting again.  Off because it
+# cannot tell a partial file from an old one: with timestamping, a file
+# that changed on the server is resumed from the old copy's size, leaving
+# the old start joined to the new end.  Use wget -c by hand instead.
+#continue = on
 
 # Skip files the server has not changed since the local copy.
 timestamping = on

@@ -413,6 +413,10 @@ def cmd_add(args, src, home):
             # ~/private_notes would be stored as private_notes, the source of ~/notes
             print(f"skip      {rel}: a name starts with dot_, private_ or executable_")
             continue
+        if ignored(str(rel), load_ignores(src)):
+            # stored there, the file would sit in the repository's own files, never linked
+            print(f"skip      {rel}: ignored by {IGNORE_FILE}")
+            continue
         dest = reuse_source_dirs(src, source_rel)
         if dest.exists():
             print(f"skip      {rel}: {dest} already exists")

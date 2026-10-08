@@ -250,6 +250,17 @@ def test_add_refuses_names_that_start_with_an_attribute_prefix(run, src, home):
     assert not (home / "private_notes").is_symlink()
 
 
+def test_add_refuses_paths_the_dotsignore_excludes(run, src, home):
+    # stored there, ~/docs/plan.txt would sit in the repository's docs/ and never be linked
+    (src / ".dotsignore").write_text("README.md\ndocs\n")
+    (home / "docs").mkdir()
+    (home / "docs" / "plan.txt").write_text("p\n")
+    code, out, _ = run("add", str(home / "docs" / "plan.txt"))
+    assert (code, out) == (0, "skip      docs/plan.txt: ignored by .dotsignore\n")
+    assert not (src / "docs").exists()
+    assert not (home / "docs" / "plan.txt").is_symlink()
+
+
 def test_add_private_flag_forces_the_attribute(run, src, home):
     (home / ".token").write_text("t\n")          # 644: would not be private on its own
     code, out, _ = run("add", "--private", str(home / ".token"))

@@ -142,6 +142,7 @@ Each of these is a case in `tests/examples/failures/`, with the exact text.
 | `skip      /x/y: not under /home/you` | `add` of a path outside `$HOME` (including via `..`) | only files under `$HOME` can be managed |
 | `skip      .config/app: not a regular file (add files, not directories)` | `add` of a directory | name the files: `find DIR -type f \| xargs dots add` |
 | `skip      .bashrc: already a symlink` | `add` of something already linked | nothing to do, or `forget` first if it is a foreign link |
+| `skip      docs/plan.txt: ignored by .dotsignore` | `add` of a path `.dotsignore` excludes, such as one under `~/docs` or `~/tests` | keep the file out of the set, or narrow the pattern in `.dotsignore` |
 | `skip      /home/you/.nothing: not managed`, exit 1 | `forget` of a path dots does not manage | check `dots managed` |
 | `dots: source directory /x does not exist`, exit 2 | `-S` or `$DOTS_SOURCE` wrong, or `~/.dotfiles` missing | fix the path or clone the repository |
 | `dots: ignoring dot_: maps to '.'` on stderr | a source file named only by a prefix | rename it; it would target `~` itself |
