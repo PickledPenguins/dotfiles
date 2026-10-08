@@ -35,8 +35,13 @@ def linked(home):
 
 def shell_env(home, env=None):
     environment = dict(os.environ, HOME=str(home), TERM="xterm-256color", PATH=os.environ["PATH"])
-    for var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "PROMPT_COMMAND"):
-        environment.pop(var, None)
+    # The runner's own session (tmux pane, display, conda or venv, ssh) would
+    # otherwise show in the prompt and the modules under test.
+    for var in list(environment):
+        if var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "PROMPT_COMMAND", "TMUX",
+                   "TMUX_PANE", "DISPLAY", "CONDA_DEFAULT_ENV", "CONDA_PREFIX", "VIRTUAL_ENV",
+                   "SHLVL") or var.startswith("SSH_"):
+            environment.pop(var)
     environment.update(env or {})
     return environment
 
@@ -55,6 +60,16 @@ def bash(home, script, env=None, before=None, local=None):
 
 def needs(program):
     return pytest.mark.skipif(shutil.which(program) is None, reason=f"{program} not installed")
+
+
+def stubs(tmp_path, **scripts):
+    """A directory of sh scripts standing in for programs, for PATH."""
+    fake = tmp_path / "fakebin"
+    fake.mkdir(exist_ok=True)
+    for name, body in scripts.items():
+        (fake / name).write_text("#!/bin/sh\n" + body)
+        os.chmod(fake / name, 0o755)
+    return fake
 
 
 # ── bash ──────────────────────────────────────────────────────────────────
@@ -213,9 +228,59 @@ def test_functions_retry_and_timer_hand_on_the_exit_status(linked):
     assert re.fullmatch(r"timer: \d+\.\d{3} s \(exit 3\)", proc.stderr.splitlines()[2])
 
 
+def test_functions_retry_sleeps_between_attempts_not_after_the_last(linked):
+    proc = bash(linked, 'sleep() { echo "sleep $*"; }; retry 3 false; echo $?')
+    assert proc.stdout == "sleep 1\nsleep 1\n1\n"
+
+
 def test_functions_extract_unknown_extension(linked):
     proc = bash(linked, "touch f.xyz; extract f.xyz; echo $?")
     assert proc.stderr == "extract: don't know how to extract 'f.xyz'" and proc.stdout == "1\n"
+
+
+def test_functions_extract_goes_on_past_a_bad_argument_and_fails_at_the_end(linked):
+    proc = bash(linked, "echo x > f && tar czf t.tgz f && rm f && touch f.xyz; "
+                        "extract f.xyz nope t.tgz; echo $?; cat f; extract t.tgz; echo $?")
+    assert proc.stdout == "1\nx\n0\n"
+    assert proc.stderr == "extract: don't know how to extract 'f.xyz'\nextract: 'nope' is not a file"
+
+
+def test_functions_hr_fills_the_terminal_width(linked):
+    proc = bash(linked, "COLUMNS=5 hr; COLUMNS=3 hr =; unset COLUMNS; hr x | wc -c")
+    assert proc.stdout == "─────\n===\n81\n"
+
+
+def test_functions_urlencode_and_urldecode(linked):
+    proc = bash(linked, "urlencode 'a b/c&d=é'; urldecode 'a%20b%2Fc%26d%3D%C3%A9'; urldecode \"$(urlencode x y)\"")
+    assert proc.stdout == "a%20b%2Fc%26d%3D%C3%A9\na b/c&d=é\nx y\n"
+
+
+def test_functions_genpass_length_and_alphabet(linked):
+    proc = bash(linked, "genpass | grep -cx '[A-Za-z0-9]\\{20\\}'; genpass 8 | grep -cx '[A-Za-z0-9]\\{8\\}'")
+    assert proc.stdout == "1\n1\n"
+
+
+def test_functions_man_falls_back_to_help_for_one_program_without_a_page(linked, tmp_path):
+    fake = stubs(tmp_path, man='echo "No manual entry for $*" >&2; exit 16\n',
+                 mytool='echo "usage: mytool $*"\n')
+    proc = bash(linked, "man mytool; echo $?; man mytool other; echo $?",
+                env={"PATH": f"{fake}:{os.environ['PATH']}", "PAGER": "cat"})
+    assert proc.stdout == "usage: mytool --help\n0\n1\n"
+    assert proc.stderr == "No manual entry for mytool\nNo manual entry for mytool other"
+
+
+def test_functions_port_matches_the_local_address_column_only(linked, tmp_path):
+    fake = stubs(tmp_path, ss="cat <<'EOF'\n"
+                 "Netid State  Recv-Q Send-Q Local Address:Port Peer Address:Port Process\n"
+                 "tcp   LISTEN 0      128    0.0.0.0:22         0.0.0.0:*\n"
+                 "tcp   LISTEN 0      128    127.0.0.1:2222     0.0.0.0:*\n"
+                 "tcp   ESTAB  0      0      10.0.0.1:5000      10.0.0.2:22\n"
+                 "tcp   LISTEN 0      128    [::]:22            [::]:*\n"
+                 "EOF\n")
+    proc = bash(linked, "port 22", env={"PATH": f"{fake}:{os.environ['PATH']}"})
+    lines = proc.stdout.splitlines()
+    assert lines[0].startswith("Netid State")
+    assert [line.split()[4] for line in lines[1:]] == ["0.0.0.0:22", "[::]:22"]
 
 
 def test_dirs_module_marks(linked):
@@ -224,7 +289,7 @@ def test_dirs_module_marks(linked):
 
 
 def test_dirs_module_cdpath_includes_home(linked):
-    proc = bash(linked, 'echo "$CDPATH"', before=f"DOTFILES_CDPATH=/opt\n")
+    proc = bash(linked, 'echo "$CDPATH"', before="DOTFILES_CDPATH=/opt\n")
     assert proc.stdout == f":{linked}:/opt\n"
 
 
@@ -265,6 +330,17 @@ def test_prompt_toolkit_links_only_the_code_bash_sources(linked):
     names = sorted(str(p.relative_to(toolkit)) for p in toolkit.rglob("*") if not p.is_dir())
     assert names[0] == "lib/cache.sh"
     assert all(n == "prompt.sh" or n.startswith(("lib/", "segments/")) for n in names), names
+
+
+@needs("bats")
+def test_prompt_toolkit_bats_suite_passes():
+    # The toolkit's own suite (cache, escaping, collectors, nounset), so a
+    # toolkit fix made here cannot ship with it failing.  About 45 s.
+    proc = subprocess.run(["bats", "tests"], cwd=REPO / "dot_config/bash/prompt/toolkit",
+                          capture_output=True, text=True)
+    plan = re.match(r"1\.\.(\d+)\n", proc.stdout)
+    failed = [l for l in proc.stdout.splitlines() if l.startswith("not ok")]
+    assert plan and failed == [] and proc.stdout.count("\nok ") == int(plan[1]), proc.stdout[-4000:]
 
 
 @pytest.mark.parametrize("layout, marker", [("minimal", "[ "), ("hpc", "╭"), ("box", "╭")])
@@ -322,6 +398,30 @@ def test_python_module_venv_auto_leaves_a_venv_activated_by_hand(linked):
     assert (proc.stdout, proc.stderr) == (f"{linked}/venvs/x\n", "")
 
 
+def test_python_module_venv_auto_entering_a_project_keeps_a_venv_activated_by_hand(linked):
+    proc = bash(linked, VENV_STUB + 'VIRTUAL_ENV=$HOME/venvs/x; cd proj; _venv_auto; echo "${VIRTUAL_ENV:-none}"')
+    assert (proc.stdout, proc.stderr) == (f"{linked}/venvs/x\n", "")
+
+
+def test_tools_module_tat_names_the_session_after_the_directory(linked, tmp_path):
+    fake = stubs(tmp_path, tmux='echo "tmux $*"\n')
+    proc = bash(linked, "command mkdir my.proj && cd my.proj && tat && tat other",
+                env={"PATH": f"{fake}:{os.environ['PATH']}"})
+    assert proc.stdout == "tmux new-session -A -s my_proj\ntmux new-session -A -s other\n"
+
+
+def test_tools_module_fbr_switches_to_a_remote_branch_by_its_local_name(linked, tmp_path):
+    fake = stubs(tmp_path, fzf="grep -x origin/feat\n")
+    proc = bash(linked, "git init -q --bare -b main o.git && git clone -q o.git c 2>/dev/null && cd c && "
+                        "git commit -q --allow-empty -m one && git push -q -u origin main && "
+                        "git switch -q -c feat && git push -q origin feat 2>/dev/null && git switch -q main && "
+                        "git branch -q -D feat && fbr >/dev/null 2>&1; git branch --show-current",
+                env={"PATH": f"{fake}:{os.environ['PATH']}", "GIT_AUTHOR_NAME": "T",
+                     "GIT_AUTHOR_EMAIL": "t@example.com", "GIT_COMMITTER_NAME": "T",
+                     "GIT_COMMITTER_EMAIL": "t@example.com"})
+    assert proc.stdout == "feat\n"
+
+
 def test_hpc_module_defines_nothing_without_a_scheduler(linked):
     proc = bash(linked, "alias qs sq ml 2>&1 | grep -c 'not found'", env={"PATH": "/usr/bin:/bin"})
     assert proc.stdout == "3\n"
@@ -338,6 +438,15 @@ def test_hpc_module_with_fake_schedulers(linked, tmp_path):
     assert lines[0] == "'qstat -u \"$USER\"'"
     assert lines[1].startswith("'squeue -u \"$USER\"")
     assert lines[2] == f"{fake}/qstat -u {os.environ.get('USER', '')}".rstrip()
+
+
+def test_hpc_module_qtail_follows_an_output_path_qstat_wrapped(linked, tmp_path):
+    fake = stubs(tmp_path, tail='echo "tail $*"\n', qstat="printf '%s\\n' 'Job Id: 7.server' "
+                 "'    Job_Name = run' '    Output_Path = node01:/scratch/someone/a/rather/long/project/dir"
+                 "ectory/name' '\tthat/wraps/run.o7' '    Priority = 0'\n")
+    proc = bash(linked, "qtail 7", env={"PATH": f"{fake}:/usr/bin:/bin"})
+    assert (proc.stdout, proc.stderr) == (
+        "tail -f /scratch/someone/a/rather/long/project/directory/namethat/wraps/run.o7\n", "")
 
 
 def test_profile_and_bash_profile_chain(linked):
@@ -409,6 +518,17 @@ def test_vim_local_override_wins(linked):
 @needs("vim")
 def test_vim_off_module_is_not_sourced(linked):
     assert "60-plugins" not in vim(linked, "DotfilesModules")
+
+
+@needs("vim")
+def test_vim_strips_trailing_whitespace_on_write_except_in_a_binary_file(linked):
+    text, blob = linked / "t.txt", linked / "blob"
+    text.write_bytes(b"ab \ncd\t\n")
+    blob.write_bytes(b"ab \x00\t\ncd \n")
+    for args in ([str(text)], ["-b", str(blob)]):
+        subprocess.run(["vim", "-es", "-u", str(linked / ".vimrc"), *args, "-c", "wq"],
+                       env=dict(os.environ, HOME=str(linked), TERM="xterm-256color"), timeout=30)
+    assert (text.read_bytes(), blob.read_bytes()) == (b"ab\ncd\n", b"ab \x00\t\ncd \n")
 
 
 @needs("vim")
@@ -511,6 +631,21 @@ def test_git_snapshot_stashes_a_restore_point_and_leaves_the_tree_as_it_was(link
                               "git stash list --format=%s | sed 's/[0-9_:-]*$//' && git stash show -p --include-untracked "
                               "| grep -c '^+[2u]$'")
     assert (proc.stdout, proc.stderr) == ("2\nu\nOn main: snapshot \n2\n", "")
+
+
+def test_git_snapshot_on_a_clean_tree_applies_no_older_stash(linked):
+    proc = git_script(linked, "git init -q -b main r && cd r && echo 1 > f && git add f && git commit -qm one && "
+                              "echo old > f && git stash -q && git snapshot; echo $?; cat f; git stash list | wc -l")
+    assert (proc.stdout, proc.stderr) == ("No local changes to save\n0\n1\n1\n", "")
+
+
+def test_git_fetch_keeps_a_local_tag_the_remote_does_not_have(linked):
+    proc = git_script(linked, "git init -q --bare -b main o.git && git clone -q o.git c 2>/dev/null && cd c && "
+                              "git commit -q --allow-empty -m one && git push -q -u origin main && "
+                              "git tag mine && git fetch -q && git tag -l")
+    assert (proc.stdout, proc.stderr) == ("mine\n", "")
+
+
 def test_git_global_ignore_and_attributes_are_read(linked, tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()

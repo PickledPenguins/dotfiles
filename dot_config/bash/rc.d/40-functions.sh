@@ -42,10 +42,11 @@ cdf() { cd -- "$(dirname -- "${1:?cdf FILE}")" || return; }
 # ── Files ─────────────────────────────────────────────────────────────────
 
 # extract ARCHIVE... -- unpack each archive, choosing the tool by extension.
+# One that is missing or of an unknown kind is skipped; the status is then 1.
 extract() {
-    local f
+    local f rc=0
     for f in "$@"; do
-        [[ -f "$f" ]] || { echo "extract: '$f' is not a file" >&2; continue; }
+        [[ -f "$f" ]] || { echo "extract: '$f' is not a file" >&2; rc=1; continue; }
         case "$f" in
             *.tar.bz2|*.tbz2) tar xjf "$f" ;;
             *.tar.gz|*.tgz)   tar xzf "$f" ;;
@@ -59,9 +60,10 @@ extract() {
             *.7z)             7z x "$f" ;;
             *.rar)            unrar x "$f" ;;
             *.deb)            ar x "$f" ;;
-            *)                echo "extract: don't know how to extract '$f'" >&2; return 1 ;;
+            *)                echo "extract: don't know how to extract '$f'" >&2; rc=1 ;;
         esac
     done
+    return "$rc"
 }
 
 # targz DIR -- pack DIR into DIR.tar.gz, leaving out version control and
@@ -85,10 +87,10 @@ bak() { command cp -a -- "$1" "$1.$(date +%Y%m%d-%H%M%S).bak"; }
 # swap A B -- exchange the names of two files.  When B cannot be moved, A
 # gets its name back rather than staying under the temporary one.
 swap() {
-    local tmp; tmp=$(mktemp -u -- "${1}.XXXXXX")
-    command mv -- "$1" "$tmp" || return
-    command mv -- "$2" "$1" || { command mv -- "$tmp" "$1"; return 1; }
-    command mv -- "$tmp" "$2"
+    local tmp; tmp=$(mktemp -d -- "${1%/}.XXXXXX") || return
+    command mv -- "$1" "$tmp/x" || { command rmdir -- "$tmp"; return 1; }
+    command mv -- "$2" "$1" || { command mv -- "$tmp/x" "$1"; command rmdir -- "$tmp"; return 1; }
+    command mv -- "$tmp/x" "$2" && command rmdir -- "$tmp"
 }
 
 # bigfiles [DIR] [N] -- the N largest files under DIR, not crossing into
@@ -130,7 +132,7 @@ retry() {
     for (( i = 1; i <= n; i++ )); do
         "$@" && return 0
         echo "retry: attempt $i/$n failed" >&2
-        sleep 1
+        (( i < n )) && sleep 1
     done
     return 1
 }

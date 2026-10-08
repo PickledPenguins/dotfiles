@@ -146,7 +146,8 @@
     ss = stash push --include-untracked
 
     # snapshot: stash everything and apply it straight back, a restore point.
-    snapshot = "!git stash push --include-untracked -m \"snapshot $(date +%F_%T)\" && git stash apply --quiet"
+    # On a clean tree it stashes nothing and applies nothing.
+    snapshot = "!s=$(git rev-parse -q --verify refs/stash); git stash push --include-untracked -m \"snapshot $(date +%F_%T)\" && { test \"$(git rev-parse -q --verify refs/stash)\" = \"$s\" || git stash apply --quiet; }"
 
     # ── Conflicts ─────────────────────────────────────────────────────────
 

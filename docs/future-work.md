@@ -169,6 +169,104 @@ here is scheduled; an item is cited by its label.  Back to the
   three sections with less trimming; keeping `zdiff3` and putting
   `conflictStyle = diff3` in `~/.gitconfig.local` on an old machine works
   too, and is what the `Needs:` line now tells the reader.
+- **F.2.n  The prompt rewrite in the working tree.**  On 2026-10-08 the
+  owner's uncommitted `dot_config/bash/prompt/layout.sh` (rows `top git
+  env cmd` drawn with `prompt_layout --sides l`) and a new
+  `_ps_seg_git_full_state` in `prompt/toolkit/segments/git.sh` were
+  reviewed but not touched, since both are work in progress.  From the
+  2026-10-08 creview, ctesting and creadme reports; to settle before they
+  are committed:
+  - *The pre-commit gate fails.*  `test_every_setting_has_a_description`
+    reports layout.sh lines 68, 75, 81, 87, 94 and 109: blank lines inside
+    `_env_seg` and `_git_seg` split each function into fragments, and
+    `_env_seg`, `_git_seg` and the `prompt_layout` line have no comment
+    directly above them.  Fix: no blank lines inside a function body, and
+    a description above each function and above `prompt_layout`.
+  - *`DOTFILES_PROMPT_LAYOUT` is read by nothing.*  The rewrite removed
+    the `case`, so `box`, `hpc`, `minimal` and the warning for an unknown
+    value are gone, while `layout.sh:19`, `rc.d/60-prompt.sh:17`,
+    `docs/configuration.md`, `docs/usage.md`, `docs/concepts.md`, the
+    README and catalog cases `moderate/09` and `complex/04` still promise
+    them; four long tests fail (`test_prompt_layout_knob[minimal]`, the
+    unknown-value warning, the hostile-directory test, which looks for the
+    `box` layout's ` ]`, and `moderate/09`).  A design call: restore the
+    `case` with the new rows as one of its arms, or retire the knob from
+    every place listed (`test_docs.py` will not notice a retired knob left
+    in `configuration.md`), in the same commit.
+  - *The git row shows `()` and a doubled SHA.*  In a fresh `git init` it
+    renders `(✓) ⎇  main ()`, since `_ps_seg_git_sha` is empty; on a
+    detached HEAD `⎇  0550348 (0550348)`, since the branch segment already
+    shows the SHA.  Fix: add `(SHA)` only when it is not empty and differs
+    from the branch text.
+  - *About 15 subshells per prompt.*  The composite segments (`_top_seg`,
+    `_user_host_seg`, `_env_seg`, `_git_seg`) make 4, 3, 4 and up to 6
+    command substitutions on top of the toolkit's one per segment.  Fix:
+    rows written as templates of toolkit segments, which the toolkit
+    already leaves out when empty, keeping a composite only where a
+    separator depends on its neighbors.
+  - *Stale comments and separators.*  Line 52 says the directory is at
+    the right (nothing is); `_top_seg` prints a leading space; `_env_seg`
+    writes `|conda:` with no space after the bar and leaves a trailing
+    space; the `cmd` row has the two spaces of F.2.k.  Fix: correct the
+    comments and add each separator only next to a part that printed.
+  - *`_ps_seg_git_full_state`* says "silent if clean" but prints `(✓)`,
+    its clean-tree `printf` is indented one level short, and it has no row
+    in the toolkit README's segment table and no bats test.  Fix: correct
+    the comment, add the row and a `git_info.bats` test, bump the toolkit
+    version, and commit it on its own, the toolkit way.
+- **F.2.o  curl's `--max-time 300` ends long downloads.**  `dot_curlrc`
+  limits every transfer that reads `~/.curlrc` to five minutes, so a large
+  download on a cluster link, or an installer run as `curl ... | sh`,
+  stops with `Operation timed out`, and `--retry 3` then starts it again
+  from zero up to three times: about 20 minutes to a failure.  The comment
+  states the limit.  From the 2026-10-08 creview.  Future work because it
+  is a chosen default with a tradeoff (a hung server against a slow big
+  file).  Fix: switch `--max-time` off and, to still stop a stalled
+  transfer, add `--speed-limit 1000` and `--speed-time 60` as a setting
+  (abort below 1 kB/s for a minute); `--connect-timeout` stays.
+- **F.2.p  `pushInsteadOf` sends every https GitHub push over ssh.**
+  `dot_config/git/url.gitconfig:21` is on, so on a machine whose GitHub
+  access is an https token or credential helper with no ssh key (common on
+  a cluster) `git push` fails with `Permission denied (publickey)`, and
+  the remote URL gives no hint why.  `CLAUDE.md` has new settings start
+  off unless they only add a name; this one changes what `git push` does.
+  From the 2026-10-08 creview.  Future work because switching it off
+  changes how the owner's pushes authenticate.  Fix: ship it as
+  `#pushInsteadOf = ...` with its description, and turn it on per machine
+  in `~/.gitconfig.local`.
+- **F.2.q  `cat` runs bat when bat is installed.**  `rc.d/80-tools.sh:76`
+  aliases `cat='bat --paging=never'`, against the module's own header
+  (lines 3-5: a block that would change a familiar command is off).
+  `cat -v`, `cat -e` and `cat -b` mean something else in bat, or do not
+  exist, and on a terminal bat refuses binary files.  Reasoned from bat's
+  option list; bat is not installed here.  From the 2026-10-08 creview.
+  Future work because it changes what `cat` does for the owner.  Fix:
+  comment the alias out with `Needs: bat`, keeping the `bat`/`batcat`
+  alias, and move `cat`→bat to the off list of the `80-tools.sh` row in
+  `docs/configuration.md`.
+- **F.2.r  Completion scripts generated at every shell start.**
+  `source <(kubectl completion bash)` (`rc.d/80-tools.sh:191`), `eval
+  "$(gh completion -s bash)"` (199) and `eval "$(uv
+  generate-shell-completion bash)"` (`75-python.sh:82`) each start the
+  program in every interactive shell where it is installed; kubectl alone
+  is about 50-100 ms.  `50-completion.sh:3-6` tells the reader to save
+  such output into `completion.d/` once instead.  From the 2026-10-08
+  creview.  Future work because there are two shapes: write the file into
+  `completion.d/` on first run when it is missing (stale after an
+  upgrade until deleted), or make the three lines off settings that point
+  at the `completion.d` route (no completion until the user acts).
+- **F.2.s  Opening a `/tmp` file switches viminfo off for the session.**
+  `dot_vim/rc/40-files.vim:46` runs `setlocal viminfo=` for `/tmp/*`,
+  `/dev/shm/*` and the secret patterns, but `viminfo` is global, so after
+  bash's `fc` or `crontab -e` opens a file under `/tmp` the session saves
+  no marks, history or registers on exit.  Checked: after `setlocal
+  viminfo=` and `:enew`, `set viminfo?` prints `viminfo=`.  The comment
+  says only "no viminfo for secrets and temporary files".  From the
+  2026-10-08 creview.  Future work because there are two shapes for the
+  temporary files: drop `viminfo=` from the `/tmp/*` and `/dev/shm/*`
+  case, or keep their marks out with `set viminfo+=r/tmp,r/dev/shm`.  For
+  the secret patterns the session-wide effect is the point (no register
+  holding a secret is saved), and the comment should say so.
 
 ## F.3 tests
 
@@ -186,7 +284,31 @@ here is scheduled; an item is cited by its label.  Back to the
   stored in `.build/` plus 25%, with the baseline and machine recorded in
   `docs/testing.md`.  From the 2026-10-07 ctesting audit.  Future work
   because it is a new gate with a threshold to choose, and a timing gate
-  is noisy on a shared login node.
+  is noisy on a shared login node.  The 2026-10-08 ctesting audit asks
+  for a second median in the same gate: `prompt_build` in a git
+  repository with a warm cache, which the toolkit's v0.1.9 cache work
+  brought from about 6 ms to 0.3 ms.
+- **F.3.d  Mutation of the shell code.**  `./run-tests.sh mutate` covers
+  `dots` only.  The bash modules carry branches the long suite asserts
+  (`_venv_auto`, `_title_arm`, the `20-path.sh` helpers, `bd`, `swap`,
+  `extract`) and so does the toolkit's git cache (`lib/git_info.sh`,
+  mutated by hand on 2026-10-08: 9 mutants, all caught after three tests
+  were added), but nothing re-runs those mutants.  From the 2026-10-08
+  ctesting audit.  Fix: a second list, `FILE ||| find ||| with` per line,
+  driven through `breaks-it` by `mutate`, whose test command is the long
+  subset that loads the file, or `bats` for a toolkit file.  Future work
+  because it is a new gate, and each mutant costs a long-suite subset
+  (seconds, not the fast suite's milliseconds).
+- **F.3.e  A toolkit test file named for a release.**
+  `prompt/toolkit/tests/test_v012_changes.bats` holds 31 tests of features
+  from v0.1.2 to v0.1.4 (cache, command timer, `term_utils`, `_ps_expand`,
+  collectors, `pbs_nodes`), whose subjects mostly have files already; a
+  reader looking for a feature's tests has to know which release added
+  it.  From the 2026-10-08 ctesting audit.  Future work because the move
+  has more than one shape: the cache and timer tests have no file to go
+  to, and moving a test that sources one library into a file whose
+  `setup` loads them all changes what it isolates.  A toolkit-only commit
+  either way, with the README's test table updated.
 
 ## F.4 housekeeping
 

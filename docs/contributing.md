@@ -82,7 +82,8 @@ and `./run-tests.sh cov mutate`.
 [bash-prompt-toolkit](https://github.com/PickledPenguins/bash-prompt-toolkit)
 as a git subtree (squashed).  A plain clone has it; nothing to initialize.
 Edit it here, in a commit that touches only that directory, so it splits
-cleanly.  The toolkit's own tests run with `bats tests/` from inside it.
+cleanly.  The toolkit's own tests run with `bats tests/` from inside it;
+`./run-tests.sh long` runs them too.
 
 ```sh
 # Send toolkit commits made here to the toolkit repository.

@@ -68,9 +68,12 @@
     #ff = only
 
 [fetch]
-    # Remove remote-tracking branches and tags deleted on the remote.
+    # Remove remote-tracking branches deleted on the remote.
     prune = true
-    pruneTags = true
+
+    # Also delete every local tag the remote does not have, including one
+    # made here and not pushed yet; a lightweight tag cannot be recovered.
+    #pruneTags = true
 
     # git fetch fetches every remote, not just origin.
     #all = true

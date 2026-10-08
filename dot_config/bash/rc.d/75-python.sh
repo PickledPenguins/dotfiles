@@ -44,7 +44,8 @@ venv() {
 # alone.  Hands the exit status on for the prompt.
 _venv_auto() {
     local status=$? dir="${DOTFILES_VENV_DIR:-.venv}"
-    if [[ -f "$dir/bin/activate" && "${VIRTUAL_ENV-}" != "$PWD/$dir" ]]; then
+    if [[ -f "$dir/bin/activate" && "${VIRTUAL_ENV-}" != "$PWD/$dir"
+            && ( -z "${VIRTUAL_ENV-}" || "$VIRTUAL_ENV" == "${_venv_auto_env-}" ) ]]; then
         source "$dir/bin/activate"
         _venv_auto_env=$VIRTUAL_ENV
     elif [[ -n "${VIRTUAL_ENV-}" && "$VIRTUAL_ENV" == "${_venv_auto_env-}"

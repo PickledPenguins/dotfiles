@@ -34,8 +34,12 @@ if command -v qstat >/dev/null; then
     alias qh='qstat -x -u "$USER"'
 fi
 
-# qtail JOBID -- follow the output file of a running PBS job.
-command -v qstat >/dev/null && qtail() { tail -f "$(qstat -f "$1" | sed -n 's/.*Output_Path = [^:]*:\(.*\)/\1/p')"; }
+# qtail JOBID -- follow the output file of a running PBS job.  qstat wraps a
+# long path onto tab-indented lines, joined here first.  The file fills as
+# the job runs only when the job writes it in place (qsub -k oed, or a site
+# with direct write); otherwise PBS keeps the output on the execution host
+# and copies it there when the job ends.
+command -v qstat >/dev/null && qtail() { tail -f "$(qstat -f "$1" | sed -e ':a;N;$!ba;s/\n\t//g' | sed -n 's/.*Output_Path = [^:]*:\(.*\)/\1/p')"; }
 
 # qint: an interactive job with X forwarding.  The resources are an example;
 # every site's queues and limits differ.

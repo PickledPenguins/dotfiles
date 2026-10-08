@@ -7,8 +7,8 @@ Back to the [README](../README.md).
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
 | `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every commit (`.git/hooks/pre-commit`, installed by `./run-tests.sh hook`) | ~2 s |
-| `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, and the example catalog | before a release, after any module change | ~65 s |
-| `./run-tests.sh all` | both | | ~70 s |
+| `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~110 s |
+| `./run-tests.sh all` | both | | ~115 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
 
@@ -17,11 +17,12 @@ Generated files (coverage data) land in `.build/`; the pytest cache is
 disabled.  Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
 
-## Numbers (2026-10-07, this machine, measured on the commit that added this line)
+## Numbers (2026-10-08, this machine, measured on the commit that added this line)
 
-- fast: 311 tests, 3.0 s.  long: 224 passed and 15 skipped (programs not
+- fast: 317 tests, 3.3 s.  long: 248 passed and 15 skipped (programs not
   installed here: conda, sqlite3, ctags, ripgrep, matplotlib in the test
-  interpreter; settings whose `Needs:` program is missing), 51 s.  A gdb
+  interpreter; settings whose `Needs:` program is missing), 107 s, of
+  which the toolkit's 165 bats tests are about 45 s.  A gdb
   built without debuginfod support passes the debuginfod setting.
 - coverage of `dots`: 100% lines (360), 100% branches (152); floor 100.
 - mutation: 50 mutants, 50 caught, 0 survivors.  The list is hand-written
@@ -94,9 +95,12 @@ real configuration.  The catalog README is `tests/examples/README.md`.
 
 - No load, concurrency or scaling tests: `dots` is single-process and
   bounded by the number of dotfiles.
-- The prompt toolkit's own behavior: its bats suite is in
-  `dot_config/bash/prompt/toolkit/tests/` (`bats` is not installed here);
-  this suite checks only "it builds a PS1 for each layout".
+- The prompt toolkit's own behavior beyond its bats suite: the long suite
+  runs `bats tests` in `dot_config/bash/prompt/toolkit/` and requires
+  every test to pass (skipped where `bats` is not installed), and checks
+  each layout builds a PS1, the exit status shown beside the title module,
+  and a hostile directory name shown as typed.  The pre-commit hook does
+  not run bats.
 - Programs absent on the machine the suite runs on (screen, ctags, delta)
   are skipped, not faked; so is a setting whose `Needs:` line names a
   missing program or file.
