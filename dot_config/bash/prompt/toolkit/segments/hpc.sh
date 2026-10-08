@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.7
+# Toolkit version: 0.1.8
 # ════════════════════════════════════════════════════════════════════════════
 # segments/hpc.sh — cluster context: loaded environment modules, PBS and
 # Slurm job details

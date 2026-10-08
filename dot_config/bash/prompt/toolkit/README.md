@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.7
+**Version:** 0.1.8
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -278,7 +278,7 @@ executable, and takes one optional positional argument.
 | `prompt_segment` | `<name> <function>` | Register `<function>` as the `@name` token usable in row templates. |
 | `prompt_collector` | `<name> <ttl_seconds> <function>` | Register a data collector. `prompt_build` runs it in the shell's own process while a shown row needs it: every prompt at TTL `0`, at most once per TTL seconds otherwise. Re-registering a name replaces its TTL and function and keeps its place in the run order. Returns 1 on a name that is not an identifier, a TTL that is not a whole number, or an undefined function. |
 | `prompt_segment_needs` | `<function> <collector>…` | Declare the collectors a segment function reads from (`cmd_time`, `git`, `load`, `disk`, `gpu`, or your own). Order relative to `prompt_segment` does not matter; the collectors must already be registered. Built-in segments are pre-declared. |
-| `prompt_row` | `<name> <template>` | Define a named row template: literal text, `@segment` tokens, and at most one `@fill`. |
+| `prompt_row` | `<name> <template>` | Define a named row template: literal text, `@segment` tokens, and at most one `@fill`. A row whose segments all print nothing is left out of the prompt, unless it is the last row. |
 | `prompt_layout` | `[--box [style]] [--closed] [--no-box] <row>…` | Set the ordered row list and box decoration, and wire `prompt_build` into `PROMPT_COMMAND`. Idempotent. |
 | `prompt_build` | none | Rebuild `PS1`. Called automatically via `PROMPT_COMMAND`; rarely called directly. |
 | `prompt_debug` | none | Print the layout, rows, segments with their needs, and each collector's TTL, whether a shown row needs it, and its age, to stderr. |
@@ -381,6 +381,10 @@ Segment → Row → Layout → PS1
   silent (empty output) when not applicable.
 - **Row** — a named template string referencing segments by `@name`
   token, plus an optional `@fill` token that pads to the row's width.
+  When every segment a row names prints nothing, the row is left out
+  rather than drawn as a blank line, and a box closes around the rows
+  that remain; a row with no segments, and the last row, are always
+  drawn.
 - **Layout** — an ordered list of rows, optionally wrapped in a Unicode
   box (`--box <style>`), open or `--closed`.
 - **Collector** — a function that gathers data for segments into globals
@@ -457,7 +461,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**131 tests across 9 files**, all passing against v0.1.7:
+**137 tests across 9 files**, all passing against v0.1.8:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -465,7 +469,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
 | `git_info.bats` | 12 | counts, conflicts, detached HEAD, ahead/behind, stash, cache validity, index left alone |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
-| `prompt_box.bats` | 8 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing |
+| `prompt_box.bats` | 14 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing |
 | `prompt_segments.bats` | 16 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit and conflict segments |
 | `security.bats` | 8 | segment text shown as typed (`$(...)`, backticks, `\w`, `@fill`, `$` for root), `promptvars` left on for `PS0`, `CDPATH` |
 | `term_utils.bats` | 10 | ANSI stripping, width (with no UTF-8 locale), repeat |
@@ -518,6 +522,20 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.8
+
+**Changed:**
+
+- **A row whose segments all print nothing is left out.** It used to be
+  drawn as a blank line, or as its literal text alone (`⎇  →` outside a
+  git repository). The box corners go on the first and last rows that
+  remain. A row with no segments is kept, and so is the last row, which
+  holds the prompt character. `prompt_build` now expands each row once
+  with `_ps_expand_into`, in its own process, so a prompt forks once
+  less per row.
+
+**Added:** six tests in `prompt_box.bats`.
 
 ### v0.1.7
 

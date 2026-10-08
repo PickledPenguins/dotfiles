@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.7
+# Toolkit version: 0.1.8
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1
@@ -102,6 +102,8 @@ declare -ga _PS_SEGS_SORTED=()   # segment names, longest-first (expansion order
 declare -g    _PS_BOX=0            # 1 = wrap rows in a unicode box
 declare -g    _PS_CLOSED=0         # 1 = close box (╯) on last row; 0 = open
 declare -g    _PS_STYLE="rounded"
+declare -g    _PS_EXPANDED=""      # _ps_expand_into's result
+declare -gi   _PS_EXPANDED_EMPTY=0 # 1 = that row names segments and none printed anything
 
 # ── Collector registry ─────────────────────────────────────────────────────
 # Needs are keyed on the segment FUNCTION, not on the name it is registered
@@ -149,12 +151,22 @@ declare -gA _PS_CHARS=(
 # output makes that class of bug structurally impossible rather than
 # patching around specific cases.
 #
+# [v0.1.8] The work is done by _ps_expand_into, which leaves the row in
+# _PS_EXPANDED and sets _PS_EXPANDED_EMPTY when the template names at least
+# one segment and every one printed nothing: prompt_build drops that row
+# instead of drawing a blank line, and reads both without a subshell.
+#
 # $1  template string
 # $2  effective terminal width (caller reduces by box border char count)
 _ps_expand() {
+    _ps_expand_into "$@"
+    printf '%s' "$_PS_EXPANDED"
+}
+
+_ps_expand_into() {
     local tmpl="$1" tw="${2:-${COLUMNS:-80}}"
     local result="" plain="" rest="$tmpl" fill=$'\x1f'
-    local name val matched
+    local name val matched chunk named=0 visible=0
 
     # [v0.1.3 fix] _ps_resort_segments is a no-op unless something
     # registered since the last call, so this is cheap in the normal
@@ -202,7 +214,9 @@ _ps_expand() {
             result+="$shown"
             # Skip the strip_ansi call when the segment returned plain text.
             # Readline markers start with \001; their absence means no ANSI.
-            [[ "$val" == *$'\001'* ]] && plain+="$(strip_ansi "$val")" || plain+="$val"
+            [[ "$val" == *$'\001'* ]] && chunk=$(strip_ansi "$val") || chunk=$val
+            plain+="$chunk"
+            named=1; [[ -n "$chunk" ]] && visible=1
             rest="${rest#"@${name}"}"
             matched=1
             break
@@ -223,7 +237,8 @@ _ps_expand() {
         result="${result//"$fill"/$(str_repeat "${_PS_CHARS[${_PS_STYLE}_h]:-─}" "$fill_len")}"
     fi
 
-    printf '%s' "$result"
+    _PS_EXPANDED=$result
+    _PS_EXPANDED_EMPTY=$(( named && ! visible ))
 }
 
 # ── Public API ─────────────────────────────────────────────────────────────
@@ -483,21 +498,31 @@ prompt_build() {
     local c_tl="${_PS_CHARS[${_PS_STYLE}_tl]:-┌}" c_tr="${_PS_CHARS[${_PS_STYLE}_tr]:-┐}"
     local c_bl="${_PS_CHARS[${_PS_STYLE}_bl]:-└}"  c_br="${_PS_CHARS[${_PS_STYLE}_br]:-┘}"
 
-    local ps1="" i
+    # Expand every row first. A row whose segments all printed nothing is
+    # left out, rather than drawn as a blank line, so the corners below go
+    # on the first and last rows that remain. The last row is always kept:
+    # it holds the prompt character the cursor follows.
+    local budget=$tw; (( _PS_BOX )) && budget=$(( tw - 2 ))
+    local -a contents=() fills=()
+    local i tmpl
     for (( i=0; i<nrows; i++ )); do
-        local rname="${_PS_ORDER[$i]}"
-        local tmpl="${_PS_ROWS[$rname]:-}"
-        local has_fill=0; [[ "$tmpl" == *@fill* ]] && has_fill=1
+        tmpl="${_PS_ROWS[${_PS_ORDER[$i]}]:-}"
+        _ps_expand_into "$tmpl" "$budget"
+        (( _PS_EXPANDED_EMPTY && i < nrows-1 )) && continue
+        contents+=("$_PS_EXPANDED")
+        [[ "$tmpl" == *@fill* ]] && fills+=(1) || fills+=(0)
+    done
+    nrows=${#contents[@]}
+
+    local ps1=""
+    for (( i=0; i<nrows; i++ )); do
+        local content="${contents[$i]}" has_fill="${fills[$i]}"
         local is_last=0;  (( i == nrows-1 )) && is_last=1
 
         if (( ! _PS_BOX )); then
-            local content; content=$(_ps_expand "$tmpl" "$tw")
             (( is_last )) && ps1+="$content" || ps1+="${content}\n"
             continue
         fi
-
-        local budget=$(( tw - 2 ))
-        local content; content=$(_ps_expand "$tmpl" "$budget")
 
         # Checks lead with is_last (not i==0) so a single-row box — where
         # i==0 and is_last are both true — gets last-row treatment instead
