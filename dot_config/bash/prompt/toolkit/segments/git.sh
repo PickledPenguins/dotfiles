@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.11
+# Toolkit version: 0.1.12
 # ════════════════════════════════════════════════════════════════════════════
 # segments/git.sh — branch, upstream, ahead/behind, working tree, stash,
 # conflicts
@@ -84,11 +84,33 @@ _ps_seg_git_conflicts() {
     printf '%s⚠%d%s' "$C_BRED" "$GIT_CONFLICTS" "$C_R"
 }
 
+# (+N ~N ?N ⚑N ⚠N): status, stash and conflicts in one segment; (✓) when all
+# are zero — silent only outside a repo
+_ps_seg_git_full_state() {
+    (( GIT_IN_REPO )) || return
+    if (( GIT_STAGED    == 0 && \
+          GIT_MODIFIED  == 0 && \
+          GIT_UNTRACKED == 0 && \
+          GIT_STASH     == 0 && \
+          GIT_CONFLICTS == 0 )); then
+        printf '(%s✓%s)' "$C_GREEN" "$C_R"
+        return
+    fi
+    local r=""
+    (( GIT_STAGED    > 0 )) && r+="${C_GREEN}+${GIT_STAGED}${C_R} "
+    (( GIT_MODIFIED  > 0 )) && r+="${C_YELLOW}~${GIT_MODIFIED}${C_R} "
+    (( GIT_UNTRACKED > 0 )) && r+="${C_DIM}?${GIT_UNTRACKED}${C_R} "
+    (( GIT_STASH     > 0 )) && r+="${C_YELLOW}⚑${GIT_STASH}${C_R} "
+    (( GIT_CONFLICTS > 0 )) && r+="${C_BRED}⚠${GIT_CONFLICTS}${C_R} "
+    printf '(%s)' "${r% }"
+}
+
 prompt_segment_needs _ps_seg_git_branch       git
 prompt_segment_needs _ps_seg_git_remote       git
 prompt_segment_needs _ps_seg_git_ahead_behind git
 prompt_segment_needs _ps_seg_git_status       git
 prompt_segment_needs _ps_seg_git_stash        git
 prompt_segment_needs _ps_seg_git_conflicts    git
+prompt_segment_needs _ps_seg_git_full_state   git
 prompt_segment_needs _ps_seg_git_sha          git
 prompt_segment_needs _ps_seg_git_remote_sha   git

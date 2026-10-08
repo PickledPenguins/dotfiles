@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.11
+# Toolkit version: 0.1.12
 # ════════════════════════════════════════════════════════════════════════════
 # tests/test_helper.bash — shared setup for the bats suite
 #

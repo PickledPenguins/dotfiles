@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.11
+**Version:** 0.1.12
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -84,6 +84,7 @@ to just the identity row and the prompt character.
 | `?3` | `@git_status` | Untracked files (dim) | Any untracked |
 | `⚑1` | `@git_stash` | Stash entry count | Stash is non-empty |
 | `⚠1` | `@git_conflicts` | Unmerged/conflicted paths (bold red) | Mid-merge or mid-rebase |
+| `(+2 ~5 ?3 ⚑1)` / `(✓)` | `@git_full_state` | The five counts above in one segment, or `✓` when all are zero | Inside a repo |
 
 ### Row 5 — status line
 
@@ -168,6 +169,7 @@ cheap function call, not a blank space.
 | `_ps_seg_git_status` | `+staged ~modified ?untracked` | working tree is clean |
 | `_ps_seg_git_stash` | `⚑N` stash count | no stashes |
 | `_ps_seg_git_conflicts` | `⚠N` unmerged paths | no active conflict |
+| `_ps_seg_git_full_state` | `(+N ~N ?N ⚑N ⚠N)`, the nonzero ones; `(✓)` when all are zero | outside a git repo |
 | `_ps_seg_git_sha` | Short SHA of HEAD | before the first commit |
 | `_ps_seg_git_remote_sha` | Short SHA of the upstream branch | no upstream configured |
 | `_ps_seg_tmux` | `⧉ session:win.pane` | not inside tmux |
@@ -489,7 +491,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**163 tests across 9 files**, all passing against v0.1.10:
+**168 tests across 9 files**, all passing against v0.1.12:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -498,7 +500,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 | `git_info.bats` | 26 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 26 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
-| `prompt_segments.bats` | 18 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit and conflict segments, disk usage and a hung `df` |
+| `prompt_segments.bats` | 21 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df` |
 | `security.bats` | 8 | segment text shown as typed (`$(...)`, backticks, `\w`, `@fill`, `$` for root), `promptvars` left on for `PS0`, `CDPATH` |
 | `term_utils.bats` | 10 | ANSI stripping, width (with no UTF-8 locale), repeat |
 | `test_v012_changes.bats` | 31 | everything added or fixed in v0.1.2 – v0.1.4 |
@@ -550,6 +552,14 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.12
+
+**Added:** `_ps_seg_git_full_state`, the working tree's state in one
+segment: `(+N ~N ?N ⚑N ⚠N)` with only the nonzero counts, or `(✓)` when
+all five are zero; silent outside a repository. Registered as
+`@git_full_state` in `prompt_example.sh`. Three tests in
+`prompt_segments.bats`.
 
 ### v0.1.11
 

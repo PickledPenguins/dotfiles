@@ -90,6 +90,23 @@ setup() {
     [[ "$(plain "$(_ps_seg_git_conflicts)")" == "⚠2" ]]
 }
 
+@test "git_full_state segment is silent outside a repo" {
+    GIT_IN_REPO=0
+    [[ -z "$(_ps_seg_git_full_state)" ]]
+}
+
+@test "git_full_state segment shows (✓) when every count is zero" {
+    GIT_IN_REPO=1 GIT_STAGED=0 GIT_MODIFIED=0 GIT_UNTRACKED=0 GIT_STASH=0 GIT_CONFLICTS=0
+    [[ "$(plain "$(_ps_seg_git_full_state)")" == "(✓)" ]]
+}
+
+@test "git_full_state segment shows the nonzero counts in order, one space apart" {
+    GIT_IN_REPO=1 GIT_STAGED=2 GIT_MODIFIED=0 GIT_UNTRACKED=3 GIT_STASH=1 GIT_CONFLICTS=4
+    [[ "$(plain "$(_ps_seg_git_full_state)")" == "(+2 ?3 ⚑1 ⚠4)" ]]
+    GIT_STAGED=0 GIT_UNTRACKED=0 GIT_STASH=0 GIT_CONFLICTS=0 GIT_MODIFIED=5
+    [[ "$(plain "$(_ps_seg_git_full_state)")" == "(~5)" ]]
+}
+
 @test "pwd segment truncation keeps whole characters when they reach the cut" {
     long=$(printf 'é%.0s' {1..40})
     mkdir -p "$BATS_TEST_TMPDIR/$long"
