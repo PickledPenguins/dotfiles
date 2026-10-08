@@ -24,8 +24,8 @@ set wrapscan
 " means only the first.  Surprising in commands copied from elsewhere.
 set gdefault
 
-" Show a :s substitution's result in the text while typing it (vim 9.1+
-" and neovim).
+" Show a :s substitution's result in the text while typing it (neovim
+" only; vim has no such option).
 if exists('&inccommand') | set inccommand=nosplit | endif
 
 " :grep uses ripgrep when it is installed; :copen lists the matches.

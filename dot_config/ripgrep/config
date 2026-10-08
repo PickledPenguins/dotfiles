@@ -17,7 +17,8 @@
 --glob=!__pycache__/
 
 # Lines longer than 250 columns show as a preview instead of in full
-# (minified files).
+# (minified files).  Every program that runs rg reads this file, vim's
+# :grep and scripts included; rg --max-columns=0 shows full lines once.
 --max-columns=250
 --max-columns-preview
 

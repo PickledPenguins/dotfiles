@@ -79,7 +79,8 @@ nnoremap <F5> :write <Bar> !%:p<CR>
 
 " ── Windows and buffers ─────────────────────────────────────────────────
 
-" Ctrl-h/j/k/l move between windows.
+" Ctrl-h/j/k/l move between windows.  Ctrl-l no longer redraws the screen;
+" :redraw! does.
 nnoremap <C-h> <C-w>h
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k

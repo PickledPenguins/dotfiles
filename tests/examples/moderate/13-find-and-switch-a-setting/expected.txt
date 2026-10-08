@@ -1,5 +1,5 @@
 ~/.config/bash/rc.d/10-options.sh
-    40  off  Case-insensitive [[ == ]], [[ =~ ]] and case patterns.
+    42  off  Case-insensitive [[ == ]], [[ =~ ]] and case patterns, in every function
 nocasematch         	off
 on
 nocasematch         	on

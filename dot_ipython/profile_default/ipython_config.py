@@ -13,11 +13,12 @@ c = get_config()  # noqa: F821 -- provided by IPython when it reads this file
 
 # Edited modules are reloaded before each command: change a file, call its
 # function again, get the new code.  Occasionally confuses class instances.
+# Its start-up line is added to exec_lines, beside the next setting's.
 #c.InteractiveShellApp.extensions = ["autoreload"]
-#c.InteractiveShellApp.exec_lines = ["%autoreload 2"]
+#c.InteractiveShellApp.exec_lines.extend(["%autoreload 2"])
 
 # numpy as np and pandas as pd at every start (slower start-up).
-#c.InteractiveShellApp.exec_lines = ["import numpy as np", "import pandas as pd"]
+#c.InteractiveShellApp.exec_lines.extend(["import numpy as np", "import pandas as pd"])
 
 # No banner at start.
 #c.TerminalIPythonApp.display_banner = False

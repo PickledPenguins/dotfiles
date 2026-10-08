@@ -60,9 +60,10 @@ _venv_auto() {
 # checked at every prompt (one file test each).
 #PROMPT_COMMAND="_venv_auto${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 
-# pip refuses to install anything outside a virtual environment (a conda
-# environment counts), so nothing lands in the system or user site by
-# mistake.  Once, anywhere: PIP_REQUIRE_VIRTUALENV=0 pip install ...
+# pip refuses to install anything outside a virtual environment, so
+# nothing lands in the system or user site by mistake.  A conda environment
+# does not count: pip refuses there too.  Once, anywhere:
+# PIP_REQUIRE_VIRTUALENV=0 pip install ...
 #export PIP_REQUIRE_VIRTUALENV=true
 
 # breakpoint() opens ipdb (IPython's debugger: colors, Tab completion)

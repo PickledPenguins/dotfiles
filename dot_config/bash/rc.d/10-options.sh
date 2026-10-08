@@ -36,7 +36,9 @@ shopt -s extglob
 # for the command: scp host:*.txt, find -name *.py.
 #shopt -s failglob
 
-# Case-insensitive [[ == ]], [[ =~ ]] and case patterns.
+# Case-insensitive [[ == ]], [[ =~ ]] and case patterns, in every function
+# loaded after it too: bash-completion then misses matches (ssh -o
+# Contr<Tab> offers nothing).
 #shopt -s nocasematch
 
 # ── Directories ───────────────────────────────────────────────────────────
@@ -119,13 +121,16 @@ shopt -s lithist
 #shopt -s histreedit
 
 # Lines kept in memory (Up, `history`) and in the history file.  -1 keeps
-# everything, and the file then grows without bound.
+# everything, and the file then grows without bound.  Only a bash that
+# reads this file knows them: bash --norc or sudo -s trims ~/.bash_history
+# to 500 lines on exit (the HISTFILE line below avoids that).
 HISTSIZE="${DOTFILES_HISTSIZE:-50000}"
 HISTFILESIZE="${DOTFILES_HISTFILESIZE:-100000}"
 
 # Not recorded: a repeat of the line before, with older copies of it erased
-# (erasedups), and lines that start with a space (ignorespace), which keeps
-# a command holding a secret out of history.
+# from this shell's history (erasedups; the file keeps them, since history
+# -a only appends), and lines that start with a space (ignorespace), which
+# keeps a command holding a secret out of history.
 HISTCONTROL=ignoreboth:erasedups
 
 # Never recorded: these short commands, so history keeps what is worth
@@ -143,7 +148,7 @@ HISTTIMEFORMAT="%F %T  "
 # shell exits: a crash or a closed window loses nothing, and a new shell
 # sees the commands of shells still open.  Per machine off, in
 # ~/.bashrc.local: PROMPT_COMMAND=${PROMPT_COMMAND/history -a/:}
-PROMPT_COMMAND="history -a${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+[[ "${PROMPT_COMMAND-}" == *'history -a'* ]] || PROMPT_COMMAND="history -a${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 
 # Also reload the history file at every prompt, so Up in one window
 # recalls what was just typed in another.  Your own recent commands get
@@ -170,6 +175,7 @@ shopt -s no_empty_cmd_completion
 # ── File permissions and limits ───────────────────────────────────────────
 
 # New files rw-r--r--, new directories rwxr-xr-x: everyone may read them.
+# Set in every interactive shell, so it replaces a umask from ~/.profile.
 umask 022
 
 # New files private to you (rw-------): the safer choice on a shared machine

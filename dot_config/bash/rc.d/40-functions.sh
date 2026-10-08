@@ -151,7 +151,8 @@ timer() {
 # histstat [N] -- the N commands you run most often (default 20).
 histstat() { fc -ln 1 | awk '{print $1}' | sort | uniq -c | sort -rn | head -n "${1:-20}"; }
 
-# man PAGE -- man, falling back to `PAGE --help` when there is no page.
+# man PAGE -- man, falling back to `PAGE --help` when there is no page:
+# that runs the program, so one whose --help does something else does it.
 man() {
     command man "$@" && return
     [[ $# == 1 ]] && command -v "$1" >/dev/null && "$1" --help 2>&1 | "${PAGER:-less}"

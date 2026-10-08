@@ -24,5 +24,6 @@ export PATH
 #export EDITOR=vim VISUAL=vim
 
 # Permissions for new files in the whole session, desktop programs
-# included: 077 keeps them private to you (bash's own is in 10-options.sh).
+# included: 077 keeps them private to you.  Every interactive bash then
+# sets its own (10-options.sh, 022): switch that one to 077 as well.
 #umask 077

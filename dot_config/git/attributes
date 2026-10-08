@@ -34,7 +34,9 @@
 *.npy      binary
 *.pkl      binary
 
-# Always LF, whatever core.autocrlf says: scripts break with CRLF.
+# Always LF, whatever core.autocrlf says: scripts break with CRLF.  In a
+# repository that committed them with CRLF they show as modified from the
+# clone on.
 *.sh       text eol=lf
 Makefile   text eol=lf
 

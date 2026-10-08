@@ -10,7 +10,8 @@
 # A new line keeps the indent of the line before.
 set autoindent
 
-# Tab is 4 columns and inserts spaces.
+# Tab is 4 columns and inserts spaces, in Makefiles too, where a recipe
+# line then fails ("missing separator"): nano does not read .editorconfig.
 set tabsize 4
 set tabstospaces
 

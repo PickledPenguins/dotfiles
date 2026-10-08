@@ -16,7 +16,8 @@
 
 # Find conda: the knob's root, else the usual install places.  mamba's
 # shell functions too, when installed.  The knob's environment is
-# activated.
+# activated here, before 80-tools.sh: Homebrew, mise, asdf or pyenv set up
+# there come before it on PATH.
 for _conda_root in "${DOTFILES_CONDA_ROOT-}" \
                    "$HOME/miniconda3" "$HOME/anaconda3" "$HOME/miniforge3" "$HOME/mambaforge" \
                    /opt/anaconda3 /opt/miniconda3 /opt/miniforge3 /opt/conda; do

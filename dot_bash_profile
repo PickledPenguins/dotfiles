@@ -3,7 +3,9 @@
 # Order:  ~/.profile  ->  ~/.config/bash/profile.d/*.sh  ->  ~/.bashrc
 #
 # profile.d is for what should happen once per login and be inherited by
-# every program started from it (an ssh-agent, one-time exports).
+# every program started from it (an ssh-agent, one-time exports).  Every
+# tmux pane is a login shell too, so it runs again in each: a script there
+# should reuse what an earlier run started.
 # Interactive settings belong in ~/.config/bash/rc.d, which ~/.bashrc loads.
 #
 # Each setting has its description in the comment above it.  A setting with
@@ -25,8 +27,9 @@ unset _p
 
 # An ssh login goes straight into tmux, attaching to the session "main" or
 # creating it, so a dropped connection loses nothing.  Leaving tmux then
-# ends the ssh session; scp and ssh HOST COMMAND are not affected.
-#[[ -n "${SSH_CONNECTION-}" && -z "${TMUX-}" && $- == *i* ]] && command -v tmux >/dev/null && exec tmux new-session -A -s main
+# ends the ssh session; scp, ssh HOST COMMAND and editors that read the
+# environment over ssh without a terminal (VS Code Remote-SSH) are not.
+#[[ -n "${SSH_CONNECTION-}" && -z "${TMUX-}" && -z "${VSCODE_RESOLVING_ENVIRONMENT-}" && -t 0 && $- == *i* ]] && command -v tmux >/dev/null && exec tmux new-session -A -s main
 
 # A login on the first virtual console starts the graphical session
 # (startx), for machines without a display manager.

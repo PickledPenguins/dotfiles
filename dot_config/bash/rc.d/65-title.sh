@@ -1,7 +1,8 @@
 # 65-title.sh -- keep the terminal window or tab title current.
 #
 # Only for terminals that understand the xterm title escape, and only when
-# the shell's output is a terminal.
+# the shell's output is a terminal.  Inside tmux the title is discarded:
+# allow-rename is off and set-titles-string has no #T (00-options.conf).
 #
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
@@ -29,7 +30,7 @@ _title_prompt() {
     printf '\e]0;%s\a' "$t"
     return "$status"
 }
-PROMPT_COMMAND="_title_prompt${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+[[ "${PROMPT_COMMAND-}" == *_title_prompt* ]] || PROMPT_COMMAND="_title_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 # The functions for the setting below: the title shows a running command,
 # through a DEBUG trap added after any trap already there (the prompt's

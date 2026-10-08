@@ -157,10 +157,14 @@
 
 [help]
     # A mistyped command (git stauts) asks before running the likely one.
+    # Older git reads it as a number and stops on the first mistyped command.
+    # Needs: git 2.34+
     autocorrect = prompt
 
 [transfer]
-    # Refuse corrupt objects on fetch and push.
+    # Refuse corrupt objects on fetch and push.  Some old repositories have
+    # harmless faults (zeroPaddedFilemode, badTimezone) and fail to clone;
+    # git -c transfer.fsckObjects=false clone ... gets them.
     fsckObjects = true
 
 [credential]

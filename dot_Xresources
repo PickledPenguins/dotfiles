@@ -53,7 +53,10 @@ XTerm*ttyModes:           erase ^?
 ! Selecting with the mouse also copies to the CLIPBOARD, not only PRIMARY.
 XTerm*selectToClipboard:  true
 
-! A steady cursor; programs may not resize or move the window.
+! A steady cursor; programs may not resize or move the window.  With window
+! ops off xterm also refuses OSC 52, so tmux set-clipboard and vim over ssh
+! cannot set the clipboard: add XTerm*disallowedWindowOps: 20,21,SetXprop
+! to allow that one.
 XTerm*cursorBlink:        false
 XTerm*allowWindowOps:     false
 

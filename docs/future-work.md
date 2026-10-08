@@ -267,6 +267,98 @@ here is scheduled; an item is cited by its label.  Back to the
   case, or keep their marks out with `set viminfo+=r/tmp,r/dev/shm`.  For
   the secret patterns the session-wide effect is the point (no register
   holding a secret is saved), and the comment should say so.
+- **F.2.t  vim inside tmux gets no drag, wide clicks or focus events.**
+  `dot_config/tmux/conf.d/00-options.conf:12` sets `default-terminal
+  tmux-256color`; under that TERM vim 9.1 picks `ttymouse=xterm` (it picks
+  `sgr` under `xterm-256color`) and leaves `t_fe` empty.  Checked in vim
+  under that TERM.  So `mouse=a` drag and split resizing fail, clicks past
+  column 223 are lost, tmux's `focus-events on` (line 30) does nothing for
+  vim, and `FocusGained` checktime (`dot_vim/rc/00-general.vim:30`) and the
+  statusline refresh (`15-statusline.vim:23`) never fire.  From the
+  2026-10-08 settings creview.  Future work because it adds settings: when
+  `&term =~ '^\(tmux\|screen\)'`, set `ttymouse=sgr`, `t_fe`/`t_fd` and the
+  `<FocusGained>`/`<FocusLost>` key codes in `00-general.vim`.  vim in tmux
+  then behaves as it does in xterm.
+- **F.2.u  vim does not read `.editorconfig`.**  vim 9.0.1799+ ships
+  editorconfig as an optional package, and nothing here runs `packadd`
+  (`exists(':EditorConfigReload')` is 0); `dot_vim/rc/30-indent.vim:2` now
+  says so.  `~/.editorconfig` is therefore dead for vim, and the
+  strip-trailing-whitespace autocmd (`40-files.vim:68-71`) ignores a
+  project's `trim_trailing_whitespace = false`.  From the 2026-10-08
+  settings creview.  Future work because loading it changes how vim edits
+  every file under `$HOME`: `[*]` in `dot_editorconfig:15-16` sets `charset
+  = utf-8` and `end_of_line = lf`, so a latin-1 or CRLF file is rewritten
+  whole on its next save.  Fix: `if has('patch-9.0.1799') | packadd!
+  editorconfig | endif` in `30-indent.vim`, with `charset` and
+  `end_of_line` moved out of `[*]` (or described), and the whitespace
+  autocmd skipped when editorconfig set `trim_trailing_whitespace`.
+- **F.2.v  `gdefault` is on.**  `dot_vim/rc/20-search.vim:25`.  vim's own
+  help warns that it breaks plugins and inverts `/g`: a pasted or
+  plugin-run `:s/a/b/g` replaces only the first match.  It changes
+  existing behavior, against `CLAUDE.md`'s rule that new settings start
+  off.  `50-keys.vim:132` (`<leader>rw`) relies on it.  From the
+  2026-10-08 settings creview.  Future work because it changes what `:s`
+  does for the owner.  Fix: `#set gdefault`, and `/g` added to
+  `<leader>rw`.
+- **F.2.w  wget's `timestamping = on` fails `-nc` and warns on `-O`.**
+  `dot_wgetrc:21`.  Checked with wget 1.25: `wget -nc URL` prints `Can't
+  timestamp and not clobber old files at the same time.` and exits 1;
+  `wget -O FILE URL` prints `WARNING: timestamping does nothing in
+  combination with -O`.  Install instructions use both forms.  With
+  `adjust_extension = on` (line 27), pages saved as `X.html` are fetched
+  again every run (wget manual, `-E`).  From the 2026-10-08 settings
+  creview.  Future work because the fix changes what a bare `wget` does
+  to a file already there.  Fix: `#timestamping = on`, leaving `-N` to the
+  command line; or keep it and name both conflicts in its description.
+- **F.2.x  The `defaults` conda channel.**  `dot_condarc:21` lists
+  `conda-forge` then `defaults`.  conda 25.5+ refuses non-interactive
+  commands until the terms of service for `repo.anaconda.com` channels are
+  accepted (`CondaToSNonInteractiveError`), and `defaults` in an
+  organization over 200 people needs a paid license; with `channel_priority:
+  strict` and conda-forge first it rarely supplies anything.  Reasoned
+  from conda's release notes, not run.  `envs_dirs: ~/.conda/envs`
+  (line 30) also puts every environment in `$HOME`, while the off
+  `pkgs_dirs` beside it exists for small quotas.  From the 2026-10-08
+  settings creview.  Future work because it changes where packages come
+  from.  Fix: drop `defaults` (conda-forge's own advice), and name the
+  quota cost in the `envs_dirs` description.
+- **F.2.y  `smartindent` sends `#` lines to column 0.**
+  `dot_vim/rc/30-indent.vim:32`.  Checked: in `conf` buffers (ssh config,
+  tmux.conf) `o#` lands at column 0; python, sh and yaml are unaffected,
+  their indent plugins override it.  From the 2026-10-08 settings
+  creview.  Future work because there are two shapes: drop `smartindent`
+  (`autoindent` and filetype indent cover the rest), or keep it with
+  `inoremap # X<C-h>#`.
+- **F.2.z  `j`/`k` as `gj`/`gk` make counts move screen lines.**
+  `dot_vim/rc/50-keys.vim:32`.  With `wrap` on, `5j` moves five screen
+  lines, not five buffer lines, against the off `relativenumber`
+  (`10-ui.vim:22`), which promises `5j` and `d3k` without counting.  From
+  the 2026-10-08 settings creview.  Future work because it changes a
+  movement key.  Fix: `nnoremap <expr> j v:count ? 'j' : 'gj'`, likewise
+  `k`.
+- **F.2.aa  `<leader>s` and `<leader>e` wait a second.**  `<leader>s`
+  (`dot_vim/rc/50-keys.vim:96`) is a prefix of `<leader>ss` (149) and
+  `<leader>sv` (41); `<leader>e` (`55-netrw.vim:31`) is a prefix of
+  `<leader>ev` (`50-keys.vim:40`).  Each waits `timeoutlen` before acting.
+  From the 2026-10-08 settings creview.  Future work because a fix renames
+  a key the owner types: `<leader>sp` and `<leader>E` for the short ones,
+  or new names for the long ones.
+- **F.2.ab  `SYSTEMD_LESS="$LESS"` drops systemd's `-S` and `-K`.**
+  `dot_config/bash/rc.d/00-env.sh:55`.  journalctl then wraps long lines
+  and Ctrl-C no longer quits less.  From the 2026-10-08 settings creview.
+  Future work because it changes how journalctl pages.  Fix:
+  `SYSTEMD_LESS="$LESS -SK"`, with the description saying why.
+- **F.2.ac  The toolkit's `prompt_build` guard misses `;prompt_build`.**
+  `dot_config/bash/prompt/toolkit/prompt.sh:455` skips the prepend only
+  when `PROMPT_COMMAND` starts with `prompt_build` or holds `;
+  prompt_build`; a hook added in front with `;` and no space hides it, and
+  a second `prompt_layout` adds `prompt_build` again.  `65-title.sh` was
+  the one such hook here and now joins with `; ` (the 2026-10-08 settings
+  creview's first finding, fixed with a guard on each prepend).  Future
+  work because a toolkit release bumps the version line of every toolkit
+  file, `segments/git.sh` among them, which holds the owner's staged edit.
+  Fix: also match `*';prompt_build'*`, with a bats test, in its own commit
+  sent upstream.
 
 ## F.3 tests
 

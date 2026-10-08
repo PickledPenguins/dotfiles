@@ -103,7 +103,8 @@ fi
 
 # fzf: Ctrl-R fuzzy history search, Ctrl-T pastes a file path, Alt-C cds
 # into a directory.  Files come from fd or ripgrep when installed, which
-# respect .gitignore.
+# respect .gitignore.  fzf runs these lists with `$SHELL -c`, where the fd
+# alias does not exist, so they name the program Debian installs.
 if command -v fzf >/dev/null; then
     if fzf --bash >/dev/null 2>&1; then
         eval "$(fzf --bash)"                            # fzf >= 0.48
@@ -115,19 +116,22 @@ if command -v fzf >/dev/null; then
         unset _f
     fi
     export FZF_DEFAULT_OPTS="${DOTFILES_FZF_OPTS:---height 40% --layout=reverse --border}"
-    if command -v fd >/dev/null; then
-        export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+    _fd=$(type -P fd fdfind | head -n 1); _fd=${_fd##*/}
+    if [[ -n "$_fd" ]]; then
+        export FZF_DEFAULT_COMMAND="$_fd --type f --hidden --exclude .git"
         export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-        export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+        export FZF_ALT_C_COMMAND="$_fd --type d --hidden --exclude .git"
     elif command -v rg >/dev/null; then
         export FZF_DEFAULT_COMMAND='rg --files --hidden --glob "!.git"'
         export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
     fi
+    unset _fd
 fi
 
-# Ctrl-T shows the highlighted file's first lines beside the list.
+# Ctrl-T shows the highlighted file's first lines beside the list, through
+# bat, or batcat where Debian installs it under that name.
 # Needs: fzf, bat
-#export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:200 {}'"
+#export FZF_CTRL_T_OPTS="--preview '$(type -P bat >/dev/null && echo bat || echo batcat) --color=always --style=numbers --line-range=:200 {}'"
 
 # Alt-C shows the highlighted directory's tree beside the list.
 # Needs: fzf, tree
@@ -147,7 +151,8 @@ fi
 command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 
 # zoxide takes over cd itself: `cd proj` jumps to ~/work/proj from anywhere.
-# Instead of the line above; cd without a match behaves as usual.
+# Instead of the line above; cd without a match behaves as usual.  Loads
+# after 45-dirs.sh, so it replaces either cd function there.
 # Needs: zoxide
 #eval "$(zoxide init bash --cmd cd)"
 
@@ -166,7 +171,8 @@ command -v direnv >/dev/null && eval "$(direnv hook bash)"
 
 # atuin: history in SQLite with context (directory, exit status, duration),
 # searched full-screen on Ctrl-R and Up; sync between machines is opt-in.
-# Takes Ctrl-R from fzf.
+# Takes Ctrl-R from fzf.  Its bash hooks need bash-preexec or ble.sh
+# sourced first, which add a DEBUG trap beside the prompt's own.
 # Needs: atuin
 #eval "$(atuin init bash)"
 

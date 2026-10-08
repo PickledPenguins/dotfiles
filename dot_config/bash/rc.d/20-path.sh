@@ -19,7 +19,7 @@
 #   DOTFILES_PATH_APPEND   colon-separated dirs to put last   default: none
 
 # The helpers themselves.
-path_remove()  { PATH=":$PATH:"; PATH="${PATH//:$1:/:}"; PATH="${PATH#:}"; PATH="${PATH%:}"; }
+path_remove()  { PATH=":$PATH:"; PATH="${PATH//:"$1":/:}"; PATH="${PATH#:}"; PATH="${PATH%:}"; }
 path_prepend() { [[ -d "$1" ]] || return 0; path_remove "$1"; PATH="$1${PATH:+:$PATH}"; }
 path_append()  { [[ -d "$1" ]] || return 0; path_remove "$1"; PATH="${PATH:+$PATH:}$1"; }
 
@@ -84,5 +84,7 @@ unset _dirs _d
 export PATH
 
 # man finds pages installed under ~/.local/share/man (pip, cargo, by hand)
-# as well as the system's; the trailing : keeps the system path.
-[[ -d "$HOME/.local/share/man" ]] && export MANPATH="$HOME/.local/share/man:${MANPATH:-}"
+# as well as the system's; the trailing : keeps the system path.  Added
+# once, so a nested shell does not add it again.
+[[ -d "$HOME/.local/share/man" && ":${MANPATH-}:" != *":$HOME/.local/share/man:"* ]] &&
+    export MANPATH="$HOME/.local/share/man:${MANPATH:-}"

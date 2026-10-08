@@ -75,8 +75,9 @@ command -v srun >/dev/null && srun-i() { srun --pty "$@" "${SHELL:-bash}" -l; }
 # ── Environment Modules / Lmod ────────────────────────────────────────────
 
 # ml module, mla avail, mll list, mlp purge, mls spider (Lmod's search).
+# Lmod's own ml function, which also loads (`ml gcc`), is left in place.
 if command -v module >/dev/null 2>&1 || declare -F module >/dev/null; then
-    alias ml='module'
+    declare -F ml >/dev/null || alias ml='module'
     alias mla='module avail'
     alias mll='module list'
     alias mlp='module purge'
@@ -93,7 +94,9 @@ fi
 # ── Login-node etiquette ──────────────────────────────────────────────────
 
 # One thread per program unless a job says otherwise, so a quick test on a
-# shared login node does not take every core.  Jobs set their own.
+# shared login node does not take every core.  Slurm copies it into every
+# job submitted from this shell (--export=ALL is its default), so a job
+# that does not set its own runs one thread: sbatch --export=NONE.
 #export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 
 # Temporary files on scratch instead of a small /tmp, when that scratch

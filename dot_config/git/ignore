@@ -9,6 +9,7 @@
 # a project meant to commit.
 
 # Editors: vim swap, backup and netrw files, tags, IDE project folders.
+# `tags` also hides a directory of that name (a site's tags/ pages).
 *~
 *.swp
 *.swo

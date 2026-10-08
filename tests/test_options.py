@@ -373,6 +373,29 @@ def ipython(home, path):
     return problems(proc, "warning", "error", "traceback")
 
 
+@pytest.mark.long
+@pytest.mark.skipif(shutil.which("ipython") is None, reason="ipython not installed")
+def test_ipython_start_up_settings_switched_on_together_all_run(home):
+    # Each exec_lines setting replaced the list, so only the last one ran.
+    for module in ("numpy", "pandas"):
+        if importlib.util.find_spec(module) is None:
+            pytest.skip(f"{module} not installed for {sys.executable}")
+    rel = ".ipython/profile_default/ipython_config.py"
+    source = REPO / "dot_ipython/profile_default/ipython_config.py"
+    text = source.read_text()
+    for option in parse(rel, source):
+        if any("InteractiveShellApp" in line for line in option.code):
+            text = switch_on(text, option)
+    profile = home.parent / "ipython" / "profile_default"
+    profile.mkdir(parents=True)
+    (profile / "ipython_config.py").write_text(text)
+    check = ('r = get_ipython().magics_manager.registry["AutoreloadMagics"]._reloader; '
+             'print(np.__name__, pd.__name__, r.enabled, r.check_all)')
+    proc = run(["ipython", "--no-banner", "--colors=nocolor", "-c", check], home,
+               env={"IPYTHONDIR": str(profile.parent)})
+    assert proc.stdout.splitlines()[-1:] == ["numpy pandas True True"], proc.stderr
+
+
 def matplotlibrc(home, path):
     if importlib.util.find_spec("matplotlib") is None:
         pytest.skip(f"matplotlib not installed for {sys.executable}")

@@ -34,7 +34,8 @@
 #--fail
 
 # A newline after the output, so the prompt does not land at the end of a
-# response that lacks one.
+# response that lacks one.  It goes into a download saved with > too, so
+# curl URL > file.tar.gz gets an extra byte; -o is not affected.
 #--write-out "\n"
 
 # Downloaded files keep the server's modification time.

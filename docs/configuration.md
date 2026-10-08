@@ -80,7 +80,7 @@ None is committed or managed by `dots`; each is read only if it exists.
 | `~/.bashrc.before` | `~/.bashrc` | before the modules | `DOTFILES_*` knobs |
 | `~/.bashrc.local` | `rc.d/90-local.sh` | after the modules | settings for this machine, aliases, `path_prepend`, secrets |
 | `~/.config/bash/disabled` | `~/.bashrc` | before each module | module names to skip, one per line, `#` comments |
-| `~/.config/bash/profile.d/*.sh` | `~/.bash_profile` | login shells only | ssh-agent, one-time exports |
+| `~/.config/bash/profile.d/*.sh` | `~/.bash_profile` | login shells only (each tmux pane is one) | ssh-agent, one-time exports |
 | `~/.config/bash/completion.d/*.bash` | `rc.d/50-completion.sh` | after bash-completion | `foo completion bash` output |
 | `~/.vimrc.before` | `~/.vimrc` | before the modules | `g:dotfiles_*` knobs |
 | `~/.vimrc.local` | `~/.vimrc` | after the modules | overrides |

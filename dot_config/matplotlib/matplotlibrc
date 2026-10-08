@@ -18,6 +18,7 @@
 #figure.figsize: 8, 5
 
 # Room between subplots is worked out automatically, so labels do not overlap.
+# plt.subplots_adjust and tight_layout then warn and change nothing.
 #figure.constrained_layout.use: True
 
 # ── Saving ────────────────────────────────────────────────────────────────

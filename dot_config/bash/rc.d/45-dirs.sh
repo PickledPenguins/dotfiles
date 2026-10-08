@@ -55,7 +55,8 @@ for _i in 1 2 3 4 5 6 7 8 9; do alias "$_i"="cd ~$_i"; done
 unset _i
 
 # ── What cd does ──────────────────────────────────────────────────────────
-# The two below replace cd with a function; use one or the other.
+# The two below replace cd with a function; use one or the other.  zoxide's
+# `--cmd cd` (80-tools.sh) loads later and replaces either.
 
 # cd lists the new directory after changing to it.
 #cd() { builtin cd "$@" && ls; }

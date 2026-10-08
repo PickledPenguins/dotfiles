@@ -1,5 +1,6 @@
 " 30-indent.vim -- indentation: spaces or tabs, and how wide, by filetype.
-" A project's .editorconfig wins over these (vim 9+ reads it).
+" vim 9.0.1799+ ships editorconfig as an optional package that these files
+" do not load, so a project's .editorconfig is not read.
 "
 " Each setting has its description in the comment above it.  A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn

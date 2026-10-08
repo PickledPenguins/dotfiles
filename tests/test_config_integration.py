@@ -9,7 +9,9 @@ the test machine skip their tests by name.
 import email.utils
 import http.server
 import os
+import pty
 import re
+import select
 import shutil
 import subprocess
 import threading
@@ -91,6 +93,27 @@ def test_bashrc_sources_again_silently(linked):
     assert (proc.returncode, proc.stdout, proc.stderr) == (0, "ok\n", "")
 
 
+def test_bashrc_sourced_again_leaves_prompt_command_as_it_was(linked):
+    # Stdout on a terminal, so 65-title adds its hook too.  Each hook added a
+    # second time put a `history -a` before the second prompt_build, which
+    # then showed its 0 as the last command's exit status.
+    main, side = pty.openpty()
+    script = 'a=$PROMPT_COMMAND; source ~/.bashrc; printf "%s\\n" "$a" "$PROMPT_COMMAND"'
+    proc = subprocess.run(["bash", "--rcfile", str(linked / ".bashrc"), "-i", "-c", script],
+                          env=shell_env(linked), stdin=side, stdout=side, stderr=subprocess.PIPE,
+                          cwd=str(linked))
+    os.close(side)
+    out = b""
+    while select.select([main], [], [], 0)[0]:
+        try:
+            out += os.read(main, 4096)
+        except OSError:                 # EIO: the terminal's other side is closed
+            break
+    os.close(main)
+    first = "_title_prompt; prompt_build; history -a"
+    assert (proc.returncode, out.decode().splitlines()) == (0, [first, first])
+
+
 def test_bashrc_loads_silently_with_tree_installed(linked):
     tree = linked / "bin" / "tree"
     tree.parent.mkdir(exist_ok=True)
@@ -161,6 +184,17 @@ def test_path_helpers_are_idempotent_and_skip_missing_dirs(linked):
     proc = bash(linked, 'path_prepend /usr; path_prepend /usr; path_append /nope/x; tr : "\\n" <<<"$PATH" | grep -c "^/usr$"; '
                         '[[ $PATH == */nope/x* ]] || echo skipped')
     assert proc.stdout == "1\nskipped\n"
+
+
+def test_path_remove_takes_its_argument_as_a_name_not_a_pattern(linked):
+    proc = bash(linked, 'PATH="/a:/b:/usr/bin"; path_remove "/[ab]"; echo "$PATH"')
+    assert proc.stdout == "/a:/b:/usr/bin\n"
+
+
+def test_path_module_adds_the_man_directory_once_in_a_nested_shell(linked):
+    (linked / ".local/share/man").mkdir(parents=True)
+    proc = bash(linked, 'bash --rcfile ~/.bashrc -i -c \'echo "$MANPATH"\' 2>/dev/null')
+    assert proc.stdout == f"{linked}/.local/share/man:\n"
 
 
 def test_path_knobs(linked):
@@ -410,6 +444,16 @@ def test_tools_module_tat_names_the_session_after_the_directory(linked, tmp_path
     assert proc.stdout == "tmux new-session -A -s my_proj\ntmux new-session -A -s other\n"
 
 
+@pytest.mark.skipif(shutil.which("fd", path="/usr/bin:/bin") is not None, reason="a real fd is installed")
+def test_tools_module_fzf_lists_with_fdfind_where_fd_is_only_an_alias(linked, tmp_path):
+    # fzf runs these with `$SHELL -c`, where the fd alias does not exist.
+    fake = stubs(tmp_path, fzf="", fdfind='echo "fdfind $*"\n')
+    proc = bash(linked, 'for v in FZF_DEFAULT_COMMAND FZF_CTRL_T_COMMAND FZF_ALT_C_COMMAND; do '
+                        'sh -c "${!v}"; done', env={"PATH": f"{fake}:/usr/bin:/bin"})
+    assert proc.stdout == ("fdfind --type f --hidden --exclude .git\n" * 2
+                           + "fdfind --type d --hidden --exclude .git\n")
+
+
 def test_tools_module_fbr_switches_to_a_remote_branch_by_its_local_name(linked, tmp_path):
     fake = stubs(tmp_path, fzf="grep -x origin/feat\n")
     proc = bash(linked, "git init -q --bare -b main o.git && git clone -q o.git c 2>/dev/null && cd c && "
@@ -425,6 +469,11 @@ def test_tools_module_fbr_switches_to_a_remote_branch_by_its_local_name(linked, 
 def test_hpc_module_defines_nothing_without_a_scheduler(linked):
     proc = bash(linked, "alias qs sq ml 2>&1 | grep -c 'not found'", env={"PATH": "/usr/bin:/bin"})
     assert proc.stdout == "3\n"
+
+
+def test_hpc_module_leaves_lmods_own_ml_function(linked):
+    proc = bash(linked, "ml gcc; mll", before='module() { echo "module $*"; }\nml() { echo "lmod ml $*"; }\n')
+    assert proc.stdout == "lmod ml gcc\nmodule list\n"
 
 
 def test_hpc_module_with_fake_schedulers(linked, tmp_path):
@@ -456,6 +505,23 @@ def test_profile_and_bash_profile_chain(linked):
                           env={"HOME": str(linked), "PATH": os.environ["PATH"], "TERM": "dumb"},
                           capture_output=True, text=True)
     assert proc.stdout == "1 C.UTF-8\nfunction\n"
+
+
+def test_bash_profile_ssh_to_tmux_leaves_an_editor_reading_the_environment(linked, tmp_path):
+    # VS Code Remote-SSH reads the environment from `bash -ilc` with no
+    # terminal; going into tmux there hangs it.
+    profile = linked / ".bash_profile"
+    text = profile.read_text()
+    switched = re.sub(r"^#(\[\[ -n \"\$\{SSH_CONNECTION)", r"\1", text, flags=re.M)
+    assert switched != text
+    profile.unlink()
+    profile.write_text(switched)
+    fake = stubs(tmp_path, tmux='echo "tmux $*"\n')
+    env = {"HOME": str(linked), "PATH": f"{fake}:{os.environ['PATH']}", "TERM": "dumb",
+           "SSH_CONNECTION": "10.0.0.1 22 10.0.0.2 22", "VSCODE_RESOLVING_ENVIRONMENT": "1"}
+    proc = subprocess.run(["bash", "-l", "-i", "-c", "echo env"], env=env, capture_output=True,
+                          text=True, stdin=subprocess.DEVNULL)
+    assert proc.stdout == "env\n"
 
 
 @needs("dash")
@@ -679,6 +745,17 @@ def test_ssh_config_parses_and_local_include_wins(linked):
     assert settings["serveraliveinterval"] == "5"
     assert settings["controlmaster"] == "auto"
     assert settings["addkeystoagent"] in ("yes", "true")
+
+
+@needs("ssh")
+def test_ssh_control_socket_path_fits_the_unix_socket_limit_for_a_long_host_name(linked):
+    # ssh adds 17 characters while it creates the socket; sun_path holds 104
+    # (BSD) to 108 bytes.  The path is a hash, whatever the host's name.
+    host = "node" + "x" * 60 + ".cluster.example.edu"
+    proc = subprocess.run(["ssh", "-F", str(linked / ".ssh" / "config"), "-G", host],
+                          capture_output=True, text=True)
+    path = dict(l.split(" ", 1) for l in proc.stdout.splitlines() if " " in l)["controlpath"]
+    assert len(path) + 17 < 104, path
 
 
 @needs("gdb")

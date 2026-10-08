@@ -16,7 +16,9 @@ $include /etc/inputrc
 set editing-mode emacs
 
 # vi keys instead: Esc for normal mode, then hjkl, w, b, dd, / ...  In every
-# readline program, not just bash.
+# readline program, not just bash.  The Alt macros below assume emacs keys
+# (Alt-S's Ctrl-A types itself in vi insert mode), and Esc waits for the
+# rest of a key sequence while keyseq-timeout is off.
 #set editing-mode vi
 
 # In vi mode, the prompt starts with (ins) or (cmd) to show the mode.

@@ -78,7 +78,8 @@ Plug 'airblade/vim-gitgutter'
 
 " ── Languages ───────────────────────────────────────────────────────────
 
-" editorconfig: only needed before vim 9.0.1799, which has it built in.
+" editorconfig: vim 9.0.1799+ ships it as an optional package instead
+" (`packadd editorconfig`), which nothing here loads.
 Plug 'editorconfig/editorconfig-vim'
 
 " ALE: linting and fixing as you type with the linters you have installed.
