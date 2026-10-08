@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.8
+# Toolkit version: 0.1.9
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.example.sh — Prompt configuration using prompt.sh
 #
@@ -37,6 +37,8 @@ prompt_segment git_ahead_behind _ps_seg_git_ahead_behind   # ↑N ↓N or ✓
 prompt_segment git_status       _ps_seg_git_status         # +staged ~modified ?untracked
 prompt_segment git_stash        _ps_seg_git_stash          # ⚑N stash count
 prompt_segment git_conflicts    _ps_seg_git_conflicts      # ⚠N unmerged/conflicted paths
+prompt_segment git_sha          _ps_seg_git_sha            # short SHA of HEAD
+prompt_segment git_remote_sha   _ps_seg_git_remote_sha     # short SHA of the upstream
 prompt_segment tmux             _ps_seg_tmux               # ⧉ session:win.pane
 prompt_segment display          _ps_seg_display            # $DISPLAY value
 prompt_segment ssh              _ps_seg_ssh                # ⇄ ssh (when remote)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.8
+# Toolkit version: 0.1.9
 # ════════════════════════════════════════════════════════════════════════════
 # segments/git.sh — branch, upstream, ahead/behind, working tree, stash,
 # conflicts
@@ -11,8 +11,9 @@
 #
 # Segments: _ps_seg_git_branch  _ps_seg_git_remote  _ps_seg_git_ahead_behind
 #           _ps_seg_git_status  _ps_seg_git_stash   _ps_seg_git_conflicts
-# Collector: git (every prompt; git_info.sh's own mtime+TTL check decides
-#            whether git actually runs)
+#           _ps_seg_git_sha     _ps_seg_git_remote_sha
+# Collector: git (every prompt; git_info.sh's own ref+index+TTL check
+#            decides whether git actually runs)
 # Settings:  prompt_cache_ttl <seconds>
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -37,6 +38,17 @@ _ps_seg_git_remote() {
     printf '%s' "$GIT_REMOTE"
 }
 
+# Short SHA of HEAD, silent before the first commit.
+_ps_seg_git_sha() {
+    (( GIT_IN_REPO )) && [[ -n "$GIT_SHA" ]] || return
+    printf '%s' "$GIT_SHA"
+}
+
+# Short SHA of the upstream branch, silent when the branch has no remote.
+_ps_seg_git_remote_sha() {
+    (( GIT_IN_REPO )) && [[ -n "$GIT_REMOTE_SHA" ]] || return
+    printf '%s' "$GIT_REMOTE_SHA"
+}
 # ↑N ahead (green)  ↓N behind (yellow)  ✓ if up to date  — silent if no remote
 _ps_seg_git_ahead_behind() {
     (( GIT_IN_REPO )) && [[ -n "$GIT_REMOTE" ]] || return
@@ -78,3 +90,5 @@ prompt_segment_needs _ps_seg_git_ahead_behind git
 prompt_segment_needs _ps_seg_git_status       git
 prompt_segment_needs _ps_seg_git_stash        git
 prompt_segment_needs _ps_seg_git_conflicts    git
+prompt_segment_needs _ps_seg_git_sha          git
+prompt_segment_needs _ps_seg_git_remote_sha   git

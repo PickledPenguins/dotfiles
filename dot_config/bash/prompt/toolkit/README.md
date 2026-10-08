@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.8
+**Version:** 0.1.9
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -72,6 +72,8 @@ to just the identity row and the prompt character.
 | `feature/auth` | `@git_branch` | Branch name, or short SHA when detached | Inside a repo |
 | `origin/feature/auth` | `@git_remote` | Upstream tracking branch | Branch has an upstream |
 | `↑3` / `↓1` / `✓` | `@git_ahead_behind` | Commits ahead (green), behind (yellow), or in sync | Branch has an upstream |
+| `3efd58d` | `@git_sha` | Short SHA of HEAD | A commit exists |
+| `9c1e0a2` | `@git_remote_sha` | Short SHA of the upstream branch | Branch has an upstream |
 
 ### Row 4 — git working tree
 
@@ -141,14 +143,10 @@ copied and customized, not left as a black box.
   disrupted by an unrelated `SECONDS=0` elsewhere in the shell. Bash
   4.x still works via a `$SECONDS`-based fallback with its own (weaker)
   defense against that specific case — see the [version history](#version-history).
-- **GNU coreutils** (`stat -c`, specifically) — this targets Linux. It
-  has not been tested against BSD/macOS coreutils, which use different
-  `stat` flags, and no portability shim is planned; if that matters to
-  you, `git_info.sh`'s two `stat -c '%Y'` calls are the only place to
-  look.
+- **Linux** — this targets Linux. It has not been tested on BSD/macOS.
 - **Runtime dependencies** (all optional except `git`; every segment
   that needs one degrades to silent/empty if it's missing): `git`,
-  `tmux`, `nvidia-smi`, `df`, `nproc`, `stat`, `tput`, `date`, `awk`,
+  `tmux`, `nvidia-smi`, `df`, `nproc`, `mktemp`, `tput`, `date`, `awk`,
   `sort`, `cut`, `tr`, `timeout`. None of these are external to a
   typical Linux install except `nvidia-smi` (GPU nodes only) and `tmux`
   (only if you use it).
@@ -170,6 +168,8 @@ cheap function call, not a blank space.
 | `_ps_seg_git_status` | `+staged ~modified ?untracked` | working tree is clean |
 | `_ps_seg_git_stash` | `⚑N` stash count | no stashes |
 | `_ps_seg_git_conflicts` | `⚠N` unmerged paths | no active conflict |
+| `_ps_seg_git_sha` | Short SHA of HEAD | before the first commit |
+| `_ps_seg_git_remote_sha` | Short SHA of the upstream branch | no upstream configured |
 | `_ps_seg_tmux` | `⧉ session:win.pane` | not inside tmux |
 | `_ps_seg_display` | `$DISPLAY` value | unset |
 | `_ps_seg_ssh` | `⇄ ssh` | local session |
@@ -320,9 +320,7 @@ under the user's own control.
 
 **Assumptions:**
 
-- Linux with GNU coreutils. `git_info.sh` uses `stat -c '%Y'`, which is
-  GNU-specific; BSD/macOS `stat` takes different flags. Untested there
-  and no portability shim is planned.
+- Linux. Untested on BSD/macOS.
 - A UTF-8-capable terminal for the default box-drawing characters. The
   `ascii` box style exists for terminals that can't render them.
 - One prompt configuration per shell. Sourcing two configs that both
@@ -337,6 +335,11 @@ under the user's own control.
   already-collected globals. See [Customization](#customization).
 - **Git state is per-process.** Each shell maintains its own cache; ten
   panes in the same repo each run their own `git status` on a cache miss.
+  Each shell also leaves one empty timestamp file, `bash-prompt-git.*`,
+  in `$XDG_RUNTIME_DIR` (else `$TMPDIR` or `/tmp`).
+- **The git cache reads loose refs.** A packed branch ref reads as empty
+  until the next commit writes it loose again; under git's reftable
+  backend no ref is loose, and only the index and the TTL catch a change.
 - **`@cmd_time` requires the `DEBUG` trap.** If another tool owns it, set
   `PS_SKIP_DEBUG_TRAP=1` and lose only that segment.
 - **Disk usage uses `df`, not real quotas.** Quota semantics vary too
@@ -430,9 +433,11 @@ in the segment.** Built-in segments declare their collectors in their own
 `segments/` file; custom ones do the same with `prompt_collector` and
 `prompt_segment_needs`.
 
-Git state is cached per-process with an mtime+TTL check
-(`git_info.sh`) — a cache hit costs two `stat(2)` calls, not a `git`
-subprocess.
+Git state is cached per-process (`git_info.sh`). A cache hit starts no
+process: it reads `HEAD`, the branch's ref and the upstream's ref with
+the `read` builtin, compares the index against a timestamp file with
+`-nt`, and checks the TTL. A `cd` within the same work tree keeps the
+cache.
 
 ## Project structure
 
@@ -441,12 +446,12 @@ subprocess.
 | `lib/colors.sh` | `C_*`/`PS_*` ANSI color variables; raw mode (scripts) and readline-safe `\001..\002`-wrapped prompt mode |
 | `lib/term_utils.sh` | `strip_ansi`, `str_width` (locale-safe code-point count), `str_repeat` — fork-free as of v0.1.2 except `str_width` on non-ASCII input |
 | `lib/cache.sh` | Generic TTL bookkeeping (`cache_stale`/`cache_touch`/`cache_age`) — shared by `git_info.sh` and the collector TTLs (key `collector:<name>`) |
-| `lib/git_info.sh` | Cached git branch/status/ahead-behind/conflicts/stash state |
+| `lib/git_info.sh` | Cached git branch/SHA/status/ahead-behind/conflicts/stash state |
 | `lib/cmd_timer.sh` | Command-duration tracking via the `DEBUG` trap, behind `@cmd_time` — general-purpose, not prompt-specific |
 | `prompt.sh` | The segment/row/layout/collector engine itself; sources `segments/` at the end |
 | `segments/identity.sh` | User, host, user@host, root marker, working directory |
 | `segments/command.sh` | Exit status, command duration and its `cmd_time` collector, clock |
-| `segments/git.sh` | Branch, upstream, ahead/behind, working tree, stash, conflicts; the `git` collector |
+| `segments/git.sh` | Branch, upstream, SHAs, ahead/behind, working tree, stash, conflicts; the `git` collector |
 | `segments/shell.sh` | tmux, display, ssh, venv, conda, jobs, shell level |
 | `segments/system.sh` | Load, disk, GPU and their collectors |
 | `segments/hpc.sh` | Environment modules, PBS and Slurm jobs |
@@ -461,13 +466,13 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**137 tests across 9 files**, all passing against v0.1.8:
+**151 tests across 9 files**, all passing against v0.1.9:
 
 | File | Tests | Covers |
 |---|---|---|
 | `collectors.bats` | 28 | collector planning by layout, TTLs, run order, argument checks, `DEBUG` trap claimed only when needed, `install.sh` copying `segments/` |
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
-| `git_info.bats` | 12 | counts, conflicts, detached HEAD, ahead/behind, stash, cache validity, index left alone |
+| `git_info.bats` | 26 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 14 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing |
 | `prompt_segments.bats` | 16 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit and conflict segments |
@@ -522,6 +527,28 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.9
+
+**Changed:**
+
+- **A git cache hit starts no process.** It ran `stat` twice (about
+  6 ms a prompt); it now reads `HEAD` and the branch's and upstream's
+  loose refs with `read` and compares the index against a per-shell
+  timestamp file with `-nt` (about 0.3 ms). GNU `stat` is no longer
+  needed.
+- **The cache catches more.** A commit or `reset --soft` that leaves the
+  index alone, and a fetch that moves the upstream, now refresh at once
+  instead of after the TTL. The old check watched the mtime of `HEAD`,
+  which a commit does not change.
+- **A `cd` within the same work tree keeps the cache.** It is keyed on
+  the work tree, found by walking up to the nearest `.git`, instead of
+  `$PWD`; a nested repository, a submodule or a linked worktree is
+  another work tree.
+
+**Added:** `GIT_SHA` and `GIT_REMOTE_SHA` globals and the `@git_sha` and
+`@git_remote_sha` segments, filled in the same refresh as the rest; 14
+tests in `git_info.bats`.
 
 ### v0.1.8
 
