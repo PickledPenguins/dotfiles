@@ -17,8 +17,12 @@
     insteadOf = gh-ssh:
 
     # Clone GitHub over https, push over ssh, without changing the remote:
-    # anonymous clones keep working, pushes use your ssh key.
-    pushInsteadOf = https://github.com/
+    # anonymous clones keep working, pushes use your ssh key.  Where GitHub
+    # access is an https token or credential helper, every push fails with
+    # "Permission denied (publickey)": turn it on per machine, in
+    # ~/.gitconfig.local under [url "git@github.com:"].
+    # Needs: an ssh key on GitHub
+    #pushInsteadOf = https://github.com/
 
     # Every GitHub https URL is fetched over ssh too.  Clones then fail on
     # machines without your key, even for public repositories.

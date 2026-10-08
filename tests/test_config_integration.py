@@ -843,20 +843,37 @@ class RangeHandler(http.server.BaseHTTPRequestHandler):
 @needs("wget")
 @pytest.mark.parametrize("new", [b"VERSION TWO, longer than before\n", b"v2\n"])
 def test_wgetrc_refetch_replaces_a_changed_file(linked, tmp_path, new):
-    # continue = on with timestamping = on resumed from the old file's size:
-    # the old prefix spliced onto the new tail, or a shorter file kept stale.
+    # continue = on with wget -N resumed from the old file's size: the old
+    # prefix spliced onto the new tail, or a shorter file kept stale.
     server = http.server.HTTPServer(("127.0.0.1", 0), RangeHandler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}/f.txt"
     try:
         for body, mtime in ((b"version one\n", 1_000_000_000), (new, 1_100_000_000)):
             server.body, server.mtime = body, mtime
-            proc = subprocess.run(["wget", "-q", url], cwd=tmp_path, env=dict(os.environ, HOME=str(linked)),
+            proc = subprocess.run(["wget", "-q", "-N", url], cwd=tmp_path, env=dict(os.environ, HOME=str(linked)),
                                   capture_output=True, text=True, timeout=30)
             assert proc.returncode == 0, proc.stderr
     finally:
         server.shutdown()
     assert (tmp_path / "f.txt").read_bytes() == new
+
+
+@needs("wget")
+def test_wgetrc_lets_no_clobber_keep_a_file(linked, tmp_path):
+    # timestamping = on made wget -nc refuse to run at all.
+    server = http.server.HTTPServer(("127.0.0.1", 0), RangeHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    server.body, server.mtime = b"new\n", 1_100_000_000
+    (tmp_path / "f.txt").write_bytes(b"old\n")
+    try:
+        proc = subprocess.run(["wget", "-q", "-nc", f"http://127.0.0.1:{server.server_port}/f.txt"],
+                              cwd=tmp_path, env=dict(os.environ, HOME=str(linked)),
+                              capture_output=True, text=True, timeout=30)
+    finally:
+        server.shutdown()
+    assert (proc.returncode, proc.stderr) == (0, "")
+    assert (tmp_path / "f.txt").read_bytes() == b"old\n"
 
 
 @needs("dircolors")

@@ -13,12 +13,13 @@ auto_activate_base: false
 # environment itself.
 changeps1: false
 
-# conda-forge first, and packages only from the highest-priority channel
-# that has them, so builds from different channels do not mix.
+# Packages only from conda-forge, the highest-priority channel that has
+# them, so builds from different channels do not mix.  No defaults channel:
+# its terms of service stop non-interactive conda 25.5+ until accepted, and
+# an organization over 200 people needs a paid license for it.
 channel_priority: strict
 channels:
   - conda-forge
-  - defaults
 
 # conda asks before changing an environment.
 always_yes: false
@@ -26,7 +27,9 @@ always_yes: false
 # Package listings show which channel each package came from.
 show_channel_urls: true
 
-# New named environments go under ~/.conda/envs.
+# New named environments go under ~/.conda/envs.  Each one costs hundreds
+# of MB to a few GB of the home quota; on a cluster, put the directory on
+# a bigger disk, as with pkgs_dirs below.
 envs_dirs:
   - ~/.conda/envs
 

@@ -17,8 +17,12 @@ retry_connrefused = on
 # the old start joined to the new end.  Use wget -c by hand instead.
 #continue = on
 
-# Skip files the server has not changed since the local copy.
-timestamping = on
+# Skip files the server has not changed since the local copy, instead of
+# saving another copy as FILE.1.  Off because wget -nc then refuses to run
+# ("Can't timestamp and not clobber old files at the same time"), -O warns
+# that it does nothing, and with adjust_extension pages saved as X.html are
+# fetched again every time.  Use wget -N for it per command.
+#timestamping = on
 
 # Follow links to FTP servers from HTML pages when recursing.
 follow_ftp = on

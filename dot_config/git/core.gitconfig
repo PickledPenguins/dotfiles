@@ -98,9 +98,10 @@
 
 [merge]
     # Conflict markers show the common ancestor as well as both sides.
-    # Older git rejects the value, and merge, rebase and pull then fail.
-    # Needs: git 2.35+
-    conflictStyle = zdiff3
+    # zdiff3 (git 2.35+) trims lines the sides share out of the conflict;
+    # set it in ~/.gitconfig.local where every git is that new, since older
+    # git rejects the value and merge, rebase and pull then fail.
+    conflictStyle = diff3
 
     # git merge refuses anything but a fast-forward; merge commits then need
     # an explicit --no-ff.  Surprising on a plain git merge.

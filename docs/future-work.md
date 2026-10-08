@@ -140,36 +140,6 @@ here is scheduled; an item is cited by its label.  Back to the
   local stopgap is to append `cmd_timer_arm` as the last `PROMPT_COMMAND`
   entry in `90-local.sh`.  What changes for a user: the shown durations get
   shorter and true.
-- **F.2.m  `merge.conflictStyle = zdiff3` on old git.**  The value needs
-  git 2.35 (`dot_config/git/core.gitconfig`, now with a `Needs:` line);
-  older git (Ubuntu 20.04 has 2.25, RHEL 7 1.8) rejects it and merge,
-  rebase, pull and `checkout -m` die on the config.  Not reproduced: only
-  current git is installed here.  From the 2026-10-07 creview.  Future
-  work because the choice trades the better markers on new git against
-  working on old machines: `diff3` works everywhere and shows the same
-  three sections with less trimming; keeping `zdiff3` and putting
-  `conflictStyle = diff3` in `~/.gitconfig.local` on an old machine works
-  too, and is what the `Needs:` line now tells the reader.
-- **F.2.o  curl's `--max-time 300` ends long downloads.**  `dot_curlrc`
-  limits every transfer that reads `~/.curlrc` to five minutes, so a large
-  download on a cluster link, or an installer run as `curl ... | sh`,
-  stops with `Operation timed out`, and `--retry 3` then starts it again
-  from zero up to three times: about 20 minutes to a failure.  The comment
-  states the limit.  From the 2026-10-08 creview.  Future work because it
-  is a chosen default with a tradeoff (a hung server against a slow big
-  file).  Fix: switch `--max-time` off and, to still stop a stalled
-  transfer, add `--speed-limit 1000` and `--speed-time 60` as a setting
-  (abort below 1 kB/s for a minute); `--connect-timeout` stays.
-- **F.2.p  `pushInsteadOf` sends every https GitHub push over ssh.**
-  `dot_config/git/url.gitconfig:21` is on, so on a machine whose GitHub
-  access is an https token or credential helper with no ssh key (common on
-  a cluster) `git push` fails with `Permission denied (publickey)`, and
-  the remote URL gives no hint why.  `CLAUDE.md` has new settings start
-  off unless they only add a name; this one changes what `git push` does.
-  From the 2026-10-08 creview.  Future work because switching it off
-  changes how the owner's pushes authenticate.  Fix: ship it as
-  `#pushInsteadOf = ...` with its description, and turn it on per machine
-  in `~/.gitconfig.local`.
 - **F.2.q  `cat` runs bat when bat is installed.**  `rc.d/80-tools.sh:76`
   aliases `cat='bat --paging=never'`, against the module's own header
   (lines 3-5: a block that would change a familiar command is off).
@@ -236,28 +206,6 @@ here is scheduled; an item is cited by its label.  Back to the
   2026-10-08 settings creview.  Future work because it changes what `:s`
   does for the owner.  Fix: `#set gdefault`, and `/g` added to
   `<leader>rw`.
-- **F.2.w  wget's `timestamping = on` fails `-nc` and warns on `-O`.**
-  `dot_wgetrc:21`.  Checked with wget 1.25: `wget -nc URL` prints `Can't
-  timestamp and not clobber old files at the same time.` and exits 1;
-  `wget -O FILE URL` prints `WARNING: timestamping does nothing in
-  combination with -O`.  Install instructions use both forms.  With
-  `adjust_extension = on` (line 27), pages saved as `X.html` are fetched
-  again every run (wget manual, `-E`).  From the 2026-10-08 settings
-  creview.  Future work because the fix changes what a bare `wget` does
-  to a file already there.  Fix: `#timestamping = on`, leaving `-N` to the
-  command line; or keep it and name both conflicts in its description.
-- **F.2.x  The `defaults` conda channel.**  `dot_condarc:21` lists
-  `conda-forge` then `defaults`.  conda 25.5+ refuses non-interactive
-  commands until the terms of service for `repo.anaconda.com` channels are
-  accepted (`CondaToSNonInteractiveError`), and `defaults` in an
-  organization over 200 people needs a paid license; with `channel_priority:
-  strict` and conda-forge first it rarely supplies anything.  Reasoned
-  from conda's release notes, not run.  `envs_dirs: ~/.conda/envs`
-  (line 30) also puts every environment in `$HOME`, while the off
-  `pkgs_dirs` beside it exists for small quotas.  From the 2026-10-08
-  settings creview.  Future work because it changes where packages come
-  from.  Fix: drop `defaults` (conda-forge's own advice), and name the
-  quota cost in the `envs_dirs` description.
 - **F.2.y  `smartindent` sends `#` lines to column 0.**
   `dot_vim/rc/30-indent.vim:32`.  Checked: in `conf` buffers (ssh config,
   tmux.conf) `o#` lands at column 0; python, sh and yaml are unaffected,

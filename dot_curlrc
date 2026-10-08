@@ -9,9 +9,18 @@
 # Follow redirects (301, 302 ...) to the final page.
 --location
 
-# Give up connecting after 15 s, and the whole transfer after 5 minutes.
+# Give up connecting after 15 s.
 --connect-timeout 15
---max-time 300
+
+# Give up on a transfer that stays below 1 kB/s for a minute, so a stalled
+# server does not hang a script and a slow big download still finishes.
+--speed-limit 1000
+--speed-time 60
+
+# Give up on every transfer after 5 minutes, however fast it is going.  A
+# big download or a curl ... | sh installer stops part way, and --retry
+# then starts it again from zero.
+#--max-time 300
 
 # Retry transient failures (timeouts, 5xx) 3 times, 2 s apart.
 --retry 3

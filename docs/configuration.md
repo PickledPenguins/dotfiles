@@ -192,11 +192,11 @@ Read-only variables the loader sets for modules and for you:
 
 | File | Provides |
 |------|----------|
-| `core.gitconfig` | pager, whitespace, `autocrlf=input`, `defaultBranch=main`, push current+autoSetupRemote+followTags, `pull.rebase`, `fetch.prune`, rebase autoStash/autoSquash/updateRefs, `zdiff3`, `commit.verbose`, rerere, status, log, branch/tag sort, columns, autocorrect prompt, `transfer.fsckObjects`, credential cache.  Off: `core.editor` (git opens `$EDITOR`), `quotePath`, `fsmonitor`, `untrackedCache`, `hooksPath`, `sshCommand`, `useForceIfIncludes`, `pull.ff=only`, `fetch.all`, `fetch.pruneTags`, commit graph, `missingCommitsCheck`, `merge.ff=only`, `merge.autoStash`, commit template, submodules, `log.follow`, libsecret/store credentials, advice, `singleKey`, grep, `safe.directory`, LFS |
+| `core.gitconfig` | pager, whitespace, `autocrlf=input`, `defaultBranch=main`, push current+autoSetupRemote+followTags, `pull.rebase`, `fetch.prune`, rebase autoStash/autoSquash/updateRefs, `diff3`, `commit.verbose`, rerere, status, log, branch/tag sort, columns, autocorrect prompt, `transfer.fsckObjects`, credential cache.  Off: `core.editor` (git opens `$EDITOR`), `quotePath`, `fsmonitor`, `untrackedCache`, `hooksPath`, `sshCommand`, `useForceIfIncludes`, `pull.ff=only`, `fetch.all`, `fetch.pruneTags`, commit graph, `missingCommitsCheck`, `merge.ff=only`, `merge.autoStash`, commit template, submodules, `log.follow`, libsecret/store credentials, advice, `singleKey`, grep, `safe.directory`, LFS |
 | `color.gitconfig` | `color.ui=auto` and per-command colors.  Off: moved-line colors, blame by age |
 | `aliases.gitconfig` | `st a aa ap unstage discard staged conflicts cm cma ca cae fixup undo wip co sw cob br brdel brclean gone recent default pr lg lga last hist who fl contains root outgoing incoming standup find bl df dfs dfw dfn dfst f pl ps pst psf up sl sp ss snapshot ours theirs aliases ignored ignore assume unassume assumed tags cp rb rbi rbc rba whoami` |
 | `diff.gitconfig` | histogram, colorMoved, renames+copies, mnemonic prefixes, vimdiff as difftool/mergetool.  Off: `noprefix`, submodule log, difftastic, delta, diff-so-fancy, meld, VS Code, PDF and docx text diffs |
-| `url.gitconfig` | `gh:`, `gh-ssh:`, `gl:` shorthands; push to GitHub over ssh.  Off: all GitHub over ssh, `gl-ssh:`, `cb:`, `bb:` |
+| `url.gitconfig` | `gh:`, `gh-ssh:`, `gl:` shorthands.  Off: push to GitHub over ssh, all GitHub over ssh, `gl-ssh:`, `cb:`, `bb:` |
 | `signing.gitconfig` | commit and tag signing; its include line in `~/.gitconfig` is off.  Off inside: signed pushes, ssh signing, allowed signers, `showSignature` |
 | `ignore` | global excludes (editor, OS, environment, agent files).  Off: `*.orig`, Jupyter checkpoints, `.envrc`, packaging, coverage, clangd, node_modules, `*.log` |
 | `attributes` | `diff=` drivers by extension, binary types, LF for scripts.  Off: PDF and docx diffs, generated minified and lock files |
@@ -210,13 +210,13 @@ Read-only variables the loader sets for modules and for you:
 | `~/.bash_logout` | `clear_console` on a top-level logout.  Off: `clear` |
 | `~/.inputrc` | readline: case-insensitive completion, single-Tab listing, colored stats, history search on Up/Down, Ctrl-arrows by word, Ctrl-Delete, Alt-S sudo.  Off: vi mode with mode strings and cursor shapes, `keyseq-timeout`, hidden files, horizontal lists, menu completion, `mark-modified-lines`, `expand-tilde`, Ctrl-P/N prefix search, `search-ignore-case`, Ctrl-W by path, Ctrl-Backspace, Alt-L, vi `jj`/`gg`/`G` |
 | `~/.editorconfig` | 2-space default, 4 for python/rust/c/java/sh, tabs for make/go.  Off: `max_line_length`, CRLF for batch files |
-| `~/.curlrc` | follow redirects, timeouts, retries, progress bar.  Off: silent, compressed, fail, newline after output, remote time, create dirs, netrc, IPv4, user agent, proxy |
-| `~/.wgetrc` | timeouts, retries, timestamping.  Off: resume, wait, no parent, HSTS file in `~/.cache`, user agent, proxy |
+| `~/.curlrc` | follow redirects, connect timeout, stalled-transfer limit, retries, progress bar.  Off: whole-transfer time limit, silent, compressed, fail, newline after output, remote time, create dirs, netrc, IPv4, user agent, proxy |
+| `~/.wgetrc` | timeouts, retries.  Off: timestamping, resume, wait, no parent, HSTS file in `~/.cache`, user agent, proxy |
 | `~/.screenrc` | no splash, 10000 lines, status line, tmux-like keys.  Off: `C-b` escape, mouse, windows from 1, login shells |
 | `~/.dircolors` | `dircolors -p` with `OTHER_WRITABLE` readable on dark terminals |
 | `~/.gdbinit` | history, no pagination, pretty printing, intel syntax.  Off: history dedup, debuginfod on or off, full-length printing, null-stop, quiet thread events, auto-load from every directory or from `~/work`, GEF, gdb-dashboard |
 | `~/.nanorc` | autoindent, 4-space tabs, line numbers, soft wrap, syntax files.  Off: cut from cursor, guide stripe, no help, minibar, position and search history, backups, common editor keys |
-| `~/.condarc` | `auto_activate_base: false`, `changeps1: false`, conda-forge first.  Off: `pkgs_dirs`, outdated notice, self-update, default packages, threads, `env_prompt`, error reports, proxy |
+| `~/.condarc` | `auto_activate_base: false`, `changeps1: false`, conda-forge only.  Off: `pkgs_dirs`, outdated notice, self-update, default packages, threads, `env_prompt`, error reports, proxy |
 | `~/.Xresources` | xterm font, colors, scrollback, clipboard keys; urxvt basics.  Off: Xft rendering and dpi, URL double-click, light scheme |
 | `~/.local/bin/dots` | this checkout's `dots`, on `PATH` through `~/.local/bin`; `dots unlink` removes it |
 | `~/.local/share/bash-completion/completions/dots` | Tab completion of the `dots` subcommands and their options, loaded by bash-completion on first use (`50-completion.sh`) |
