@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# git-hooks -- switch a repository's git hooks on and off.
+#
+#   git hooks               list the hooks: on or off, and the file each runs
+#   git hooks on [NAME...]  switch on: rename NAME.off to NAME
+#   git hooks off [NAME...] switch off: rename NAME to NAME.off
+#
+# git runs a hook only under its exact name, so a hook is off while its
+# name ends in .off.  Without a NAME, on and off act on every hook that is a
+# symbolic link (the way a project installs a hook it tracks, such as a
+# pre-push hook that runs its tests); a hook written in place, such as the
+# ones git ctags writes, is switched by name only.  The hooks directory is
+# shared by every worktree of the repository.
+set -euo pipefail
+
+dir=$(git rev-parse --path-format=absolute --git-path hooks)
+
+# Each hook name, .off included, without the .sample files git ships.
+hooks() {
+    local path
+    for path in "$dir"/*; do
+        [[ (-f $path || -L $path) && $path != *.sample ]] && echo "${path##*/}"
+    done
+    return 0
+}
+
+# switch on|off NAME: rename NAME.off to NAME, or NAME to NAME.off.
+switch() {
+    local name=${2%.off} from to
+    if [[ $1 == on ]]; then from=$dir/$name.off to=$dir/$name; else from=$dir/$name to=$dir/$name.off; fi
+    if [[ -e $from || -L $from ]] && [[ -e $to || -L $to ]]; then
+        echo "git hooks: both $name and $name.off exist; remove one" >&2
+        return 1
+    elif [[ -e $to || -L $to ]]; then
+        echo "$name is already $1"
+    elif [[ -e $from || -L $from ]]; then
+        command mv "$from" "$to"
+        echo "$name $1"
+    else
+        echo "git hooks: no hook $name in $dir" >&2
+        return 1
+    fi
+}
+
+case ${1-} in
+    '')
+        hooks | while read -r name; do
+            state=on
+            [[ $name == *.off ]] && state=off
+            printf '%-3s %-16s %s\n' "$state" "${name%.off}" "$(realpath -m "$dir/$name")"
+        done
+        ;;
+    on | off)
+        state=$1
+        shift
+        if (($# == 0)); then
+            for name in $(hooks); do
+                [[ -L $dir/$name ]] && set -- "$@" "${name%.off}"
+            done
+            if (($# == 0)); then
+                echo "git hooks: no linked hook in $dir" >&2
+                exit 1
+            fi
+        fi
+        for name in "$@"; do
+            switch "$state" "$name"
+        done
+        ;;
+    *)
+        echo "usage: git hooks [on|off [NAME...]]" >&2
+        exit 2
+        ;;
+esac

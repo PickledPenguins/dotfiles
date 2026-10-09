@@ -39,6 +39,9 @@ fi
 # `git ctags` (~/.local/bin/git-ctags) completes its one subcommand, off.
 _git_ctags() { __gitcomp "off"; }
 
+# `git hooks` (~/.local/bin/git-hooks) completes its subcommands, on and off.
+_git_hooks() { __gitcomp "on off"; }
+
 # Host names after ssh, scp and rsync come only from ~/.ssh/config and
 # known_hosts, not also every name in /etc/hosts.
 #COMP_KNOWN_HOSTS_WITH_HOSTFILE=

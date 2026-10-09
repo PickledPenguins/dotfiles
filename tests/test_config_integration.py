@@ -913,6 +913,38 @@ def test_git_ctags_refuses_a_ctags_that_is_not_universal(linked):
     assert (proc.stdout, proc.stderr) == ("1\n0\n", "git ctags: needs universal-ctags on PATH\n")
 
 
+def test_git_hooks_lists_and_switches_linked_hooks_and_others_only_by_name(linked):
+    proc = git_script(linked, f'export PATH="{linked}/.local/bin:$PATH"; '
+                      "git init -q r && cd r && git commit -q --allow-empty -m one && "
+                      "git worktree add -q --detach ../w 2>/dev/null && "
+                      "ln -s ../../tests/pre-push .git/hooks/pre-push.off && "
+                      "printf '#!/bin/sh\\n' >.git/hooks/post-commit && "
+                      "git hooks && git hooks on && git hooks on && (cd ../w && git hooks) && "
+                      "git hooks off && git hooks off post-commit.off && git hooks && "
+                      "git hooks on post-commit pre-push && ls .git/hooks | grep -v sample")
+    r = linked.resolve() / "r"
+    assert (proc.stdout, proc.stderr) == (
+        f"on  post-commit      {r}/.git/hooks/post-commit\noff pre-push         {r}/tests/pre-push\n"
+        "pre-push on\npre-push is already on\n"
+        f"on  post-commit      {r}/.git/hooks/post-commit\non  pre-push         {r}/tests/pre-push\n"
+        "pre-push off\npost-commit off\n"
+        f"off post-commit      {r}/.git/hooks/post-commit.off\noff pre-push         {r}/tests/pre-push\n"
+        "post-commit on\npre-push on\npost-commit\npre-push\n", "")
+
+
+def test_git_hooks_refuses_a_missing_hook_both_names_and_no_linked_hook(linked):
+    proc = git_script(linked, f'export PATH="{linked}/.local/bin:$PATH"; '
+                      "git init -q r && cd r && printf '#!/bin/sh\\n' >.git/hooks/post-commit && "
+                      "git hooks on; echo $?; git hooks off nope; echo $?; "
+                      "ln -s x .git/hooks/pre-push && ln -s x .git/hooks/pre-push.off && "
+                      "git hooks off 2>&1 | sed \"s#$PWD#R#\"; git hooks of; echo $?; ls .git/hooks | grep -v sample")
+    assert proc.stdout == "1\n1\ngit hooks: both pre-push and pre-push.off exist; remove one\n2\npost-commit\npre-push\npre-push.off\n"
+    assert proc.stderr.replace(str(linked), "H") == (
+        "git hooks: no linked hook in H/r/.git/hooks\n"
+        "git hooks: no hook nope in H/r/.git/hooks\n"
+        "usage: git hooks [on|off [NAME...]]\n")
+
+
 @needs("vim")
 def test_vim_comma_tg_builds_tags_with_git_ctags_in_a_repository_and_ctags_outside(linked):
     fake_ctags(linked)
