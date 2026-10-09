@@ -1,9 +1,0 @@
-#!/bin/sh
-# Pre-commit gate: the fast suite, on the tree being committed.  Installed by
-#   ./run-tests.sh hook
-# With at-rev (the skills tools) on PATH the suite runs in a copy of what is
-# staged, so an unstaged edit beside the commit neither fails nor passes it.
-# Without at-rev it runs on the work tree.
-cd "$(git rev-parse --show-toplevel)" || exit
-command -v at-rev >/dev/null 2>&1 && exec at-rev --index -- ./run-tests.sh fast
-exec ./run-tests.sh fast

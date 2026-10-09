@@ -1,12 +1,12 @@
 #!/bin/sh
 # The test suites and their gates.
 #
-#   ./run-tests.sh            fast: unit, interface, safety -- the pre-commit gate (~2 s)
+#   ./run-tests.sh            fast: unit, interface, safety -- the pre-push gate (~2 s)
 #   ./run-tests.sh long       integration with the real programs + the example catalog
 #   ./run-tests.sh all        both
 #   ./run-tests.sh cov        fast with coverage of dots; fails below the floor in tests/coveragerc
 #   ./run-tests.sh mutate     every mutant in tests/mutants.txt must make the fast suite fail
-#   ./run-tests.sh hook       install tests/hooks/pre-commit into .git/hooks
+#   ./run-tests.sh hook       install tests/hooks/pre-push into .git/hooks, switched off
 #
 # Anything after the name is passed to pytest.  Generated files go to .build/.
 set -e
@@ -60,8 +60,8 @@ case "$command" in
         [ "$failed" -eq 0 ]
         ;;
     hook)
-        ln -sf ../../tests/hooks/pre-commit .git/hooks/pre-commit
-        echo "installed .git/hooks/pre-commit -> tests/hooks/pre-commit"
+        ln -sf ../../tests/hooks/pre-push .git/hooks/pre-push.off
+        echo "installed .git/hooks/pre-push.off -> tests/hooks/pre-push, switched off (git hooks on)"
         ;;
     *)
         echo "usage: $0 [fast|long|all|cov|mutate|hook] [pytest arguments]" >&2

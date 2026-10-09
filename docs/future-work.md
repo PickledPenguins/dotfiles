@@ -306,6 +306,6 @@ handoff.
   the 2026-10-07 creview (the `.benchmarks/` half was fixed:
   `run-tests.sh` passes `-p no:benchmark`).  Future work because each move
   changes a documented path: `.dotsignore`, the `CLAUDE.md` root list,
-  `docs/testing.md` and the pre-commit hook all name `run-tests.sh` and
+  `docs/testing.md` and the pre-push hook all name `run-tests.sh` and
   `reviews/`.  `dots` stays in the root, since `dot_local/bin/dots` and the
   README use `~/.dotfiles/dots`.

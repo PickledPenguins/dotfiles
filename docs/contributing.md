@@ -26,7 +26,7 @@ Changing the project.  Back to the [README](../README.md);
 | `run-tests.sh mutate` | a mutant in `tests/mutants.txt` survives the fast suite |
 | `test_catalog_has_enough_variety` (long) | fewer than 15/12/6/8 cases per level |
 | `test_bashrc_loads_every_module_in_order` (long) | a module added, removed or renamed without updating `BASH_MODULES` |
-| `.git/hooks/pre-commit` | the fast suite fails on the staged tree, run in a copy by `at-rev --index` where `at-rev` is on `PATH`, else on the work tree (`./run-tests.sh hook` installs it) |
+| `.git/hooks/pre-push` | the fast suite fails on a commit being pushed, run in a clean checkout of it (`./run-tests.sh hook` installs it switched off, as `pre-push.off`; `git hooks on` switches it on; `git push --no-verify` skips it) |
 | `.dotsignore` | a new root file that is not a target must be listed, or `dots apply` links it into `$HOME` |
 
 ## Recipes

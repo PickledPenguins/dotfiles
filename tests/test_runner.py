@@ -44,5 +44,41 @@ def test_installing_the_hook_needs_no_pytest(tmp_path):
     (tmp_path / ".git" / "hooks").mkdir(parents=True)
     proc = runner(tmp_path, "hook")
     assert proc.returncode == 0, proc.stderr
-    assert proc.stdout == "installed .git/hooks/pre-commit -> tests/hooks/pre-commit\n"
-    assert os.readlink(tmp_path / ".git" / "hooks" / "pre-commit") == "../../tests/hooks/pre-commit"
+    assert proc.stdout == ("installed .git/hooks/pre-push.off -> tests/hooks/pre-push,"
+                           " switched off (git hooks on)\n")
+    assert os.readlink(tmp_path / ".git" / "hooks" / "pre-push.off") == "../../tests/hooks/pre-push"
+    assert not (tmp_path / ".git" / "hooks" / "pre-push").exists()
+
+
+def test_the_pre_push_hook_tests_each_pushed_commit_in_a_clean_checkout(tmp_path):
+    def git(*args):
+        return subprocess.run(["git", "-C", str(tmp_path), *args], capture_output=True, text=True, check=True).stdout
+
+    git("init", "-q")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "no hook yet")
+    old = git("rev-parse", "HEAD").strip()
+    (tmp_path / "tests" / "hooks").mkdir(parents=True)
+    shutil.copy(ROOT / "tests" / "hooks" / "pre-push", tmp_path / "tests" / "hooks" / "pre-push")
+    # The suite reads its stdin: the hook's own, the pushed refs, must not be it.
+    (tmp_path / "run-tests.sh").write_text('#!/bin/sh\ncat >/dev/null\necho "suite $*"\n[ ! -e broken ]\n')
+    os.chmod(tmp_path / "run-tests.sh", 0o755)
+    git("add", ".")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "good")
+    good = git("rev-parse", "HEAD").strip()
+    (tmp_path / "broken").write_text("")
+    git("add", "broken")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "bad")
+    bad = git("rev-parse", "HEAD").strip()
+    git("rm", "-q", "--cached", "broken")            # still in the work tree, untracked
+
+    def push(*shas):
+        lines = "".join(f"refs/heads/x {s} refs/heads/x {'0' * 40}\n" for s in shas)
+        return subprocess.run([str(tmp_path / "tests" / "hooks" / "pre-push"), "origin", "url"], input=lines,
+                              capture_output=True, text=True, cwd=tmp_path)
+
+    proc = push("0" * 40, old, good)
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, "suite fast\n", f"pre-push: {old} has no tests/hooks/pre-push; not tested\n")
+    proc = push(good, bad)
+    assert (proc.returncode, proc.stdout, proc.stderr) == (
+        1, "suite fast\nsuite fast\n", f"pre-push: tests fail at {bad}; push stopped\n")
+    assert len(git("worktree", "list").splitlines()) == 1
