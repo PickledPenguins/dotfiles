@@ -676,6 +676,11 @@ def test_vim_comma_slash_greps_below_the_current_directory(linked):
 
 
 @needs("vim")
+def test_vim_python_marks_column_100_in_slate_gray(linked):
+    out = vim(linked, "edit x.py", "echo &l:colorcolumn synIDattr(hlID('ColorColumn'), 'bg#', 'gui')",
+              "colorscheme shine", "echo synIDattr(hlID('ColorColumn'), 'bg#', 'gui')")
+    assert out.splitlines()[-2:] == ["100 #3c4450", "#e4e8ee"]
+@needs("vim")
 def test_vim_local_override_wins(linked):
     (linked / ".vimrc.local").write_text("set shiftwidth=7\n")
     assert vim(linked, "set shiftwidth?") == "shiftwidth=7"

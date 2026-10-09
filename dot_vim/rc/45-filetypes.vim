@@ -13,13 +13,13 @@ augroup dotfiles_filetypes
   " columns while typing, spell checking on.
   autocmd FileType markdown,text,rst,gitcommit,mail setlocal textwidth=80 spell formatoptions+=t
 
-  " Commit messages: 72 columns, marks at 51 and 73 for the subject and
-  " body limits, cursor on the first line.
-  autocmd FileType gitcommit setlocal textwidth=72 colorcolumn=51,73 | normal! gg
+  " Commit messages: 72 columns (the body wraps there), a mark at 51 for
+  " the subject limit, cursor on the first line.
+  autocmd FileType gitcommit setlocal textwidth=72 colorcolumn=51 | normal! gg
 
-  " Python: marks at columns 80 and 100 (PEP 8 and a common wider limit),
+  " Python: a mark at column 100 (a common wider limit than PEP 8's 80),
   " folds by indentation.
-  autocmd FileType python setlocal colorcolumn=80,100 foldmethod=indent
+  autocmd FileType python setlocal colorcolumn=100 foldmethod=indent
 
   " make and go use real tabs (30-indent.vim); show them as ▸.
   autocmd FileType make,go setlocal listchars+=tab:▸\

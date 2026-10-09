@@ -49,7 +49,7 @@ augroup END
 "set cursorcolumn
 
 " A vertical line at column 80, to see when lines get long (python's
-" is at 80 and 100, 45-filetypes.vim).
+" is at 100, 45-filetypes.vim).
 "set colorcolumn=80
 
 " ── Scrolling and splitting ─────────────────────────────────────────────
@@ -128,6 +128,18 @@ set background=dark
 
 " Light background instead: schemes pick their light variant.
 "set background=light
+
+" The colorcolumn marks in a quiet slate gray instead of the scheme's red:
+" dark on a dark background, light on a light one.  Set again whenever a
+" color scheme loads.
+augroup dotfiles_colorcolumn
+  autocmd!
+  autocmd ColorScheme * if &background ==# 'dark'
+        \ | highlight ColorColumn ctermbg=238 guibg=#3c4450
+        \ | else
+        \ | highlight ColorColumn ctermbg=254 guibg=#e4e8ee
+        \ | endif
+augroup END
 
 " The color scheme, from the knob.  Built in: blue darkblue default delek
 " desert elflord evening habamax industry koehler lunaperche morning murphy
