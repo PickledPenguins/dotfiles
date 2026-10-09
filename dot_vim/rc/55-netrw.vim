@@ -1,7 +1,7 @@
 " 55-netrw.vim -- netrw, vim's built-in file browser, as a tree.
 "
 "   :Explore or -   open the browser in the current file's directory
-"   <leader>e       toggle a tree at the left
+"   <leader>ee      toggle a tree at the left
 "
 " Each setting has its description in the comment above it.  A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
@@ -26,9 +26,9 @@ let g:netrw_localcopydircmd = 'cp -r'
 " Hide dotfiles (gh in the browser toggles them).
 "let g:netrw_list_hide = '\(^\|\s\s\)\zs\.\S\+'
 
-" - opens the browser; <leader>e toggles the side tree.
+" - opens the browser; <leader>ee toggles the side tree.
 nnoremap <silent> - :Explore<CR>
-nnoremap <silent> <leader>e :Lexplore<CR>
+nnoremap <silent> <leader>ee :Lexplore<CR>
 
 " Switch netrw off completely, for a file-browser plugin such as NERDTree
 " or fern.  vim DIR then opens nothing useful.

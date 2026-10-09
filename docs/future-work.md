@@ -202,7 +202,7 @@ here is scheduled; an item is cited by its label.  Back to the
   help warns that it breaks plugins and inverts `/g`: a pasted or
   plugin-run `:s/a/b/g` replaces only the first match.  It changes
   existing behavior, against `CLAUDE.md`'s rule that new settings start
-  off.  `50-keys.vim:132` (`<leader>rw`) relies on it.  From the
+  off.  `50-keys.vim:207` (`<leader>rw`) relies on it.  From the
   2026-10-08 settings creview.  Future work because it changes what `:s`
   does for the owner.  Fix: `#set gdefault`, and `/g` added to
   `<leader>rw`.
@@ -214,19 +214,13 @@ here is scheduled; an item is cited by its label.  Back to the
   (`autoindent` and filetype indent cover the rest), or keep it with
   `inoremap # X<C-h>#`.
 - **F.2.z  `j`/`k` as `gj`/`gk` make counts move screen lines.**
-  `dot_vim/rc/50-keys.vim:32`.  With `wrap` on, `5j` moves five screen
+  `dot_vim/rc/50-keys.vim:58`.  With `wrap` on, `5j` moves five screen
   lines, not five buffer lines, against the off `relativenumber`
   (`10-ui.vim:22`), which promises `5j` and `d3k` without counting.  From
   the 2026-10-08 settings creview.  Future work because it changes a
   movement key.  Fix: `nnoremap <expr> j v:count ? 'j' : 'gj'`, likewise
   `k`.
-- **F.2.aa  `<leader>s` and `<leader>e` wait a second.**  `<leader>s`
-  (`dot_vim/rc/50-keys.vim:96`) is a prefix of `<leader>ss` (149) and
-  `<leader>sv` (41); `<leader>e` (`55-netrw.vim:31`) is a prefix of
-  `<leader>ev` (`50-keys.vim:40`).  Each waits `timeoutlen` before acting.
-  From the 2026-10-08 settings creview.  Future work because a fix renames
-  a key the owner types: `<leader>sp` and `<leader>E` for the short ones,
-  or new names for the long ones.
+
 - **F.2.ab  `SYSTEMD_LESS="$LESS"` drops systemd's `-S` and `-K`.**
   `dot_config/bash/rc.d/00-env.sh:55`.  journalctl then wraps long lines
   and Ctrl-C no longer quits less.  From the 2026-10-08 settings creview.

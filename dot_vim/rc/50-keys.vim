@@ -1,4 +1,4 @@
-" 50-keys.vim -- key mappings.  The leader is Space.  Mapping lines take no
+" 50-keys.vim -- key mappings.  The leader is a comma.  Mapping lines take no
 " trailing comment: it would become part of the mapping.
 "
 " Each setting has its description in the comment above it.  A setting with
@@ -8,22 +8,48 @@
 " :map lists what is mapped; :verbose map KEY says where.
 "
 " Knobs (set in ~/.vimrc.before):
-"   g:dotfiles_leader   leader key   default: ' '
+"   g:dotfiles_leader   leader key   default: ','
 
-" The leader key starts the <leader> mappings below (from the knob); the
-" local leader, for filetype plugins, is a comma.
-let mapleader = get(g:, 'dotfiles_leader', ' ')
-let maplocalleader = ','
+" The leader key starts the <leader> mappings below (from the knob).  A
+" comma loses its own meaning, "repeat the last f/t backward": it now waits
+" for the rest of a mapping first.
+let mapleader = get(g:, 'dotfiles_leader', ',')
+
+" The local leader, for filetype plugins' own mappings, is a backslash
+" (vim's default), so those never take the leader's keys.
+let maplocalleader = '\'
+
+" Runs an Ex command and puts the cursor and scroll position back after it.
+function! s:KeepView(command) abort
+  let l:view = winsaveview()
+  execute a:command
+  call winrestview(l:view)
+endfunction
 
 " ── Everyday ────────────────────────────────────────────────────────────
 
 " <leader><space> clears the search highlight.
 nnoremap <silent> <leader><space> :nohlsearch<CR>
 
-" <leader>w write, <leader>q quit, <leader>Q quit everything without saving.
-nnoremap <leader>w :write<CR>
-nnoremap <leader>q :quit<CR>
-nnoremap <leader>Q :qall!<CR>
+" <leader>qq closes the window and deletes its buffer, as :bdelete does: the
+" file leaves the buffer list and memory.  A buffer another window still
+" shows stays.  Refuses unsaved changes; <leader>QQ throws them away (:quit!).
+" In the last window both quit vim.  <leader>qa quits vim (:qall), refusing
+" while anything is unsaved.
+function! s:Close(bang) abort
+  let l:buffer = bufnr('%')
+  if a:bang ==# '' && &modified && len(win_findbuf(l:buffer)) == 1
+    echoerr 'E37: No write since last change (add ! to override)'
+    return
+  endif
+  execute 'quit' . a:bang
+  if bufexists(l:buffer) && empty(win_findbuf(l:buffer))
+    execute 'bdelete' . a:bang l:buffer
+  endif
+endfunction
+nnoremap <silent> <leader>qq :call <SID>Close('')<CR>
+nnoremap <silent> <leader>QQ :call <SID>Close('!')<CR>
+nnoremap <leader>qa :qall<CR>
 
 " Y yanks to the end of the line, as D and C work.
 nnoremap Y y$
@@ -36,15 +62,16 @@ nnoremap k gk
 nnoremap n nzzzv
 nnoremap N Nzzzv
 
-" <leader>ev edits ~/.vimrc.local; <leader>sv reloads the whole configuration.
+" <leader>ev edits ~/.vimrc.local.
 nnoremap <silent> <leader>ev :edit ~/.vimrc.local<CR>
-nnoremap <silent> <leader>sv :source ~/.vimrc<CR>
 
 " <leader>cd changes vim's directory to the current file's.
 nnoremap <leader>cd :cd %:p:h<CR>:pwd<CR>
 
-" <leader>x makes the current file executable.
-nnoremap <silent> <leader>x :!chmod +x %<CR>
+" <leader>cp copies the current file's full path to the system clipboard.
+nnoremap <leader>cp :let @+ = expand('%:p')<CR>:echo @+<CR>
+
+
 
 " F5 saves and runs the current file (it needs a #! line and execute permission).
 nnoremap <F5> :write <Bar> !%:p<CR>
@@ -92,22 +119,65 @@ nnoremap <C-Down> :resize -2<CR>
 nnoremap <C-Left> :vertical resize -2<CR>
 nnoremap <C-Right> :vertical resize +2<CR>
 
-" <leader>v and <leader>s split vertically and horizontally.
-nnoremap <leader>v :vsplit<CR>
-nnoremap <leader>s :split<CR>
+" <leader>sv splits vertically, <leader>sh horizontally.
+nnoremap <leader>sv :vsplit<CR>
+nnoremap <leader>sh :split<CR>
 
-" <leader>n next buffer, <leader>p previous, <leader>d delete it.
-nnoremap <leader>n :bnext<CR>
-nnoremap <leader>p :bprevious<CR>
-nnoremap <leader>d :bdelete<CR>
+" <leader>z zooms the current window to fill the screen, and again puts
+" every window back at its size (or evens them out, if one was opened or
+" closed meanwhile).  The other windows stay open, squeezed to a line.
+function! s:ToggleZoom() abort
+  if exists('t:zoom_sizes')
+    if winnr('$') == t:zoom_count
+      execute t:zoom_sizes
+    else
+      wincmd =
+    endif
+    unlet t:zoom_sizes t:zoom_count
+  else
+    let t:zoom_sizes = winrestcmd()
+    let t:zoom_count = winnr('$')
+    resize
+    vertical resize
+  endif
+endfunction
+nnoremap <silent> <leader>z :call <SID>ToggleZoom()<CR>
 
-" <leader>b lists buffers, then waits for the number of one to open.
-nnoremap <leader>b :ls<CR>:buffer<Space>
+" <leader>bn next buffer, <leader>bp previous, <leader>bd delete it.
+nnoremap <leader>bn :bnext<CR>
+nnoremap <leader>bp :bprevious<CR>
+nnoremap <leader>bd :bdelete<CR>
+
+" <leader><leader> goes back to the file before this one (Ctrl-^).
+nnoremap <leader><leader> <C-^>
+
+" <leader>bl lists buffers, then waits for the number of one to open.
+nnoremap <leader>bl :ls<CR>:buffer<Space>
 
 " Tab and Shift-Tab switch buffers.  Tab is also Ctrl-I, so Ctrl-I no
 " longer jumps forward in the jump list.
 nnoremap <Tab> :bnext<CR>
 nnoremap <S-Tab> :bprevious<CR>
+
+" ── Finding ─────────────────────────────────────────────────────────────
+
+" <leader>f opens a file by name from anywhere below the current directory
+" (:find, with 'path' from 25-completion.vim; Tab completes).
+nnoremap <leader>f :find<Space>
+
+" <leader>gg searches the files below the current directory (:grep, from
+" 20-search.vim); <leader>/ searches them for the word under the cursor.
+" The matches open in the quickfix list.
+nnoremap <leader>gg :grep<Space>
+nnoremap <silent> <leader>/ :silent grep! -w <C-r><C-w><CR>:redraw!<CR>
+
+" <leader>gb shows git blame for the current line, or the selected lines.
+function! s:Blame(first, last) abort
+  execute '!git -C' shellescape(expand('%:p:h'), 1) 'blame -L' a:first . ',' . a:last
+        \ '--' shellescape(expand('%:t'), 1)
+endfunction
+nnoremap <silent> <leader>gb :call <SID>Blame(line('.'), line('.'))<CR>
+xnoremap <silent> <leader>gb :<C-u>call <SID>Blame(line("'<"), line("'>"))<CR>
 
 " ── Editing ─────────────────────────────────────────────────────────────
 
@@ -119,29 +189,22 @@ xnoremap K :move '<-2<CR>gv=gv
 inoremap <C-u> <C-g>u<C-u>
 inoremap <C-w> <C-g>u<C-w>
 
-" <leader>y yanks to the system clipboard, <leader>P puts from it.
+" <leader>y yanks to the system clipboard, <leader>p puts from it.
 nnoremap <leader>y "+y
 xnoremap <leader>y "+y
-nnoremap <leader>P "+p
+nnoremap <leader>p "+p
 
-" <leader>p over a visual selection replaces it without yanking what was
-" there, so the same text can be put again.
-xnoremap <leader>p "_dP
+" <leader>o and <leader>O add a blank line below and above (a count: that
+" many) and stay in normal mode.
+nnoremap <silent> <leader>o :<C-u>call append(line('.'), repeat([''], v:count1))<CR>
+nnoremap <silent> <leader>O :<C-u>call append(line('.') - 1, repeat([''], v:count1))<CR>
+
+" <leader>id puts today's date (2026-01-31) after the cursor.
+nnoremap <leader>id "=strftime('%Y-%m-%d')<CR>p
 
 " <leader>rw starts replacing the word under the cursor everywhere in the
 " file (gdefault in 20-search.vim makes it every match on a line).
 nnoremap <leader>rw :%s/\<<C-r><C-w>\>//<Left>
-
-" ,ww (the local leader, then ww) fixes whitespace when asked, never on its
-" own: strips trailing whitespace and turns tabs into spaces, tabstop wide
-" (:retab; a buffer with noexpandtab, make or go, keeps its tabs).
-function! s:FixWhitespace() abort
-  let l:view = winsaveview()
-  keeppatterns %s/\s\+$//e
-  retab
-  call winrestview(l:view)
-endfunction
-nnoremap <silent> <localleader>ww :call <SID>FixWhitespace()<CR>
 
 " gV selects the text just pasted or changed.
 nnoremap gV `[v`]
@@ -154,15 +217,97 @@ cnoremap w!! w !sudo tee % > /dev/null
 "cnoremap <C-a> <Home>
 "cnoremap <C-e> <End>
 
+" ── Comments ────────────────────────────────────────────────────────────
+
+" Whether LINE, past its indent, starts with the comment marker OPEN and
+" ends with CLOSE (empty for languages whose comments run to the line end).
+function! s:IsComment(line, open, close) abort
+  let l:text = substitute(a:line, '^\s*\|\s*$', '', 'g')
+  return stridx(l:text, a:open) == 0
+        \ && (a:close ==# '' || strpart(l:text, len(l:text) - len(a:close)) ==# a:close)
+endfunction
+
+" LINE without its comment marker, its indent kept.
+function! s:Uncomment(line, open, close) abort
+  let l:indent = matchstr(a:line, '^\s*')
+  let l:text = substitute(strpart(a:line, len(l:indent)), '\s*$', '', '')
+  let l:text = strpart(l:text, len(a:open), len(l:text) - len(a:open) - len(a:close))
+  return l:indent . substitute(l:text, '^ \| $', '', 'g')
+endfunction
+
+" <leader>cc comments the current line (a count: that many lines) or the
+" selected lines, or uncomments them when every non-blank one already is a
+" comment.  The marker comes from 'commentstring' (# in python, /* */ in C)
+" and goes at the smallest indent; blank lines are left alone.
+function! s:ToggleComment(first, last) abort
+  if &commentstring !~# '%s'
+    echoerr "no 'commentstring' for filetype '" . &filetype . "'"
+    return
+  endif
+  let [l:open, l:close] = map(split(&commentstring, '%s', 1), 'substitute(v:val, ''^\s\+\|\s\+$'', "", "g")')
+  let l:lines = filter(range(a:first, min([a:last, line('$')])), 'getline(v:val) =~ ''\S''')
+  if empty(l:lines)
+    return
+  endif
+  if empty(filter(copy(l:lines), '!s:IsComment(getline(v:val), l:open, l:close)'))
+    for l:n in l:lines
+      call setline(l:n, s:Uncomment(getline(l:n), l:open, l:close))
+    endfor
+  else
+    let l:col = min(map(copy(l:lines), 'matchend(getline(v:val), ''^\s*'')'))
+    for l:n in l:lines
+      let l:line = getline(l:n)
+      call setline(l:n, strpart(l:line, 0, l:col) . l:open . ' ' . strpart(l:line, l:col)
+            \ . (l:close ==# '' ? '' : ' ' . l:close))
+    endfor
+  endif
+endfunction
+nnoremap <silent> <leader>cc :<C-u>call <SID>ToggleComment(line('.'), line('.') + v:count1 - 1)<CR>
+xnoremap <silent> <leader>cc :<C-u>call <SID>ToggleComment(line("'<"), line("'>"))<CR>
+
+" gc comments as an operator: gcc a line, gcip a paragraph, gc over a
+" selection; ic and ac select a comment.  Vim 9.1's comment package; an
+" older vim has none, and <leader>cc above still works there.
+silent! packadd! comment
+
+" ── Cleaning up ─────────────────────────────────────────────────────────
+
+" <leader>ww fixes whitespace when asked, never on its own: strips trailing
+" whitespace and turns tabs into spaces, tabstop wide (:retab; a buffer
+" with noexpandtab, make or go, keeps its tabs).
+nnoremap <silent> <leader>ww :call <SID>KeepView('keeppatterns %s/\s\+$//e <Bar> retab')<CR>
+
+" <leader>= re-indents the whole file by the filetype's indent rules.
+nnoremap <silent> <leader>= :call <SID>KeepView('normal! gg=G')<CR>
+
+" <leader>s sorts the selected lines; <leader>u sorts them and drops
+" repeated ones.
+xnoremap <leader>s :sort<CR>
+xnoremap <leader>u :sort u<CR>
+
+" <leader>j lays out the JSON in the buffer, two spaces deep.  Invalid JSON
+" leaves the buffer as it was and shows python's error.  Needs: python3.9+.
+function! s:FormatJson() abort
+  let l:out = systemlist('python3 -m json.tool --indent 2', getline(1, '$'))
+  if v:shell_error
+    echoerr join(l:out)
+    return
+  endif
+  let l:view = winsaveview()
+  silent %delete _
+  call setline(1, l:out)
+  call winrestview(l:view)
+endfunction
+nnoremap <silent> <leader>j :call <SID>FormatJson()<CR>
+
 " ── Toggles ─────────────────────────────────────────────────────────────
 
-" <leader>ss spelling, <leader>tw wrap, <leader>tn relative numbers,
-" <leader>tl invisible characters, <leader>tc the cursor column.
-nnoremap <leader>ss :setlocal spell!<CR>
-nnoremap <leader>tw :setlocal wrap!<CR>
+" <leader>sc spelling, <leader>wr wrap, <leader>tn relative numbers,
+" <leader>tl invisible characters.
+nnoremap <leader>sc :setlocal spell!<CR>
+nnoremap <leader>wr :setlocal wrap!<CR>
 nnoremap <leader>tn :setlocal relativenumber!<CR>
 nnoremap <leader>tl :setlocal list!<CR>
-nnoremap <leader>tc :setlocal cursorcolumn!<CR>
 
 " F2 toggles paste mode (no auto-indent while pasting into a terminal
 " without bracketed paste).
@@ -170,14 +315,21 @@ if exists('&pastetoggle') | set pastetoggle=<F2> | endif
 
 " ── Quickfix and location lists ─────────────────────────────────────────
 
-" ]q [q next and previous error, ]l [l the same in the location list,
-" <leader>co opens the list, <leader>cc closes it.
+" ]q [q next and previous error, ]l [l the same in the location list.
 nnoremap ]q :cnext<CR>
 nnoremap [q :cprevious<CR>
 nnoremap ]l :lnext<CR>
 nnoremap [l :lprevious<CR>
-nnoremap <leader>co :copen<CR>
-nnoremap <leader>cc :cclose<CR>
+
+" <leader>co opens the quickfix list, or closes it when it is open.
+function! s:ToggleQuickfix() abort
+  if empty(filter(getwininfo(), 'v:val.quickfix && !v:val.loclist'))
+    copen
+  else
+    cclose
+  endif
+endfunction
+nnoremap <silent> <leader>co :call <SID>ToggleQuickfix()<CR>
 
 " ── Terminal ────────────────────────────────────────────────────────────
 

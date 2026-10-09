@@ -131,7 +131,7 @@ Read-only variables the loader sets for modules and for you:
 | `g:dotfiles_colorscheme` | 10-ui | `'desert'` | color scheme; the module lists the built-in ones |
 | `g:dotfiles_indent` | 30-indent | `2` | default `shiftwidth`/`tabstop` |
 | `g:dotfiles_foldmethod` | 35-folding | `'indent'` | `indent`, `syntax`, `marker`, `manual` |
-| `g:dotfiles_leader` | 50-keys | `' '` | leader key |
+| `g:dotfiles_leader` | 50-keys | `','` | leader key |
 | `g:dotfiles_plugins` | 60-plugins (off) | `[]` | extra `'owner/repo'` for vim-plug |
 
 `g:dotfiles_modules` is set by the loader (the list `:DotfilesModules` prints).
@@ -165,16 +165,16 @@ Read-only variables the loader sets for modules and for you:
 | Module | Provides |
 |--------|----------|
 | `00-general.vim` | encoding, `hidden`, `autoread` on focus, `ttimeoutlen`, `updatetime`, `nomodeline`, `mouse=a`, system clipboard, `filetype plugin indent on`.  Off: `autowrite`, `confirm`, `exrc secure`, `viminfofile`, `timeoutlen`, `ttymouse=sgr` |
-| `10-ui.vim` | numbers, `cursorline` in the active window, `scrolloff`, `listchars`, splits below/right, `wrap`+`breakindent`, search count, true color, colorscheme, cursor shape.  Off: `relativenumber`, `cmdheight`, `cursorcolumn`, `colorcolumn`, `eol:¬`, `fillchars`, `nowrap`, `title`, light background |
+| `10-ui.vim` | numbers, `cursorline` in the active window, `scrolloff`, `listchars`, splits below/right, `wrap`+`breakindent`, search count, true color, colorscheme, yank flash (`hlyank`), cursor shape.  Off: `relativenumber`, `cmdheight`, `cursorcolumn`, `colorcolumn`, `eol:¬`, `fillchars`, `nowrap`, `title`, light background |
 | `15-statusline.vim` | status line with buffer, path, flags, filetype, encoding, git branch, position.  Off: spelling language |
-| `20-search.vim` | `hlsearch incsearch ignorecase smartcase wrapscan gdefault`, `inccommand`, `rg` as `grepprg`, quickfix auto-open, visual `*`/`#`.  Off: `nowrapscan`, very magic search, Esc clears highlight |
-| `25-completion.vim` | `wildmenu`/`wildmode`/`wildignore`, popup menu, `completeopt`, omni completion, spelling.  Off: bash-style wildmode, fuzzy, popup info, `noinsert`, `kspell`, Tab completion |
+| `20-search.vim` | `hlsearch incsearch ignorecase smartcase wrapscan gdefault`, `inccommand`, `:grep` recursive (`rg`, else `grep -r`), quickfix auto-open, visual `*`/`#`.  Off: `nowrapscan`, very magic search, Esc clears highlight |
+| `25-completion.vim` | `wildmenu`/`wildmode`/`wildignore`, `path+=**`, popup menu, `completeopt`, omni completion, spelling.  Off: bash-style wildmode, fuzzy, popup info, `noinsert`, `kspell`, Tab completion |
 | `30-indent.vim` | width from the knob, spaces; 4 for rust/c/java/sh, tabs for make/go, 2 for python/yaml/json/web; `<`/`>` keep the selection.  Off: tabs by default, `copyindent` |
 | `35-folding.vim` | fold method from the knob, all open at start, custom fold text.  Off: `foldenable`, `foldcolumn`, saved views |
 | `40-files.vim` | swap/backup/undo under `~/.vim/tmp/`, persistent undo, no backups for secrets, last position, mkdir on write, strip trailing whitespace.  Off: `noswapfile`, autosave on focus loss |
 | `45-filetypes.vim` | prose wrap+spell, gitcommit columns, python columns, `q` closes help, `g:is_bash`, `.pbs`/`.slurm`/`.env` filetypes, `:Make`.  Off: markdown conceal, soft-wrapped text, F5 runs python, fenced-code highlighting |
-| `50-keys.vim` | leader maps (`<space> w q Q ev sv cd x y P p rw v s n p d b ss tw tn tl tc co cc`), `,ww` fixes whitespace, `Y`, `j`/`k`, `n`/`N`, F5 runs the file, `Ctrl-hjkl`, `Ctrl-arrows` resize, `Tab`/`S-Tab` buffers, visual `J`/`K`, `gV`, `]q [q ]l [l`, `w!!`, `F2` paste.  Off: `jk`, `;` as `:`, `Q` as `gq`, `Ctrl-S`, centered `Ctrl-D`/`Ctrl-U`, `J` in place, no arrow keys, emacs keys on the command line, `Esc Esc` in `:terminal` |
-| `55-netrw.vim` | tree-style netrw, `-` and `<leader>e`.  Off: hide dotfiles, netrw off |
+| `50-keys.vim` | leader `,`; leader maps (`<space> , qq QQ qa ev cd cp z sv sh bn bp bl bd f gg / gb y p o O id rw cc ww = s u j sc wr tn tl co`), `gc` comment package, `Y`, `j`/`k`, `n`/`N`, F5 runs the file, `Ctrl-hjkl`, `Ctrl-arrows` resize, `Tab`/`S-Tab` buffers, visual `J`/`K`, `gV`, `]q [q ]l [l`, `w!!`, `F2` paste.  Off: `jk`, `;` as `:`, `Q` as `gq`, `Ctrl-S`, centered `Ctrl-D`/`Ctrl-U`, `J` in place, no arrow keys, emacs keys on the command line, `Esc Esc` in `:terminal` |
+| `55-netrw.vim` | tree-style netrw, `-` and `<leader>ee`.  Off: hide dotfiles, netrw off |
 | `60-plugins.vim.off` | vim-plug with commentary, surround, repeat, fugitive, gitgutter, fzf, editorconfig; about 25 more described and off |
 
 ## tmux modules (`~/.config/tmux/conf.d/`)

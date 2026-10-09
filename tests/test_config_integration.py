@@ -587,8 +587,92 @@ def test_vim_knobs_from_vimrc_before(linked):
 
 @needs("vim")
 def test_vim_keys_map_leader_and_have_no_trailing_comment_garbage(linked):
-    out = vim(linked, "nmap <leader>w", "nmap <C-h>", "xmap J")
-    assert out.splitlines() == ["n  <Space>w    * :write<CR>", "n  <C-H>       * <C-W>h", "x  J           * :move '>+1<CR>gv=gv"]
+    out = vim(linked, "nmap <leader>QQ", "nmap <C-h>", "xmap J",
+              "echo map([',qa', ',p', ',q', ',w', ',Q', ',v', ',x', ',b', ',n', ',d', ',P', ',a', ',ss', ',tw', ',tc'],"
+              " 'maparg(v:val, \"n\")') maparg(',p', 'x') ==# ''")
+    assert out.splitlines() == ["n  ,QQ         * :call <SNR>19_Close('!')<CR>", "n  <C-H>       * <C-W>h",
+                                "x  J           * :move '>+1<CR>gv=gv",
+                                "[':qall<CR>', '\"+p', '', '', '', '', '', '', '', '', '', '', '', '', ''] 1"]
+
+
+@needs("vim")
+def test_vim_comma_q_closes_the_window_and_deletes_its_buffer(linked):
+    out = vim(linked, "edit a.txt | split b.txt | execute 'normal ,qq'"
+              " | let g:b = [winnr('$'), buflisted(bufnr('b.txt')), bufloaded(bufnr('b.txt'))]",
+              "split c.txt | call setline(1, 'changed') | silent! execute 'normal ,qq'"
+              " | let g:kept = [winnr('$'), buflisted(bufnr('c.txt'))]",
+              "execute 'normal ,QQ' | let g:dropped = [winnr('$'), buflisted(bufnr('c.txt'))]",
+              "split | execute 'normal ,qq' | let g:shared = [winnr('$'), buflisted(bufnr('a.txt'))]",
+              "echo [g:b, g:kept, g:dropped, g:shared]")
+    assert out.splitlines()[-1] == "[[1, 0, 0], [2, 1], [1, 0], [1, 1]]"
+
+
+def vim_edit(home, name, text, *commands):
+    """The file NAME holding TEXT after vim runs COMMANDS on it, written with
+    noautocmd so the strip-on-write autocmd hides nothing."""
+    path = home / name
+    path.write_text(text)
+    args = [a for c in commands for a in ("-c", c)]
+    subprocess.run(["vim", "-es", "-u", str(home / ".vimrc"), str(path), *args, "-c", "noautocmd wq"],
+                   env=dict(os.environ, HOME=str(home), TERM="xterm-256color"), cwd=home, timeout=30)
+    return path.read_text()
+
+
+PY = "def f():\n    x = 1\n\n    # y = 2\n    return x\n"
+
+
+@needs("vim")
+@pytest.mark.parametrize("name, text, keys, expected", [
+    ("a.py", PY, "normal gg2,cc", "# def f():\n#     x = 1\n\n    # y = 2\n    return x\n"),
+    ("a.py", PY, "normal ggVG,cc", "# def f():\n#     x = 1\n\n#     # y = 2\n#     return x\n"),
+    ("a.py", PY, "normal 2GVG,cc", "def f():\n    # x = 1\n\n    # # y = 2\n    # return x\n"),
+    ("a.py", PY, "normal 4G,cc", "def f():\n    x = 1\n\n    y = 2\n    return x\n"),
+    ("a.py", "    #x\n  #  y\n", "normal ggVG,cc", "    x\n   y\n"),
+    ("a.c", "int x;\n  int y;\n", "normal ggVG,cc", "/* int x; */\n/*   int y; */\n"),
+    ("a.c", "/* int x; */\n  /*int y;*/\n", "normal ggVG,cc", "int x;\n  int y;\n"),
+    ("a.txt", "x\n", "set commentstring= | normal ,cc", "x\n"),
+])
+def test_vim_comma_cc_toggles_comments(linked, name, text, keys, expected):
+    assert vim_edit(linked, name, text, keys) == expected
+
+
+@needs("vim")
+def test_vim_comma_cc_round_trips_and_gc_package_loads(linked):
+    once = vim_edit(linked, "a.py", PY, "normal ggVG,cc")
+    assert vim_edit(linked, "a.py", once, "normal ggVG,cc") == PY
+    assert vim(linked, "echo maparg('gc', 'n')") == "comment.Toggle()"
+
+
+@needs("vim")
+@pytest.mark.parametrize("name, text, keys, expected", [
+    ("s.txt", "c\na\nb\na\n", "normal ggVG,s", "a\na\nb\nc\n"),
+    ("s.txt", "c\na\nb\na\n", "normal ggVG,u", "a\nb\nc\n"),
+    ("s.txt", "a\nb\n", "normal gg2,o", "a\n\n\nb\n"),
+    ("s.txt", "a\nb\n", "normal G,O", "a\n\nb\n"),
+    ("i.py", "if x:\nfoo\n", "normal ,=", "if x:\n  foo\n"),
+    ("j.json", '{"b": [1], "a": 1}\n', "normal ,j", '{\n  "b": [\n    1\n  ],\n  "a": 1\n}\n'),
+    ("j.json", "{bad\n", "normal ,j", "{bad\n"),
+    ("s.txt", "a\n", "normal gg$,id", "a" + __import__("time").strftime("%Y-%m-%d") + "\n"),
+])
+def test_vim_comma_editing_maps(linked, name, text, keys, expected):
+    assert vim_edit(linked, name, text, keys) == expected
+
+
+@needs("vim")
+def test_vim_comma_z_zooms_and_restores_and_comma_co_toggles_quickfix(linked):
+    out = vim_edit(linked, "o.txt", "", "split", "normal ,z", "let g:z = winheight(0)", "normal ,z",
+                   "normal ,co", "let g:open = len(getwininfo())", "normal ,co",
+                   "call setline(1, [g:z > winheight(0), winheight(0) < &lines - 5, g:open, len(getwininfo())])")
+    assert out == "1\n1\n3\n2\n"
+
+
+@needs("vim")
+def test_vim_comma_slash_greps_below_the_current_directory(linked):
+    (linked / "g").mkdir()
+    (linked / "g" / "x.txt").write_text("other\nneedle here\n")
+    out = vim_edit(linked, "w.txt", "needle\n", "normal gg,/", "cclose",
+                   "call setline(1, map(getqflist(), 'bufname(v:val.bufnr) . \":\" . v:val.lnum'))")
+    assert sorted(os.path.normpath(l) for l in out.splitlines()) == ["g/x.txt:2", "w.txt:1"]
 
 
 @needs("vim")
@@ -624,15 +708,8 @@ def test_vim_python_indents_two_and_tabs_show_their_width(linked):
 
 @needs("vim")
 def test_vim_comma_ww_strips_trailing_whitespace_and_tabs_but_not_in_make(linked):
-    # noautocmd: the write's own stripping would hide what ,ww did.
-    notes, make = linked / "n.txt", linked / "Makefile"
-    notes.write_bytes(b"a \n\tb\t \n")
-    make.write_bytes(b"all:\n\techo hi\n")
-    for path in (notes, make):
-        subprocess.run(["vim", "-es", "-u", str(linked / ".vimrc"), str(path), "-c", "normal ,ww",
-                        "-c", "noautocmd wq"],
-                       env=dict(os.environ, HOME=str(linked), TERM="xterm-256color"), timeout=30)
-    assert (notes.read_bytes(), make.read_bytes()) == (b"a\n  b\n", b"all:\n\techo hi\n")
+    assert vim_edit(linked, "n.txt", "a \n\tb\t \n", "normal ,ww") == "a\n  b\n"
+    assert vim_edit(linked, "Makefile", "all:\n\techo hi\n", "normal ,ww") == "all:\n\techo hi\n"
 
 
 @needs("vim")

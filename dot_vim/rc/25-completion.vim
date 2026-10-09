@@ -22,6 +22,11 @@ set wildignorecase
 set wildignore+=*.o,*.obj,*.pyc,*.class,*.swp,*~
 set wildignore+=*/.git/*,*/__pycache__/*,*/node_modules/*,*/.venv/*,*/build/*
 
+" :find and gf look in every directory below the current one as well
+" (<leader>f in 50-keys.vim uses it); Tab skips what 'wildignore' names.
+" Slow to complete in a very large tree, such as all of $HOME.
+set path+=**
+
 " The menu is a vertical popup instead of a row (vim 8.2.4325+).
 if has('patch-8.2.4325') | set wildoptions+=pum | endif
 

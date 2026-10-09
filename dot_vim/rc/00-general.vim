@@ -55,7 +55,7 @@ set history=1000
 " No pause after Esc in a terminal: key codes must arrive within 10 ms.
 set ttimeout ttimeoutlen=10
 
-" How long vim waits for the rest of a mapping such as <leader>w (default
+" How long vim waits for the rest of a mapping such as <leader>ww (default
 " 1000 ms).  Shorter feels faster; too short makes two-key maps hard.
 "set timeoutlen=500
 

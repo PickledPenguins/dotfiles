@@ -135,6 +135,10 @@ set background=dark
 " zaibatsu zellner (:colorscheme <Tab> lists what this vim has).
 execute 'silent! colorscheme' get(g:, 'dotfiles_colorscheme', 'desert')
 
+" Yanked text flashes briefly, to show what was copied.  Vim 9.1's hlyank
+" package; an older vim has none.
+silent! packadd! hlyank
+
 " ── Cursor ──────────────────────────────────────────────────────────────
 
 " Cursor shape: a bar in insert mode, an underline in replace mode, a block

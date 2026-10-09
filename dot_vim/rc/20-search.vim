@@ -28,10 +28,14 @@ set gdefault
 " only; vim has no such option).
 if exists('&inccommand') | set inccommand=nosplit | endif
 
-" :grep uses ripgrep when it is installed; :copen lists the matches.
+" :grep searches every file below the current directory: with ripgrep when
+" it is installed, else with grep -r, skipping .git and binary files (vim's
+" own default searches only the files named).  :copen lists the matches.
 if executable('rg')
   set grepprg=rg\ --vimgrep\ --smart-case\ --hidden\ --glob\ '!.git'
   set grepformat=%f:%l:%c:%m
+else
+  set grepprg=grep\ -rnI\ --exclude-dir=.git\ $*\ .
 endif
 
 " Open the quickfix or location list after :grep, :make, :vimgrep.
