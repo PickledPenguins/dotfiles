@@ -9,11 +9,13 @@
 
 " The git branch of the buffer's file, cached per buffer and read again
 " on entering it, writing it or regaining focus (one git per refresh).
+" :silent keeps the terminal raw while git runs: in cooked mode it echoed
+" the terminal's late answers to vim's startup queries onto the screen.
 function! DotfilesGitBranch() abort
   if !executable('git') | return '' | endif
   if !exists('b:dotfiles_branch')
     let l:dir = expand('%:p:h')
-    let l:out = isdirectory(l:dir) ? system('git -C ' . shellescape(l:dir) . ' symbolic-ref --short HEAD 2>/dev/null') : ''
+    silent let l:out = isdirectory(l:dir) ? system('git -C ' . shellescape(l:dir) . ' symbolic-ref --short HEAD 2>/dev/null') : ''
     let b:dotfiles_branch = v:shell_error ? '' : substitute(l:out, '\n', '', 'g')
   endif
   return empty(b:dotfiles_branch) ? '' : 'git:' . b:dotfiles_branch . '  '

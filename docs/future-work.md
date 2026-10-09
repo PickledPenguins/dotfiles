@@ -180,7 +180,7 @@ here is scheduled; an item is cited by its label.  Back to the
   under that TERM.  So `mouse=a` drag and split resizing fail, clicks past
   column 223 are lost, tmux's `focus-events on` (line 30) does nothing for
   vim, and `FocusGained` checktime (`dot_vim/rc/00-general.vim:30`) and the
-  statusline refresh (`15-statusline.vim:23`) never fire.  From the
+  statusline refresh (`15-statusline.vim:25`) never fire.  From the
   2026-10-08 settings creview.  Future work because it adds settings: when
   `&term =~ '^\(tmux\|screen\)'`, set `ttymouse=sgr`, `t_fe`/`t_fd` and the
   `<FocusGained>`/`<FocusLost>` key codes in `00-general.vim`.  vim in tmux

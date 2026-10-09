@@ -596,6 +596,31 @@ def test_vim_keys_map_leader_and_have_no_trailing_comment_garbage(linked):
 
 
 @needs("vim")
+def test_vim_status_line_reads_the_branch_without_turning_terminal_echo_on(linked):
+    # A terminal's late answers to vim's startup queries (kitty's
+    # P1+r...=... key codes) were echoed onto the status line while its git
+    # ran with the terminal in cooked mode.
+    fake = linked / "fakebin"
+    fake.mkdir()
+    (fake / "git").write_text('#!/bin/sh\nstty -a </dev/tty | grep -o -- " -\\?echo " >>"$HOME/echo"\necho main\n')
+    (fake / "git").chmod(0o755)
+    (linked / "d").mkdir()
+    pid, fd = pty.fork()
+    if pid == 0:                                     # pragma: no cover -- the child
+        env = dict(os.environ, HOME=str(linked), TERM="xterm-256color", PATH=f"{fake}:{os.environ['PATH']}")
+        os.execvpe("vim", ["vim", str(linked / "d" / "f.txt"), "-c", "redraw!", "-c", "qall!"], env)
+    out = b""
+    while select.select([fd], [], [], 5)[0]:
+        try:
+            out += os.read(fd, 65536)
+        except OSError:                              # EIO: vim has exited
+            break
+    os.waitpid(pid, 0)
+    os.close(fd)
+    assert ((linked / "echo").read_text(), b"git:main" in out) == (" -echo \n", True)
+
+
+@needs("vim")
 def test_vim_comma_q_closes_the_window_and_deletes_its_buffer(linked):
     out = vim(linked, "edit a.txt | split b.txt | execute 'normal ,qq'"
               " | let g:b = [winnr('$'), buflisted(bufnr('b.txt')), bufloaded(bufnr('b.txt'))]",
