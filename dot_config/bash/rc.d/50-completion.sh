@@ -36,6 +36,9 @@ if declare -F __git_wrap__git_main >/dev/null; then
     complete -o bashdefault -o default -o nospace -F __git_wrap__git_main g
 fi
 
+# `git ctags` (~/.local/bin/git-ctags) completes its one subcommand, off.
+_git_ctags() { __gitcomp "off"; }
+
 # Host names after ssh, scp and rsync come only from ~/.ssh/config and
 # known_hosts, not also every name in /etc/hosts.
 #COMP_KNOWN_HOSTS_WITH_HOSTFILE=

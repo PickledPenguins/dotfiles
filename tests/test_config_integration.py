@@ -25,7 +25,7 @@ pytestmark = pytest.mark.long
 BASH_MODULES = ["env", "options", "path", "aliases", "functions", "dirs", "completion",
                 "prompt", "title", "conda", "python", "tools", "hpc", "local"]
 VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
-               "35-folding", "40-files", "45-filetypes", "50-keys", "55-netrw"]
+               "35-folding", "40-files", "45-filetypes", "50-keys", "52-tags", "55-netrw"]
 
 
 @pytest.fixture
@@ -840,6 +840,77 @@ def test_git_snapshot_on_a_clean_tree_applies_no_older_stash(linked):
     proc = git_script(linked, "git init -q -b main r && cd r && echo 1 > f && git add f && git commit -qm one && "
                               "echo old > f && git stash -q && git snapshot; echo $?; cat f; git stash list | wc -l")
     assert (proc.stdout, proc.stderr) == ("No local changes to save\n0\n1\n1\n", "")
+
+
+def fake_ctags(home, version="Universal Ctags 6.1.0"):
+    """A ctags on PATH that writes the checked-out branch, or "plain" outside
+    a repository, into its -f file; the shell preamble that puts it and
+    ~/.local/bin first, with wait_for FILE TEXT for the background hooks."""
+    fake = home / "fakebin"
+    fake.mkdir(exist_ok=True)
+    (fake / "ctags").write_text(
+        f'#!/bin/sh\n[ "$1" = --version ] && {{ echo "{version}"; exit 0; }}\n'
+        'out=tags; while [ $# -gt 0 ]; do [ "$1" = -f ] && out=$2; shift; done\n'
+        'git rev-parse --abbrev-ref HEAD >"$out" 2>/dev/null || echo plain >"$out"\n')
+    (fake / "ctags").chmod(0o755)
+    return (f'export PATH="{fake}:{home}/.local/bin:$PATH"; wait_for() {{ for _ in $(seq 50); do '
+            '[ "$(cat "$1" 2>/dev/null)" = "$2" ] && return; sleep 0.1; done; return 1; }; ')
+
+
+def test_git_ctags_builds_marks_hooks_and_rebuilds_on_switch_and_worktree_add(linked):
+    proc = git_script(linked, fake_ctags(linked) +
+                      "git init -q u && (cd u && git ctags --hook && ls -A | grep -v '^.git$'); "
+                      "git init -q -b main r && cd r && git commit -q --allow-empty -m one && "
+                      "git ctags | sed \"s#$PWD#R#g\" && cat tags && git config dotfiles.ctags && "
+                      "ls .git/hooks | grep -v sample && test -x .git/hooks/post-merge && "
+                      "git switch -q -c feat && wait_for tags feat && echo switched && "
+                      "git worktree add -q -b other ../w 2>/dev/null && wait_for ../w/tags other && echo worktree")
+    assert (proc.stdout, proc.stderr) == (
+        "git ctags: R/tags, hooks in R/.git/hooks\nmain\ntrue\n"
+        "post-checkout\npost-commit\npost-merge\npost-rewrite\nswitched\nworktree\n", "")
+
+
+def test_git_ctags_leaves_a_foreign_hook_and_off_removes_only_its_own(linked):
+    proc = git_script(linked, fake_ctags(linked) +
+                      "git init -q -b main r && cd r && git commit -q --allow-empty -m one && "
+                      "printf '#!/bin/sh\\necho mine\\n' >.git/hooks/post-merge && "
+                      "git ctags | sed \"s#$PWD#R#g\" && git ctags off && ls .git/hooks | grep -v sample && "
+                      "cat .git/hooks/post-merge && ls tags 2>/dev/null; git config dotfiles.ctags; echo $?")
+    assert (proc.stdout, proc.stderr) == (
+        "git ctags: R/.git/hooks/post-merge is not ours; add this line to it:\n"
+        "    command -v git-ctags >/dev/null && git-ctags --hook >/dev/null 2>&1 &\n"
+        "git ctags: R/tags, hooks in R/.git/hooks\npost-merge\n#!/bin/sh\necho mine\n1\n", "")
+
+
+def test_git_ctags_refuses_a_ctags_that_is_not_universal(linked):
+    proc = git_script(linked, fake_ctags(linked, "Exuberant Ctags 5.9") +
+                      "git init -q r && cd r && git ctags; echo $?; ls .git/hooks | grep -vc sample")
+    assert (proc.stdout, proc.stderr) == ("1\n0\n", "git ctags: needs universal-ctags on PATH\n")
+
+
+@needs("vim")
+def test_vim_comma_tg_builds_tags_with_git_ctags_in_a_repository_and_ctags_outside(linked):
+    fake_ctags(linked)
+    git_script(linked, "git init -q -b main r && cd r && git commit -q --allow-empty -m one && mkdir ../n")
+    out = vim(linked, f"let $PATH = '{linked}/fakebin:{linked}/.local/bin:' . $PATH", f"edit {linked}/r/a.txt | execute 'normal ,tg'",
+              f"edit {linked}/n/b.txt | cd {linked}/n | execute 'normal ,tg'",
+              f"echo readfile('{linked}/r/tags') readfile('{linked}/n/tags') system('git -C {linked}/r config dotfiles.ctags')")
+    assert out.splitlines()[-1] == "['main'] ['plain'] true"
+
+
+@needs("vim")
+def test_vim_tags_found_upward_and_comma_t_maps_open_them(linked):
+    (linked / "tags").write_text("foo\tf.txt\t/^foo$/\n")
+    (linked / "f.txt").write_text("x\nfoo\n")
+    (linked / "d").mkdir()
+    (linked / "d" / "a.txt").write_text("foo\n")
+    out = vim(linked, f"edit {linked}/d/a.txt",
+              "execute 'normal ,tv' | let g:v = [winnr('$'), winwidth(0) < &columns, expand('%:t'), line('.')] | close",
+              "execute 'normal ,th' | let g:h = [winnr('$'), winwidth(0) == &columns, expand('%:t')] | close",
+              "execute 'normal ,tt' | let g:t = [tabpagenr('$'), expand('%:t')] | tabclose",
+              "execute 'normal ,tp' | let g:p = [winnr('$'), expand('%:t')] | pclose",
+              "echo [g:v, g:h, g:t, g:p, &tags]")
+    assert out.splitlines()[-1] == "[[2, 1, 'f.txt', 2], [2, 1, 'f.txt'], [2, 'f.txt'], [2, 'a.txt'], './tags;,tags;']"
 
 
 def test_git_fetch_keeps_a_local_tag_the_remote_does_not_have(linked):

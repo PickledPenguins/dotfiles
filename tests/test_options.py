@@ -44,6 +44,7 @@ NOT_IN_THE_FORMAT = {
     ".ssh/sockets/.keep": "empty placeholder that makes git keep the directory",
     ".local/bin/dots": "the dots program itself, linked onto PATH; code, not options",
     ".local/share/bash-completion/completions/dots": "bash completion for dots; code, not options",
+    ".local/bin/git-ctags": "the git ctags command, linked onto PATH; code, not options",
 }
 
 #: Code lines that are structure rather than a setting, so need no description.

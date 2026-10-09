@@ -202,10 +202,10 @@ here is scheduled; an item is cited by its label.  Back to the
   help warns that it breaks plugins and inverts `/g`: a pasted or
   plugin-run `:s/a/b/g` replaces only the first match.  It changes
   existing behavior, against `CLAUDE.md`'s rule that new settings start
-  off.  `50-keys.vim:207` (`<leader>rw`) relies on it.  From the
+  off.  `50-keys.vim:214` (`<leader>rw`, `<leader>ri`) relies on it.  From the
   2026-10-08 settings creview.  Future work because it changes what `:s`
   does for the owner.  Fix: `#set gdefault`, and `/g` added to
-  `<leader>rw`.
+  `<leader>rw` and `<leader>ri`.
 - **F.2.y  `smartindent` sends `#` lines to column 0.**
   `dot_vim/rc/30-indent.vim:32`.  Checked: in `conf` buffers (ssh config,
   tmux.conf) `o#` lands at column 0; python, sh and yaml are unaffected,

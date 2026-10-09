@@ -23,10 +23,19 @@
 --exclude=.venv
 --exclude=node_modules
 --exclude=__pycache__
+--exclude=.mypy_cache
+--exclude=.pytest_cache
+--exclude=.tox
 --exclude=build
+--exclude=.build
 --exclude=dist
+--exclude=target
 --exclude=*.min.js
 --exclude=*.map
+
+# Vendored dependencies (Go, PHP, Ruby) are not indexed either; leave this
+# off where a project keeps its own code in vendor/.
+#--exclude=vendor
 
 # JSON and SQL files are not indexed (big, and rarely worth jumping into).
 --languages=-json,-sql

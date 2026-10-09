@@ -150,7 +150,7 @@ Read-only variables the loader sets for modules and for you:
 | `30-aliases.sh` | ls/grep/diff/ip color, `ll la l lt ltr lS lsd`, `.. ... .... ..... cd.. - d cdg`, `rm -I cp -i mv -i`, `mkdir -pv ln -v chmox`, `df du free dus psg top ports j mnt`, `c clc h hg e v sb vb path now week timestamp epoch ping tree serve cpv myip :q`, `pbcopy`/`pbpaste`, `g gs gl gd gp`, `alert`.  Off: grep skipping VCS dirs, `rm -i`, `--preserve-root`, `sudo ` alias expansion, `vi`→vim, `vim`→nvim, `open`, the oh-my-zsh git set |
 | `40-functions.sh` | `mkcd tmpd up bd cdf extract targz ff fd_ rgv bak swap bigfiles count sha mkscript note tree retry timer histstat man reload calc genpass urlencode urldecode fromepoch title hr envg port cheat weather` |
 | `45-dirs.sh` | `mark jump unmark marks` bookmarks, `CDPATH`, `1`..`9` for the pushd stack.  Off: ls after cd, cd that pushes (auto_pushd) |
-| `50-completion.sh` | bash-completion, `completion.d/`, git completion for the `g` alias.  Off: no `/etc/hosts` in host completion, pip completion |
+| `50-completion.sh` | bash-completion, `completion.d/`, git completion for the `g` alias and `git ctags`.  Off: no `/etc/hosts` in host completion, pip completion |
 | `60-prompt.sh` | the toolkit prompt: `prompt/toolkit/prompt.sh` + `prompt/layout.sh` (every segment described and switchable there).  The toolkit's own variables are in its [README](../dot_config/bash/prompt/toolkit/README.md); `CMD_TIMER_SKIP_TRAP=1` leaves the DEBUG trap to another tool and drops `@cmd_time` |
 | `61-prompt-simple.sh.off` | one-line colored prompt with git branch.  Off inside: time, short directory, `PROMPT_DIRTRIM`, exit status |
 | `65-title.sh` | terminal title at each prompt.  Off: the running command in the title |
@@ -174,6 +174,7 @@ Read-only variables the loader sets for modules and for you:
 | `40-files.vim` | swap/backup/undo under `~/.vim/tmp/`, persistent undo, no backups for secrets, last position, mkdir on write, strip trailing whitespace.  Off: `noswapfile`, autosave on focus loss |
 | `45-filetypes.vim` | prose wrap+spell, gitcommit columns, python columns, `q` closes help, `g:is_bash`, `.pbs`/`.slurm`/`.env` filetypes, `:Make`.  Off: markdown conceal, soft-wrapped text, F5 runs python, fenced-code highlighting |
 | `50-keys.vim` | leader `,`; leader maps (`<space> , qq QQ qa ev cd cp z sv sh bn bp bl bd f gg / gb y p P o O id rw ri cc ww = ss uu j sc wr tn tl co`), `gc` comment package, `Y`, `j`/`k`, `n`/`N`, F5 runs the file, `Ctrl-hjkl`, `Ctrl-arrows` resize, `Tab`/`S-Tab` buffers, visual `J`/`K`, `gV`, `]q [q ]l [l`, `w!!`, `F2` paste.  Off: `jk`, `;` as `:`, `Q` as `gq`, `Ctrl-S`, centered `Ctrl-D`/`Ctrl-U`, `J` in place, no arrow keys, emacs keys on the command line, `Esc Esc` in `:terminal` |
+| `52-tags.vim` | `tags` searched upward from the file and from vim's directory; `<leader>tg` builds tags (`git ctags` in a repository), `tf` jumps by name, `th tv tt tp` open the tag under the cursor in a split, vertical split, tab, preview.  Off: `Ctrl-]` lists when ambiguous |
 | `55-netrw.vim` | tree-style netrw, `-` and `<leader>ee`.  Off: hide dotfiles, netrw off |
 | `60-plugins.vim.off` | vim-plug with commentary, surround, repeat, fugitive, gitgutter, fzf, editorconfig; about 25 more described and off |
 
@@ -224,7 +225,8 @@ Read-only variables the loader sets for modules and for you:
 | `~/.config/ripgrep/config` | smart case, hidden files, ignores, colors.  Off: follow links, sorted output, no VCS ignores, minified files |
 | `~/.config/python/pythonrc.py` | REPL history and completion before 3.13; `json math re Path pp` imported.  Off: datetime, numpy/pandas, pretty display, rich, colored prompt |
 | `~/.config/pip/pip.conf` | timeout.  Off: `require-virtualenv`, version check, mirror, extra index, trusted host, no cache, `--user` |
-| `~/.ctags.d/default.ctags` | universal-ctags excludes and fields.  Off: no markdown |
+| `~/.ctags.d/default.ctags` | universal-ctags excludes (caches, virtualenvs, build output, `target`) and fields.  Off: no `vendor/`, no markdown |
+| `~/.local/bin/git-ctags` | `git ctags`: a `tags` file at the worktree root, rebuilt by the repository's `post-checkout`, `post-merge`, `post-rewrite` and `post-commit` hooks in the background; `git ctags off` removes it.  Needs: universal-ctags |
 | `~/.config/kitty/kitty.conf` | everything off: fonts, scrollback, copy on select, cursor, bell, window and tab look, opacity, themes, `term xterm-256color`, shell integration, remote control, keys; reads `local.conf` |
 | `~/.ipython/profile_default/ipython_config.py` | everything off: autoreload, start-up imports, banner, vi mode, exit confirmation, autosuggestions, editor, auto-match, colors, traceback mode, show every expression, history |
 | `~/.config/matplotlib/matplotlibrc` | everything off: screen and save dpi, figure size, constrained layout, tight bbox, PDF default, editable PDF fonts, grid, spines, font size, math font, LaTeX, Agg backend |
