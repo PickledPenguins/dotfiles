@@ -189,10 +189,15 @@ xnoremap K :move '<-2<CR>gv=gv
 inoremap <C-u> <C-g>u<C-u>
 inoremap <C-w> <C-g>u<C-w>
 
-" <leader>y yanks to the system clipboard, <leader>p puts from it.
+" <leader>y yanks to the system clipboard; <leader>p and <leader>P put from
+" it after and before the cursor, as p and P do.  Over a selection both
+" replace it; <leader>p yanks what was there, <leader>P keeps the register.
 nnoremap <leader>y "+y
 xnoremap <leader>y "+y
 nnoremap <leader>p "+p
+nnoremap <leader>P "+P
+xnoremap <leader>p "+p
+xnoremap <leader>P "+P
 
 " <leader>o and <leader>O add a blank line below and above (a count: that
 " many) and stay in normal mode.
@@ -203,8 +208,11 @@ nnoremap <silent> <leader>O :<C-u>call append(line('.') - 1, repeat([''], v:coun
 nnoremap <leader>id "=strftime('%Y-%m-%d')<CR>p
 
 " <leader>rw starts replacing the word under the cursor everywhere in the
-" file (gdefault in 20-search.vim makes it every match on a line).
-nnoremap <leader>rw :%s/\<<C-r><C-w>\>//<Left>
+" file, matching its case exactly (\C, whatever 'ignorecase' says);
+" <leader>ri in any case (\c).  gdefault in 20-search.vim makes it every
+" match on a line.
+nnoremap <leader>rw :%s/\C\<<C-r><C-w>\>//<Left>
+nnoremap <leader>ri :%s/\c\<<C-r><C-w>\>//<Left>
 
 " gV selects the text just pasted or changed.
 nnoremap gV `[v`]
@@ -274,31 +282,60 @@ silent! packadd! comment
 
 " <leader>ww fixes whitespace when asked, never on its own: strips trailing
 " whitespace and turns tabs into spaces, tabstop wide (:retab; a buffer
-" with noexpandtab, make or go, keeps its tabs).
-nnoremap <silent> <leader>ww :call <SID>KeepView('keeppatterns %s/\s\+$//e <Bar> retab')<CR>
+" with noexpandtab, make or go, keeps its tabs).  In the whole file, or in
+" the selected lines.
+function! s:FixWhitespace(first, last) abort
+  let l:range = a:first . ',' . a:last
+  call s:KeepView('keeppatterns ' . l:range . 's/\s\+$//e | ' . l:range . 'retab')
+endfunction
+nnoremap <silent> <leader>ww :call <SID>FixWhitespace(1, line('$'))<CR>
+xnoremap <silent> <leader>ww :<C-u>call <SID>FixWhitespace(line("'<"), line("'>"))<CR>
 
 " <leader>= re-indents the whole file by the filetype's indent rules.
 nnoremap <silent> <leader>= :call <SID>KeepView('normal! gg=G')<CR>
 
-" <leader>s sorts the selected lines; <leader>u sorts them and drops
-" repeated ones.
-xnoremap <leader>s :sort<CR>
-xnoremap <leader>u :sort u<CR>
+" <leader>ss sorts the file, or the selected lines; <leader>uu sorts them
+" and drops repeated ones.
+nnoremap <leader>ss :sort<CR>
+xnoremap <leader>ss :sort<CR>
+nnoremap <leader>uu :sort u<CR>
+xnoremap <leader>uu :sort u<CR>
 
-" <leader>j lays out the JSON in the buffer, two spaces deep.  Invalid JSON
-" leaves the buffer as it was and shows python's error.  Needs: python3.9+.
-function! s:FormatJson() abort
-  let l:out = systemlist('python3 -m json.tool --indent 2', getline(1, '$'))
+" <leader>j lays out the JSON in the buffer, or in the selection (JSON
+" inside a log line, say), two spaces deep.  Invalid JSON leaves the text
+" as it was and shows python's error.  The z and unnamed registers come
+" through unchanged.  Needs: python3.9+.
+function! s:FormatJson(visual) abort
+  if a:visual
+    let l:saved = [getreginfo('z'), getreginfo('"')]
+    normal! gv"zy
+    let l:text = getreg('z', 1, 1)
+  else
+    let l:text = getline(1, '$')
+  endif
+  let l:out = systemlist('python3 -m json.tool --indent 2', l:text)
   if v:shell_error
+    if a:visual
+      call setreg('z', l:saved[0])
+      call setreg('"', l:saved[1])
+    endif
     echoerr join(l:out)
     return
   endif
-  let l:view = winsaveview()
-  silent %delete _
-  call setline(1, l:out)
-  call winrestview(l:view)
+  if a:visual
+    call setreg('z', l:out, visualmode() ==# 'V' ? 'l' : 'v')
+    normal! gv"zP
+    call setreg('z', l:saved[0])
+    call setreg('"', l:saved[1])
+  else
+    let l:view = winsaveview()
+    silent %delete _
+    call setline(1, l:out)
+    call winrestview(l:view)
+  endif
 endfunction
-nnoremap <silent> <leader>j :call <SID>FormatJson()<CR>
+nnoremap <silent> <leader>j :call <SID>FormatJson(0)<CR>
+xnoremap <silent> <leader>j :<C-u>call <SID>FormatJson(1)<CR>
 
 " ── Toggles ─────────────────────────────────────────────────────────────
 

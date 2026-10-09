@@ -588,11 +588,11 @@ def test_vim_knobs_from_vimrc_before(linked):
 @needs("vim")
 def test_vim_keys_map_leader_and_have_no_trailing_comment_garbage(linked):
     out = vim(linked, "nmap <leader>QQ", "nmap <C-h>", "xmap J",
-              "echo map([',qa', ',p', ',q', ',w', ',Q', ',v', ',x', ',b', ',n', ',d', ',P', ',a', ',ss', ',tw', ',tc'],"
-              " 'maparg(v:val, \"n\")') maparg(',p', 'x') ==# ''")
+              "echo map([',qa', ',p', ',P', ',q', ',w', ',Q', ',v', ',x', ',b', ',n', ',d', ',a', ',s', ',u', ',tw', ',tc'],"
+              " 'maparg(v:val, \"n\")') maparg(',p', 'x') maparg(',P', 'x')")
     assert out.splitlines() == ["n  ,QQ         * :call <SNR>19_Close('!')<CR>", "n  <C-H>       * <C-W>h",
                                 "x  J           * :move '>+1<CR>gv=gv",
-                                "[':qall<CR>', '\"+p', '', '', '', '', '', '', '', '', '', '', '', '', ''] 1"]
+                                "[':qall<CR>', '\"+p', '\"+P', '', '', '', '', '', '', '', '', '', '', '', '', ''] \"+p \"+P"]
 
 
 @needs("vim")
@@ -645,13 +645,21 @@ def test_vim_comma_cc_round_trips_and_gc_package_loads(linked):
 
 @needs("vim")
 @pytest.mark.parametrize("name, text, keys, expected", [
-    ("s.txt", "c\na\nb\na\n", "normal ggVG,s", "a\na\nb\nc\n"),
-    ("s.txt", "c\na\nb\na\n", "normal ggVG,u", "a\nb\nc\n"),
+    ("s.txt", "c\na\nb\na\n", "normal ,ss", "a\na\nb\nc\n"),
+    ("s.txt", "c\na\nb\na\n", "normal ,uu", "a\nb\nc\n"),
+    ("s.txt", "c\nb\na\nz\n", "normal 2GV3G,ss", "c\na\nb\nz\n"),
+    ("s.txt", "c\nb\nb\nz\n", "normal 2GV3G,uu", "c\nb\nz\n"),
     ("s.txt", "a\nb\n", "normal gg2,o", "a\n\n\nb\n"),
+    ("r.txt", "foo Foo foo\n", 'execute "normal gg,rwBAR\\<CR>"', "BAR Foo BAR\n"),
+    ("r.txt", "foo Foo foo\n", 'execute "normal gg,riBAR\\<CR>"', "BAR BAR BAR\n"),
     ("s.txt", "a\nb\n", "normal G,O", "a\n\nb\n"),
     ("i.py", "if x:\nfoo\n", "normal ,=", "if x:\n  foo\n"),
     ("j.json", '{"b": [1], "a": 1}\n', "normal ,j", '{\n  "b": [\n    1\n  ],\n  "a": 1\n}\n'),
     ("j.json", "{bad\n", "normal ,j", "{bad\n"),
+    ("j.txt", 'x {"a": [1]} y\nz\n', 'normal gg0f{vf},j', 'x {\n  "a": [\n    1\n  ]\n} y\nz\n'),
+    ("j.txt", 'x\n{"a": 1}\nz\n', "normal 2GV,j", 'x\n{\n  "a": 1\n}\nz\n'),
+    ("j.txt", 'x {bad} y\n', "normal gg0f{vf},j", 'x {bad} y\n'),
+    ("j.txt", 'k\n{"a": 1}\n', 'normal ggyy2GV,jGp', 'k\n{\n  "a": 1\n}\nk\n'),
     ("s.txt", "a\n", "normal gg$,id", "a" + __import__("time").strftime("%Y-%m-%d") + "\n"),
 ])
 def test_vim_comma_editing_maps(linked, name, text, keys, expected):
@@ -715,6 +723,7 @@ def test_vim_python_indents_two_and_tabs_show_their_width(linked):
 def test_vim_comma_ww_strips_trailing_whitespace_and_tabs_but_not_in_make(linked):
     assert vim_edit(linked, "n.txt", "a \n\tb\t \n", "normal ,ww") == "a\n  b\n"
     assert vim_edit(linked, "Makefile", "all:\n\techo hi\n", "normal ,ww") == "all:\n\techo hi\n"
+    assert vim_edit(linked, "v.txt", "a \n\tb \n\tc \n", "normal 2GV,ww") == "a \n  b\n\tc \n"
 
 
 @needs("vim")
