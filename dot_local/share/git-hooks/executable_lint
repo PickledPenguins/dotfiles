@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# lint -- run this repository's linter on the staged files before a commit.
+# events: pre-commit
+# config: hooks.lint hooks.lintFiles
+# requires: hooks.lint
+#
+# hooks.lint is the command, run by sh at the top of the work tree with the
+# staged paths (added, copied, modified, renamed) after it:
+#     git config hooks.lint "ruff check"
+# hooks.lintFiles narrows the paths, as git pathspecs separated by spaces
+# (git config hooks.lintFiles "*.py *.pyi"); the default is every path.
+# Nothing staged that matches means nothing runs.  The linter reads the
+# files as the work tree has them, so a file staged in part is linted whole.
+set -euo pipefail
+
+cmd=$(git config hooks.lint) || { echo "lint: set git config hooks.lint CMD" >&2; exit 1; }
+read -ra pathspecs <<<"$(git config hooks.lintFiles || true)"
+mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR -- "${pathspecs[@]}")
+((${#paths[@]})) || exit 0
+sh -c "$cmd"' "$@"' lint "${paths[@]}" && exit 0
+echo "lint: $cmd failed; fix the files, or commit with --no-verify" >&2
+exit 1

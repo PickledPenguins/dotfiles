@@ -200,6 +200,66 @@ def test_every_top_level_target_is_in_the_configuration_doc(dots, home):
         assert f"~/{top}" in config, f"docs/configuration.md lacks the target ~/{top}"
 
 
+# ── packaged git hooks ────────────────────────────────────────────────────
+
+GIT_HOOKS = REPO / "dot_local/share/git-hooks"
+GIT_EVENTS = {
+    "applypatch-msg", "pre-applypatch", "post-applypatch", "pre-commit", "pre-merge-commit",
+    "prepare-commit-msg", "commit-msg", "post-commit", "pre-rebase", "post-checkout", "post-merge",
+    "pre-push", "pre-receive", "update", "proc-receive", "post-receive", "post-update",
+    "reference-transaction", "push-to-checkout", "pre-auto-gc", "post-rewrite", "sendemail-validate",
+    "fsmonitor-watchman", "p4-changelist", "p4-prepare-changelist", "p4-post-changelist", "p4-pre-submit",
+    "post-index-change",
+}
+
+
+def header(path):
+    """The comment block after the shebang."""
+    lines = []
+    for line in path.read_text().splitlines()[1:]:
+        if not line.startswith("#"):
+            break
+        lines.append(line)
+    return lines
+
+
+def header_field(path, key):
+    return next((line[len(f"# {key}: "):] for line in header(path) if line.startswith(f"# {key}: ")), "")
+
+
+def packaged_git_hooks():
+    return [f for f in sorted(GIT_HOOKS.iterdir()) if header_field(f, "events")]
+
+
+def test_every_packaged_git_hook_header_is_well_formed():
+    hooks = packaged_git_hooks()
+    assert len(hooks) == len(list(GIT_HOOKS.iterdir())) - 1       # all but the dispatcher
+    for f in hooks:
+        name = f.name.removeprefix("executable_")
+        assert re.fullmatch(rf"# {re.escape(name)} -- .+\.", header(f)[0]), f"{name}: line 2 is not '# {name} -- summary.'"
+        assert set(header_field(f, "events").split()) <= GIT_EVENTS, f"{name}: an event git does not have"
+        config = set(header_field(f, "config").split())
+        assert set(header_field(f, "requires").split()) <= config, f"{name}: requires a key its config line lacks"
+        used = set(re.findall(r"\bhooks\.[A-Za-z]+", f.read_text()))
+        assert used == config, f"{name}: reads {sorted(used)}, its config line says {sorted(config)}"
+
+
+def test_every_packaged_git_hook_has_a_row_in_the_configuration_doc():
+    section = text(CONFIG).split("## Packaged git hooks")[1].split("\n## ")[0]
+    for f in packaged_git_hooks():
+        name = f.name.removeprefix("executable_")
+        events = ", ".join(header_field(f, "events").split())
+        assert f"| `{name}` | {events} |" in section, f"docs/configuration.md lacks a row for git hook {name}"
+
+
+def test_git_hooks_completion_offers_exactly_the_subcommands_of_its_usage():
+    usage = re.search(r'"usage: git hooks \[(.*?)\]"', (REPO / "dot_local/bin/executable_git-hooks").read_text())[1]
+    subcommands = {word.split()[0] for word in usage.split(" | ")} - {"-h"}
+    completion = (REPO / "dot_config/bash/rc.d/50-completion.sh").read_text()
+    offered = re.search(r"_git_hooks\(\).*?subcommands=['\"]([^'\"]+)", completion, re.S)[1]
+    assert set(offered.split()) == subcommands
+
+
 def test_bash_modules_named_in_integration_test_match_the_tree():
     from test_config_integration import BASH_MODULES, VIM_MODULES
     on_disk = [f.name[3:-3] for f in bash_module_files() if f.name.endswith(".sh")]

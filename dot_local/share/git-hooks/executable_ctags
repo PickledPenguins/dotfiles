@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# ctags -- rebuild the tags file in the background after HEAD moves.
+# events: post-checkout post-merge post-rewrite post-commit
+#
+# Runs git ctags --hook, which writes tags at the top of the work tree.
+# git ctags builds the file once and switches this on; git ctags off
+# switches it off and deletes the file.  git never waits for the rebuild.
+# Needs: universal-ctags and git-ctags on PATH.
+command -v git-ctags >/dev/null || exit 0
+git-ctags --hook </dev/null >/dev/null 2>&1 &

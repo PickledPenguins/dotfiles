@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# branch-tag -- start the commit message with the ticket named in the branch.
+# events: prepare-commit-msg
+# config: hooks.tagPattern
+#
+# On branch ABC-123-fix-login the message starts "ABC-123: ".  The tag is the
+# first part of the branch name matching hooks.tagPattern, an extended regular
+# expression (default [A-Z][A-Z0-9]+-[0-9]+).  Nothing is added when the
+# branch has no tag, when the message already holds it, or for a merge, a
+# squash, or a message reused with -c, -C or --amend.
+set -euo pipefail
+
+file=$1 source=${2-}
+case $source in merge | squash | commit) exit 0 ;; esac
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+pattern=$(git config hooks.tagPattern || echo '[A-Z][A-Z0-9]+-[0-9]+')
+tag=$(grep -oE -m1 -e "$pattern" <<<"$branch" | head -n1) || exit 0
+[[ -n $tag ]] || exit 0
+grep -qF -e "$tag" "$file" && exit 0
+message=$(<"$file")
+printf '%s: %s\n' "$tag" "$message" >"$file"

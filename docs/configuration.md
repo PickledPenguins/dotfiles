@@ -226,12 +226,67 @@ Read-only variables the loader sets for modules and for you:
 | `~/.config/python/pythonrc.py` | REPL history and completion before 3.13; `json math re Path pp` imported.  Off: datetime, numpy/pandas, pretty display, rich, colored prompt |
 | `~/.config/pip/pip.conf` | timeout.  Off: `require-virtualenv`, version check, mirror, extra index, trusted host, no cache, `--user` |
 | `~/.ctags.d/default.ctags` | universal-ctags excludes (caches, virtualenvs, build output, `target`) and fields.  Off: no `vendor/`, no markdown |
-| `~/.local/bin/git-ctags` | `git ctags`: a `tags` file at the worktree root, rebuilt by the repository's `post-checkout`, `post-merge`, `post-rewrite` and `post-commit` hooks in the background; `git ctags off` removes it.  Needs: universal-ctags |
-| `~/.local/bin/git-hooks` | `git hooks`: the repository's hooks, on or off, each with the full path of the file it runs (a link's target, so the tracked script); `git hooks on` and `git hooks off` rename each linked hook (a project's tracked gate, such as a `pre-push` that runs its tests) between `NAME` and `NAME.off`, and any hook by name.  A hook is off while its name ends in `.off`: git runs only the exact name |
+| `~/.local/bin/git-ctags` | `git ctags`: a `tags` file at the worktree root, then the packaged `ctags` hook installed and switched on, which rebuilds it in the background after `post-checkout`, `post-merge`, `post-rewrite` and `post-commit`; `git ctags off` removes the hook and the file.  Needs: universal-ctags |
+| `~/.local/bin/git-hooks` | `git hooks`: install the [packaged git hooks](#packaged-git-hooks-localsharegit-hooks) in a repository, list its hooks, show what one does, switch them on and off |
+| `~/.local/share/git-hooks/` | the packaged git hooks and their dispatcher, one file each; see [Packaged git hooks](#packaged-git-hooks-localsharegit-hooks) |
 | `~/.config/kitty/kitty.conf` | everything off: fonts, scrollback, copy on select, cursor, bell, window and tab look, opacity, themes, `term xterm-256color`, shell integration, remote control, keys; reads `local.conf` |
 | `~/.ipython/profile_default/ipython_config.py` | everything off: autoreload, start-up imports, banner, vi mode, exit confirmation, autosuggestions, editor, auto-match, colors, traceback mode, show every expression, history |
 | `~/.config/matplotlib/matplotlibrc` | everything off: screen and save dpi, figure size, constrained layout, tight bbox, PDF default, editable PDF fonts, grid, spines, font size, math font, LaTeX, Agg backend |
 | `~/.sqliterc` | everything off: headers, box and column modes, NULL display, timer, foreign keys |
+
+## Packaged git hooks (`~/.local/share/git-hooks/`)
+
+Hooks people commonly want, every one off until switched on in a
+repository.  Each file's header says what it does, its events, its
+settings and the settings it needs; `git hooks show NAME` prints it.
+
+```sh
+git hooks available          # each packaged hook: state here, name, summary
+git hooks install            # all of them, switched off (or install NAME...)
+git config hooks.test "./run-tests.sh fast"
+git hooks on test-push       # refused until a hook's required setting is made
+git hooks                    # this repository's hooks: state, event, name, file
+git hooks off                # everything that is on
+git hooks remove             # back to the hooks the repository had
+```
+
+git runs one file per event, so `install` links `.git/hooks/EVENT` to
+`dispatch`, which runs each `.git/hooks/EVENT.d/NAME` in name order with
+git's arguments, its stdin and `GIT_HOOK_EVENT` set.  A hook is off while
+its name ends in `.off`.  A pre- event stops at the first hook that fails,
+which fails the commit, merge or push; a post- event runs every hook.
+`HOOKS_SKIP="NAME..."` skips hooks for one command; `--no-verify` skips
+all of an event's.  A hook the repository already had (a project's tracked
+`pre-push` gate, linked as `pre-push.off`) moves into `EVENT.d` under its
+event name, in the state it was in, and `git hooks on pre-push` still
+switches it; `remove` moves it back once no packaged hook is left for the
+event.  `git hooks on` and `off` also switch a plain hook at the top of
+`.git/hooks` by name.  Settings are per repository (`git config`, or
+`--global` for every one).
+
+| Hook | Event | Does | Settings |
+|------|-------|------|----------|
+| `whitespace` | pre-commit | refuses trailing whitespace and conflict markers (`git diff --cached --check`) | |
+| `big-file` | pre-commit | refuses a staged file over the limit | `hooks.maxFileSize` (5m) |
+| `secrets` | pre-commit | refuses added lines with a private key, an AWS, GitHub, Slack, OpenAI or Anthropic token, or a quoted password-like assignment, and added `.env`, `.netrc`, `id_*`, `*.pem`/`key`/`p12`/`pfx` files; `hooks:allow-secret` on a line passes it | |
+| `debug-left` | pre-commit | refuses added `breakpoint()`, `pdb`/`ipdb`, `debugger;`, `binding.pry`; `hooks:allow-debug` on a line passes it | |
+| `lint` | pre-commit | runs `hooks.lint` with the staged paths | `hooks.lint` (required), `hooks.lintFiles` (pathspecs) |
+| `no-commit-on` | pre-commit | refuses a commit straight on a protected branch | `hooks.protect` (`main master`) |
+| `branch-tag` | prepare-commit-msg | starts the message with the ticket in the branch name (`ABC-123: `) | `hooks.tagPattern` (`[A-Z][A-Z0-9]+-[0-9]+`) |
+| `msg-format` | commit-msg | subject at most `hooks.subjectMax` characters, no trailing period, blank line 2; skips `fixup!`, `squash!`, `amend!` | `hooks.subjectMax` (72) |
+| `test-merge` | pre-merge-commit | runs `hooks.test` on the merged tree before git commits a merge (not a fast-forward, a conflicted merge or `--no-commit`) | `hooks.test` (required) |
+| `test-push` | pre-push | runs `hooks.test` in a clean temporary worktree of each pushed branch tip | `hooks.test` (required) |
+| `protect` | pre-push | refuses deleting or force-pushing a protected branch | `hooks.protect` (`main master`) |
+| `wip-guard` | pre-push | refuses commits whose subject matches `hooks.wipPattern` going to a protected branch | `hooks.protect`, `hooks.wipPattern` (`^(wip\|WIP\|fixup!\|squash!\|amend!)`) |
+| `published` | pre-rebase | refuses to rebase commits a remote-tracking branch holds | |
+| `deps-changed` | post-checkout, post-merge, post-rewrite | names the dependency files (requirements, lock files, `pyproject.toml`, `package.json`, ...) that changed | `hooks.depsFiles` |
+| `pyc-clean` | post-checkout, post-merge, post-rewrite | deletes `__pycache__` outside hidden directories and `node_modules` | |
+| `submodules` | post-checkout, post-merge, post-rewrite | `git submodule update --init --recursive` where `.gitmodules` exists | |
+| `ctags` | post-checkout, post-merge, post-rewrite, post-commit | `git ctags --hook` in the background | |
+
+The post- hooks skip a file checkout, an amend and the steps inside a
+rebase.  git has no post-push event, so there is no post-push hook
+([F.2.ad](future-work.md)).
 
 ## `.dotsignore`
 

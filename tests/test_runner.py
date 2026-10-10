@@ -45,7 +45,7 @@ def test_installing_the_hook_needs_no_pytest(tmp_path):
     proc = runner(tmp_path, "hook")
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout == ("installed .git/hooks/pre-push.off -> tests/hooks/pre-push,"
-                           " switched off (git hooks on)\n")
+                           " switched off (git hooks on pre-push)\n")
     assert os.readlink(tmp_path / ".git" / "hooks" / "pre-push.off") == "../../tests/hooks/pre-push"
     assert not (tmp_path / ".git" / "hooks" / "pre-push").exists()
 

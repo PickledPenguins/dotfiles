@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# submodules -- check out the submodules a checkout, merge or rebase points at.
+# events: post-checkout post-merge post-rewrite
+#
+# Runs git submodule update --init --recursive in a repository with a
+# .gitmodules file, so a submodule never sits at the commit the previous
+# branch wanted.  Edits not committed inside a submodule make the update
+# fail; git reports it and the checkout itself stands.  A file checkout, an
+# amend and the steps inside a rebase do not run it.
+set -euo pipefail
+
+case $GIT_HOOK_EVENT in
+    post-checkout)
+        [[ $3 == 1 && $1 != "$2" ]] || exit 0
+        [[ -d $(git rev-parse --git-path rebase-merge) || -d $(git rev-parse --git-path rebase-apply) ]] && exit 0
+        ;;
+    post-rewrite) [[ $1 == rebase ]] || exit 0 ;;
+esac
+[[ -f .gitmodules ]] || exit 0
+git submodule update --init --recursive

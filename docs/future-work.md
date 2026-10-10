@@ -235,6 +235,13 @@ here is scheduled; an item is cited by its label.  Back to the
   creview's first finding, fixed with a guard on each prepend).  Fix: also
   match `*';prompt_build'*`, with a bats test, in its own commit sent
   upstream.
+- **F.2.ad  No post-push hook.**  git has no event after a push completes:
+  a push fires only `pre-push` and, on the local side, the
+  `reference-transaction` hook for the remote-tracking refs.  That hook
+  also fires on every fetch, pull, branch and commit, so a "post-push"
+  built on it would need to tell them apart from its input alone, and
+  would guess.  An action after a push stays a wrapper (`git ps && ...`).
+  `git hooks -h` says so too.
 
 ## F.3 tests
 

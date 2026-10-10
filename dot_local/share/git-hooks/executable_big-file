@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# big-file -- refuse a commit that adds or changes a file over a size limit.
+# events: pre-commit
+# config: hooks.maxFileSize
+#
+# The limit is hooks.maxFileSize in bytes, with git's k, m and g suffixes
+# (git config hooks.maxFileSize 20m); the default is 5m.  The size is that
+# of the staged content.  A large file stays in the history for good once it
+# is pushed, even after a later commit deletes it.
+set -euo pipefail
+
+max=$(git config --type=int hooks.maxFileSize || echo 5242880)
+status=0
+while IFS= read -r -d '' path; do
+    size=$(git cat-file -s ":$path")
+    if ((size > max)); then
+        echo "big-file: $path is $size bytes, over hooks.maxFileSize ($max)" >&2
+        status=1
+    fi
+done < <(git diff --cached --name-only -z --diff-filter=AM)
+((status == 0)) || echo "big-file: unstage it, or commit with --no-verify" >&2
+exit "$status"

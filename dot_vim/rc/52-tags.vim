@@ -22,7 +22,7 @@ set tags=./tags;,tags;
 
 " <leader>tg builds the tags: `git ctags` (~/.local/bin) when the current
 " file is in a git repository, which also keeps them current through the
-" repository's hooks; plain ctags in vim's directory otherwise.  Needs:
+" repository's ctags hook; plain ctags in vim's directory otherwise.  Needs:
 " universal-ctags.
 function! s:BuildTags() abort
   let l:dir = expand('%:p:h')

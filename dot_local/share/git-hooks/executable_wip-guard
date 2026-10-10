@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# wip-guard -- refuse to push work-in-progress commits to a protected branch.
+# events: pre-push
+# config: hooks.protect hooks.wipPattern
+#
+# A commit whose subject matches hooks.wipPattern, an extended regular
+# expression (default ^(wip|WIP|fixup!|squash!|amend!)), may not reach a
+# branch in hooks.protect (default "main master").  The commits checked are
+# the ones the remote does not have yet.  Squash them first (git rebase -i
+# --autosquash), or push with --no-verify.
+set -euo pipefail
+
+read -ra protected <<<"$(git config hooks.protect || echo main master)"
+pattern=$(git config hooks.wipPattern || echo '^(wip|WIP|fixup!|squash!|amend!)')
+status=0
+while read -r _ local_sha remote_ref remote_sha; do
+    branch=${remote_ref#refs/heads/}
+    [[ " ${protected[*]} " == *" $branch "* && $local_sha == *[!0]* ]] || continue
+    if [[ $remote_sha == *[!0]* ]] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+        range=("$remote_sha..$local_sha")
+    else
+        range=("$local_sha" --not --remotes="$1")
+    fi
+    found=''
+    while read -r hash subject; do
+        [[ $subject =~ $pattern ]] && found+="wip-guard: $hash $subject"$'\n'
+    done < <(git log --format='%h %s' "${range[@]}")
+    if [[ -n $found ]]; then
+        printf '%s' "$found" >&2
+        echo "wip-guard: not pushing these to $branch; squash them, or push with --no-verify" >&2
+        status=1
+    fi
+done
+exit "$status"

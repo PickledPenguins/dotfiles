@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# debug-left -- refuse a commit that adds a debugger call.
+# events: pre-commit
+#
+# Looks at the lines the staged changes add for breakpoint(), pdb or ipdb
+# (import pdb, pdb.set_trace()), JavaScript's debugger; and Ruby's
+# binding.pry.  A line holding the text hooks:allow-debug is not checked.
+set -euo pipefail
+
+found=$(git diff --cached -U0 --no-color --no-ext-diff --diff-filter=AM |
+    awk '/^\+\+\+ /{file = substr($0, 7); next} /^\+/{print file ": " substr($0, 2)}' |
+    grep -v 'hooks:allow-debug' |
+    grep -E '\bbreakpoint\(\)|\bi?pdb\.set_trace\(|^[^:]*: *(import|from) i?pdb\b|\bdebugger *;|\bbinding\.pry\b' || true)
+[[ -z $found ]] && exit 0
+printf 'debug-left: %s\n' "${found//$'\n'/$'\n'debug-left: }" >&2
+echo "debug-left: remove them, or commit with --no-verify" >&2
+exit 1

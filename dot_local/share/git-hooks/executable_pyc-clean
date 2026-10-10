@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# pyc-clean -- delete Python's __pycache__ directories after a checkout, merge or rebase.
+# events: post-checkout post-merge post-rewrite
+#
+# Bytecode left from another branch can be loaded in place of a source
+# file that changed within the same second, or stand in for a module the
+# branch deleted.  Every __pycache__ under the work tree goes, except under
+# hidden directories (.venv, .git, .tox) and node_modules.  A file checkout,
+# an amend and the steps inside a rebase do not run it; the rebase as a
+# whole does.
+set -euo pipefail
+
+case $GIT_HOOK_EVENT in
+    post-checkout)
+        [[ $3 == 1 && $1 != "$2" ]] || exit 0
+        [[ -d $(git rev-parse --git-path rebase-merge) || -d $(git rev-parse --git-path rebase-apply) ]] && exit 0
+        ;;
+    post-rewrite) [[ $1 == rebase ]] || exit 0 ;;
+esac
+find . -mindepth 1 \( -name '.*' -o -name node_modules \) -prune -o \
+    -name __pycache__ -type d -prune -exec rm -rf {} +

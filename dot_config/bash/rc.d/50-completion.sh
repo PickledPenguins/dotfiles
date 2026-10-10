@@ -39,8 +39,17 @@ fi
 # `git ctags` (~/.local/bin/git-ctags) completes its one subcommand, off.
 _git_ctags() { __gitcomp "off"; }
 
-# `git hooks` (~/.local/bin/git-hooks) completes its subcommands, on and off.
-_git_hooks() { __gitcomp "on off"; }
+# `git hooks` (~/.local/bin/git-hooks) completes its subcommands, then the
+# packaged hooks' names.
+_git_hooks() {
+    local subcommands="available show install remove on off" subcommand
+    subcommand=$(__git_find_on_cmdline "$subcommands")
+    if [[ -z $subcommand ]]; then
+        __gitcomp "$subcommands"
+    elif [[ $subcommand != available ]]; then
+        __gitcomp "$(git hooks available 2>/dev/null | awk '{print $2}')"
+    fi
+}
 
 # Host names after ssh, scp and rsync come only from ~/.ssh/config and
 # known_hosts, not also every name in /etc/hosts.

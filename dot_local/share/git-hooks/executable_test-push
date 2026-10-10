@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# test-push -- run the tests on each commit being pushed, in a clean checkout.
+# events: pre-push
+# config: hooks.test
+# requires: hooks.test
+#
+# hooks.test is the command, run by sh at the top of a temporary worktree
+# checked out at each commit pushed:
+#     git config hooks.test "./run-tests.sh fast"
+# Neither uncommitted edits nor untracked files decide the result, and the
+# tests are the ones the pushed commit has.  The first failure stops the
+# push; git push --no-verify skips every pre-push hook, and
+# HOOKS_SKIP=test-push git push skips this one.  A deleted branch is not
+# tested; only the tip of each branch pushed is.
+set -euo pipefail
+
+cmd=$(git config hooks.test) || { echo "test-push: set git config hooks.test CMD" >&2; exit 1; }
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+tmp=$(mktemp -d)
+trap 'git worktree remove --force "$tmp/w" >/dev/null 2>&1 || :; command rm -rf "$tmp"' EXIT
+while read -r _ sha _ _; do
+    [[ $sha == *[!0]* ]] || continue
+    git worktree add -q --detach "$tmp/w" "$sha"
+    if ! (cd "$tmp/w" && sh -c "$cmd" </dev/null); then
+        echo "test-push: tests fail at $sha; push stopped" >&2
+        exit 1
+    fi
+    git worktree remove --force "$tmp/w"
+done

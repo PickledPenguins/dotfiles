@@ -1,30 +1,23 @@
 #!/usr/bin/env bash
-# git-ctags -- a tags file for a git repository, rebuilt by its hooks.
+# git-ctags -- a tags file for a git repository, rebuilt by a git hook.
 #
-#   git ctags         build tags at the worktree's root now, mark the
-#                     repository (git config dotfiles.ctags true, which all
-#                     its worktrees share) and install the hooks
-#   git ctags off     unmark, remove the hooks, delete this worktree's tags
-#   git ctags --hook  what the hooks run: rebuild in a marked repository
+#   git ctags         build tags at the worktree's root now, then install
+#                     and switch on the packaged ctags hook (git hooks)
+#   git ctags off     remove the hook, delete this worktree's tags
+#   git ctags --hook  what the hook runs: rebuild now
 #
-# The hooks rebuild after post-checkout (switch, checkout, worktree add,
+# The hook rebuilds after post-checkout (switch, checkout, worktree add,
 # clone), post-merge (pull, merge), post-rewrite (rebase, amend) and
-# post-commit, in the background; git never waits for them or fails because
-# of them.  A hook of that name that is not ours is left alone and the line
-# to add to it is printed.  A new worktree of a marked repository gets its
-# tags on its first checkout.  The file is written beside the real one and
-# renamed, so an editor never reads half of it; a rebuild that finds HEAD
-# moved meanwhile is dropped, as the next hook's run is newer.
+# post-commit, in the background; git never waits for it or fails because
+# of it.  The hooks directory is shared by every worktree, so a new
+# worktree gets its tags on its first checkout.  The file is written beside
+# the real one and renamed, so an editor never reads half of it; a rebuild
+# that finds HEAD moved meanwhile is dropped, as the next hook's run is
+# newer.
 #
 # Options for ctags itself are in ~/.ctags.d/default.ctags.
-# Needs: universal-ctags.
+# Needs: universal-ctags, and git-hooks for the hook.
 set -euo pipefail
-
-HOOKS=(post-checkout post-merge post-rewrite post-commit)
-STUB='#!/bin/sh
-# git-ctags: rebuilds tags in the background.  `git ctags off` removes this.
-command -v git-ctags >/dev/null && git-ctags --hook >/dev/null 2>&1 &'
-LINE='command -v git-ctags >/dev/null && git-ctags --hook >/dev/null 2>&1 &'
 
 tmp=''
 trap 'command rm -f "$tmp"' EXIT
@@ -41,13 +34,6 @@ build() {
     fi
 }
 
-hooks_dir() {
-    local dir
-    dir=$(git rev-parse --git-path hooks)
-    command mkdir -p "$dir"
-    (cd "$dir" && pwd)
-}
-
 case ${1-} in
     '')
         ctags --version 2>/dev/null | grep -q '^Universal Ctags' || {
@@ -55,36 +41,15 @@ case ${1-} in
             exit 1
         }
         build
-        git config dotfiles.ctags true
-        dir=$(hooks_dir)
-        for name in "${HOOKS[@]}"; do
-            hook=$dir/$name
-            if [[ ! -e $hook ]]; then
-                printf '%s\n' "$STUB" >"$hook"
-                chmod +x "$hook"
-            elif ! grep -qF "$LINE" "$hook"; then
-                echo "git ctags: $hook is not ours; add this line to it:"
-                echo "    $LINE"
-            fi
-        done
-        echo "git ctags: $(git rev-parse --show-toplevel)/tags, hooks in $dir"
+        git hooks install ctags >/dev/null
+        git hooks on ctags >/dev/null
+        echo "git ctags: $(git rev-parse --show-toplevel)/tags, rebuilt by the ctags hook"
         ;;
     off)
-        git config --unset dotfiles.ctags || true
-        dir=$(hooks_dir)
-        for name in "${HOOKS[@]}"; do
-            hook=$dir/$name
-            if [[ -e $hook && $(<"$hook") == "$STUB" ]]; then
-                command rm -f "$hook"
-            elif [[ -e $hook ]] && grep -qF "$LINE" "$hook"; then
-                echo "git ctags: $hook is not ours; remove this line from it:"
-                echo "    $LINE"
-            fi
-        done
+        git hooks remove ctags >/dev/null
         command rm -f "$(git rev-parse --show-toplevel)/tags"
         ;;
     --hook)
-        [[ $(git config --bool dotfiles.ctags || true) == true ]] || exit 0
         command -v ctags >/dev/null || exit 0
         build
         ;;

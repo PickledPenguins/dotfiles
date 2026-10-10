@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# dispatch -- run the hooks switched on for one git event.
+#
+# git hooks install links .git/hooks/EVENT here.  Each .git/hooks/EVENT.d/NAME
+# runs in name order with git's arguments, its stdin and GIT_HOOK_EVENT set
+# to EVENT; NAME.off is switched off.  For a post- event every hook runs and
+# git ignores the status.  For any other event the first hook to fail stops
+# the rest and fails the event, so git stops the commit, merge or push.
+# HOOKS_SKIP="NAME..." skips those hooks for one command, as in
+# HOOKS_SKIP=test-push git push.
+set -uo pipefail
+
+export GIT_HOOK_EVENT=${0##*/}
+dir=$0.d
+[[ -d $dir ]] || exit 0
+
+# pre-push and post-rewrite read git's list on stdin; each hook gets it all.
+input=/dev/null
+case $GIT_HOOK_EVENT in
+    pre-push | post-rewrite)
+        input=$(mktemp)
+        trap 'command rm -f "$input"' EXIT
+        cat >"$input"
+        ;;
+esac
+
+for hook in "$dir"/*; do
+    name=${hook##*/}
+    [[ -x $hook && $name != *.off && " ${HOOKS_SKIP-} " != *" $name "* ]] || continue
+    "$hook" "$@" <"$input"
+    status=$?
+    if ((status)) && [[ $GIT_HOOK_EVENT != post-* ]]; then
+        exit "$status"
+    fi
+done
+exit 0

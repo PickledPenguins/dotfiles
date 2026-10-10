@@ -76,6 +76,14 @@ def run(dots, src, capsys):
     return _run
 
 
+@pytest.fixture
+def linked(home):
+    """HOME with this checkout applied by dots."""
+    proc = run_subprocess(home, REPO, "apply")
+    assert proc.returncode == 0, proc.stdout
+    return home
+
+
 def run_subprocess(home, src, *args, env=None):
     """The CLI as a real process, for exit codes and argparse behavior."""
     import subprocess

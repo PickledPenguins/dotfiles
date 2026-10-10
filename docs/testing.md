@@ -6,7 +6,7 @@ Back to the [README](../README.md).
 
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
-| `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (`.git/hooks/pre-push`, installed switched off by `./run-tests.sh hook`; `git hooks on` switches it on) | ~2 s |
+| `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (`.git/hooks/pre-push`, installed switched off by `./run-tests.sh hook`; `git hooks on pre-push` switches it on) | ~2 s |
 | `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~110 s |
 | `./run-tests.sh all` | both | | ~115 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
@@ -22,11 +22,11 @@ Generated files (coverage data) land in `.build/`; the pytest cache is
 disabled.  Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
 
-## Numbers (2026-10-08, this machine, measured on the commit that added this line)
+## Numbers (2026-10-09, this machine, measured on the commit that added this line)
 
-- fast: 317 tests, 3.3 s.  long: 248 passed and 15 skipped (programs not
+- fast: 336 tests, 3.8 s.  long: 322 passed and 14 skipped (programs not
   installed here: conda, sqlite3, ctags, ripgrep, matplotlib in the test
-  interpreter; settings whose `Needs:` program is missing), 107 s, of
+  interpreter; settings whose `Needs:` program is missing), 139 s, of
   which the toolkit's 165 bats tests are about 45 s.  A gdb
   built without debuginfod support passes the debuginfod setting.
 - coverage of `dots`: 100% lines (360), 100% branches (152); floor 100.
@@ -44,13 +44,14 @@ temporary `HOME` through the `home` fixture.
 
 | File | Covers | Suite |
 |------|--------|-------|
-| `tests/conftest.py` | loads `dots` by path; `home`, `src`, `run` fixtures; `run_subprocess` | |
+| `tests/conftest.py` | loads `dots` by path; `home`, `src`, `run`, `linked` (this checkout applied) fixtures; `run_subprocess` | |
 | `tests/test_dots_unit.py` | every function in `dots` called directly, including a seeded 500-case round-trip property test for the naming | fast |
 | `tests/test_dots_cli.py` | every subcommand's exact output, state change and exit code; argparse behavior as a subprocess | fast |
 | `tests/test_dots_safety.py` | destructive paths (`--force`, `unlink`, `forget`), escapes from `$HOME`, names that map to `~`, modes, odd names, unreadable ignore file, backup collisions | fast |
 | `tests/test_docs.py` | the documentation against the code, both directions (see below) | fast |
 | `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
 | `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags (long) | fast + long |
+| `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order, failure and stdin rules; each packaged hook refusing and passing; `git ctags` on top | long |
 | `tests/test_runner.py` | `run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` needs none | fast |
 | `tests/test_examples.py` | the example catalog: 50 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
@@ -84,6 +85,10 @@ fails when any of it is missing from the document that owns it:
   `docs/configuration.md`
 - every hook file a loader reads -> `docs/configuration.md`
 - every top-level target of `dots managed` -> `docs/configuration.md`
+- every packaged git hook, by name and events -> `docs/configuration.md`;
+  each one's header is well formed and its `config:` line names exactly
+  the `hooks.*` settings it reads; the `git hooks` completion offers
+  exactly the subcommands of its usage line
 - the README's example blocks are the recorded output of named catalog
   cases; the README stays under 150 lines; every file in `docs/` is linked
   from the README; no internal link or anchor is dead

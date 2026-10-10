@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# published -- refuse to rebase commits that are already pushed.
+# events: pre-rebase
+#
+# A commit that some remote-tracking branch holds has been published;
+# rebasing it rewrites history other people may have.  Fetch first so the
+# check sees what the remotes have.  git rebase --no-verify rebases anyway.
+set -euo pipefail
+
+upstream=${1-} branch=${2:-HEAD}
+range=("$branch")
+[[ -n $upstream ]] && range=("$upstream..$branch")
+all=$(git rev-list --count "${range[@]}")
+unpublished=$(git rev-list --count "${range[@]}" --not --remotes)
+((all == unpublished)) && exit 0
+echo "published: $((all - unpublished)) of the $all commits to rebase are on a remote; rebase with --no-verify to do it anyway" >&2
+exit 1

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# no-commit-on -- refuse a commit made straight on a protected branch.
+# events: pre-commit
+# config: hooks.protect
+#
+# hooks.protect is the list of protected branches, separated by spaces;
+# the default is "main master".  Commit on another branch and merge it.
+# A merge commit is not refused: pre-commit does not run for one.
+set -euo pipefail
+
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+read -ra protected <<<"$(git config hooks.protect || echo main master)"
+for name in "${protected[@]}"; do
+    if [[ $branch == "$name" ]]; then
+        echo "no-commit-on: $branch is protected (hooks.protect); commit on a branch, or with --no-verify" >&2
+        exit 1
+    fi
+done

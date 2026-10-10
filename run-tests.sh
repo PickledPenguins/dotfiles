@@ -61,7 +61,7 @@ case "$command" in
         ;;
     hook)
         ln -sf ../../tests/hooks/pre-push .git/hooks/pre-push.off
-        echo "installed .git/hooks/pre-push.off -> tests/hooks/pre-push, switched off (git hooks on)"
+        echo "installed .git/hooks/pre-push.off -> tests/hooks/pre-push, switched off (git hooks on pre-push)"
         ;;
     *)
         echo "usage: $0 [fast|long|all|cov|mutate|hook] [pytest arguments]" >&2

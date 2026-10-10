@@ -18,7 +18,7 @@ import threading
 
 import pytest
 
-from conftest import REPO, run_subprocess
+from conftest import REPO
 
 pytestmark = pytest.mark.long
 
@@ -26,13 +26,6 @@ BASH_MODULES = ["env", "options", "path", "aliases", "functions", "dirs", "compl
                 "prompt", "title", "conda", "python", "tools", "hpc", "local"]
 VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
                "35-folding", "40-files", "45-filetypes", "50-keys", "52-tags", "55-netrw"]
-
-
-@pytest.fixture
-def linked(home):
-    proc = run_subprocess(home, REPO, "apply")
-    assert proc.returncode == 0, proc.stdout
-    return home
 
 
 # The runner's PATH without this checkout: a shell started before 20-path.sh
@@ -882,77 +875,14 @@ def fake_ctags(home, version="Universal Ctags 6.1.0"):
             '[ "$(cat "$1" 2>/dev/null)" = "$2" ] && return; sleep 0.1; done; return 1; }; ')
 
 
-def test_git_ctags_builds_marks_hooks_and_rebuilds_on_switch_and_worktree_add(linked):
-    proc = git_script(linked, fake_ctags(linked) +
-                      "git init -q u && (cd u && git ctags --hook && ls -A | grep -v '^.git$'); "
-                      "git init -q -b main r && cd r && git commit -q --allow-empty -m one && "
-                      "git ctags | sed \"s#$PWD#R#g\" && cat tags && git config dotfiles.ctags && "
-                      "ls .git/hooks | grep -v sample && test -x .git/hooks/post-merge && "
-                      "git switch -q -c feat && wait_for tags feat && echo switched && "
-                      "git worktree add -q -b other ../w 2>/dev/null && wait_for ../w/tags other && echo worktree")
-    assert (proc.stdout, proc.stderr) == (
-        "git ctags: R/tags, hooks in R/.git/hooks\nmain\ntrue\n"
-        "post-checkout\npost-commit\npost-merge\npost-rewrite\nswitched\nworktree\n", "")
-
-
-def test_git_ctags_leaves_a_foreign_hook_and_off_removes_only_its_own(linked):
-    proc = git_script(linked, fake_ctags(linked) +
-                      "git init -q -b main r && cd r && git commit -q --allow-empty -m one && "
-                      "printf '#!/bin/sh\\necho mine\\n' >.git/hooks/post-merge && "
-                      "git ctags | sed \"s#$PWD#R#g\" && git ctags off && ls .git/hooks | grep -v sample && "
-                      "cat .git/hooks/post-merge && ls tags 2>/dev/null; git config dotfiles.ctags; echo $?")
-    assert (proc.stdout, proc.stderr) == (
-        "git ctags: R/.git/hooks/post-merge is not ours; add this line to it:\n"
-        "    command -v git-ctags >/dev/null && git-ctags --hook >/dev/null 2>&1 &\n"
-        "git ctags: R/tags, hooks in R/.git/hooks\npost-merge\n#!/bin/sh\necho mine\n1\n", "")
-
-
-def test_git_ctags_refuses_a_ctags_that_is_not_universal(linked):
-    proc = git_script(linked, fake_ctags(linked, "Exuberant Ctags 5.9") +
-                      "git init -q r && cd r && git ctags; echo $?; ls .git/hooks | grep -vc sample")
-    assert (proc.stdout, proc.stderr) == ("1\n0\n", "git ctags: needs universal-ctags on PATH\n")
-
-
-def test_git_hooks_lists_and_switches_linked_hooks_and_others_only_by_name(linked):
-    proc = git_script(linked, f'export PATH="{linked}/.local/bin:$PATH"; '
-                      "git init -q r && cd r && git commit -q --allow-empty -m one && "
-                      "git worktree add -q --detach ../w 2>/dev/null && "
-                      "ln -s ../../tests/pre-push .git/hooks/pre-push.off && "
-                      "printf '#!/bin/sh\\n' >.git/hooks/post-commit && "
-                      "git hooks && git hooks on && git hooks on && (cd ../w && git hooks) && "
-                      "git hooks off && git hooks off post-commit.off && git hooks && "
-                      "git hooks on post-commit pre-push && ls .git/hooks | grep -v sample")
-    r = linked.resolve() / "r"
-    assert (proc.stdout, proc.stderr) == (
-        f"on  post-commit      {r}/.git/hooks/post-commit\noff pre-push         {r}/tests/pre-push\n"
-        "pre-push on\npre-push is already on\n"
-        f"on  post-commit      {r}/.git/hooks/post-commit\non  pre-push         {r}/tests/pre-push\n"
-        "pre-push off\npost-commit off\n"
-        f"off post-commit      {r}/.git/hooks/post-commit.off\noff pre-push         {r}/tests/pre-push\n"
-        "post-commit on\npre-push on\npost-commit\npre-push\n", "")
-
-
-def test_git_hooks_refuses_a_missing_hook_both_names_and_no_linked_hook(linked):
-    proc = git_script(linked, f'export PATH="{linked}/.local/bin:$PATH"; '
-                      "git init -q r && cd r && printf '#!/bin/sh\\n' >.git/hooks/post-commit && "
-                      "git hooks on; echo $?; git hooks off nope; echo $?; "
-                      "ln -s x .git/hooks/pre-push && ln -s x .git/hooks/pre-push.off && "
-                      "git hooks off 2>&1 | sed \"s#$PWD#R#\"; git hooks of; echo $?; ls .git/hooks | grep -v sample")
-    assert proc.stdout == "1\n1\ngit hooks: both pre-push and pre-push.off exist; remove one\n2\npost-commit\npre-push\npre-push.off\n"
-    assert proc.stderr.replace(str(linked), "H") == (
-        "git hooks: no linked hook in H/r/.git/hooks\n"
-        "git hooks: no hook nope in H/r/.git/hooks\n"
-        "usage: git hooks [on|off [NAME...]]\n")
-
-
 @needs("vim")
 def test_vim_comma_tg_builds_tags_with_git_ctags_in_a_repository_and_ctags_outside(linked):
     fake_ctags(linked)
     git_script(linked, "git init -q -b main r && cd r && git commit -q --allow-empty -m one && mkdir ../n")
     out = vim(linked, f"let $PATH = '{linked}/fakebin:{linked}/.local/bin:' . $PATH", f"edit {linked}/r/a.txt | execute 'normal ,tg'",
               f"edit {linked}/n/b.txt | cd {linked}/n | execute 'normal ,tg'",
-              f"echo readfile('{linked}/r/tags') readfile('{linked}/n/tags') system('git -C {linked}/r config dotfiles.ctags')")
-    assert out.splitlines()[-1] == "['main'] ['plain'] true"
+              f"echo readfile('{linked}/r/tags') readfile('{linked}/n/tags') system('ls {linked}/r/.git/hooks/post-commit.d')")
+    assert out.splitlines()[-1] == "['main'] ['plain'] ctags"
 
 
 @needs("vim")

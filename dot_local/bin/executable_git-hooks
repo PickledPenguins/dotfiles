@@ -1,73 +1,270 @@
 #!/usr/bin/env bash
-# git-hooks -- switch a repository's git hooks on and off.
+# git-hooks -- install the packaged git hooks in a repository, switch them on and off.
 #
-#   git hooks               list the hooks: on or off, and the file each runs
-#   git hooks on [NAME...]  switch on: rename NAME.off to NAME
-#   git hooks off [NAME...] switch off: rename NAME to NAME.off
+#   git hooks                   this repository's hooks: state, event, name, file
+#   git hooks available         the packaged hooks: state here, name, summary
+#   git hooks show NAME         what a packaged hook does, its settings, its state here
+#   git hooks install [NAME...] install packaged hooks, switched off (default: all)
+#   git hooks remove [NAME...]  remove installed packaged hooks (default: all)
+#   git hooks on NAME...        switch hooks on
+#   git hooks off [NAME...]     switch hooks off (default: every hook that is on)
 #
-# git runs a hook only under its exact name, so a hook is off while its
-# name ends in .off.  Without a NAME, on and off act on every hook that is a
-# symbolic link (the way a project installs a hook it tracks, such as a
-# pre-push hook that runs its tests); a hook written in place, such as the
-# ones git ctags writes, is switched by name only.  The hooks directory is
-# shared by every worktree of the repository.
+# The packaged hooks live in ~/.local/share/git-hooks, each describing itself
+# in its header.  git runs one file per event, so install links
+# .git/hooks/EVENT to the dispatcher there, which runs each
+# .git/hooks/EVENT.d/NAME in name order.  A hook is off while its name ends
+# in .off.  A hook the repository already had for the event moves into
+# EVENT.d under the event's name, in the state it was in, and remove moves it
+# back once no packaged hook is left there.  A hook that needs a setting
+# (its "requires:" line, git config hooks.KEY) is not switched on until the
+# setting is made.  on and off also switch a plain hook at the top of the
+# hooks directory, by its event name.  The hooks directory is shared by
+# every worktree of the repository.
+#
+# git has no event after a push completes, so there is no post-push hook.
 set -euo pipefail
+shopt -s nullglob
 
-dir=$(git rev-parse --path-format=absolute --git-path hooks)
+catalog=$HOME/.local/share/git-hooks
+dispatch=$catalog/dispatch
+dir=''
 
-# Each hook name, .off included, without the .sample files git ships.
-hooks() {
+in_repo() { git rev-parse --git-dir >/dev/null 2>&1; }
+
+hooks_dir() {
+    [[ -n $dir ]] || dir=$(git rev-parse --path-format=absolute --git-path hooks)
+}
+
+exists() { [[ -e $1 || -L $1 ]]; }
+
+is_dispatch() { [[ -L $1 && $(realpath -m -- "$1") == "$(realpath -m -- "$dispatch")" ]]; }
+
+# Each packaged hook's name: the catalog files with an "events:" line.
+packaged() {
     local path
-    for path in "$dir"/*; do
-        [[ (-f $path || -L $path) && $path != *.sample ]] && echo "${path##*/}"
+    for path in "$catalog"/*; do
+        grep -q '^# events: ' "$path" && echo "${path##*/}"
     done
     return 0
 }
 
-# switch on|off NAME: rename NAME.off to NAME, or NAME to NAME.off.
-switch() {
-    local name=${2%.off} from to
-    if [[ $1 == on ]]; then from=$dir/$name.off to=$dir/$name; else from=$dir/$name to=$dir/$name.off; fi
-    if [[ -e $from || -L $from ]] && [[ -e $to || -L $to ]]; then
-        echo "git hooks: both $name and $name.off exist; remove one" >&2
-        return 1
-    elif [[ -e $to || -L $to ]]; then
-        echo "$name is already $1"
-    elif [[ -e $from || -L $from ]]; then
-        command mv "$from" "$to"
-        echo "$name $1"
-    else
-        echo "git hooks: no hook $name in $dir" >&2
-        return 1
+# field NAME KEY: the value of the "# KEY: " line in NAME's header.
+field() {
+    awk -v key="# $2: " 'NR > 1 && !/^#/ {exit} index($0, key) == 1 {print substr($0, length(key) + 1); exit}' "$catalog/$1"
+}
+
+check_packaged() {
+    local name
+    for name; do
+        [[ -f $catalog/$name ]] && grep -q '^# events: ' "$catalog/$name" && continue
+        echo "git hooks: no packaged hook $name (git hooks available)" >&2
+        exit 1
+    done
+}
+
+# state NAME: on, off, or - when NAME is in no EVENT.d here.
+state() {
+    local path found=-
+    for path in "$dir"/*.d/"$1" "$dir"/*.d/"$1".off; do
+        [[ $path == *.off ]] || { echo on; return; }
+        found=off
+    done
+    echo "$found"
+}
+
+# ensure_dispatch EVENT: link .git/hooks/EVENT to the dispatcher, moving the
+# hook that was there into EVENT.d.
+ensure_dispatch() {
+    local hook=$dir/$1 old new target
+    is_dispatch "$hook" && return
+    if exists "$hook" && exists "$hook.off"; then
+        echo "git hooks: both $1 and $1.off exist in $dir; remove one" >&2
+        exit 1
     fi
+    command mkdir -p "$hook.d"
+    for old in "$hook" "$hook.off"; do
+        exists "$old" || continue
+        new=$hook.d/${old##*/}
+        target=$(readlink -- "$old" || true)
+        if [[ -n $target && $target != /* ]]; then
+            ln -s "../$target" "$new"
+            command rm -f -- "$old"
+        else
+            command mv -- "$old" "$new"
+        fi
+        echo "$1: the hook that was there moved to $1.d/${old##*/}"
+    done
+    ln -s "$dispatch" "$hook"
+}
+
+# tidy EVENT: once EVENT.d holds nothing but the event's own old hook, put
+# that back and drop the dispatcher.
+tidy() {
+    local hook=$dir/$1 path target
+    is_dispatch "$hook" || return 0
+    for path in "$hook.d"/*; do
+        [[ ${path##*/} == "$1" || ${path##*/} == "$1.off" ]] || return 0
+    done
+    command rm -f -- "$hook"
+    for path in "$hook.d"/*; do
+        target=$(readlink -- "$path" || true)
+        if [[ $target == ../* ]]; then
+            ln -s "${target#../}" "$dir/${path##*/}"
+            command rm -f -- "$path"
+        else
+            command mv -- "$path" "$dir/${path##*/}"
+        fi
+    done
+    rmdir -- "$hook.d"
+}
+
+install() {
+    local name event added link
+    for name; do
+        added=''
+        for event in $(field "$name" events); do
+            link=$dir/$event.d/$name
+            exists "$link" || exists "$link.off" && continue
+            ensure_dispatch "$event"
+            ln -s "$catalog/$name" "$link.off"
+            added=1
+        done
+        if [[ -n $added ]]; then echo "$name installed, off"; else echo "$name is already installed"; fi
+    done
+}
+
+remove() {
+    local name path removed event
+    for name; do
+        removed=''
+        for path in "$dir"/*.d/"$name" "$dir"/*.d/"$name".off; do
+            [[ -L $path && $(realpath -m -- "$path") == "$(realpath -m -- "$catalog/$name")" ]] || continue
+            command rm -f -- "$path"
+            removed=1
+        done
+        if [[ -n $removed ]]; then echo "$name removed"; else echo "$name is not installed"; fi
+    done
+    for path in "$dir"/*.d; do
+        event=${path##*/}
+        tidy "${event%.d}"
+    done
+}
+
+# switch on|off NAME: rename every NAME.off to NAME, or NAME to NAME.off, in
+# the EVENT.d directories and at the top of the hooks directory.
+switch() {
+    local name=${2%.off} path base from to found='' changed=''
+    for path in "$dir"/*.d/"$name" "$dir"/*.d/"$name".off "$dir/$name" "$dir/$name.off"; do
+        exists "$path" && ! is_dispatch "$path" || continue
+        base=${path%.off}
+        if exists "$base" && exists "$base.off"; then
+            echo "git hooks: both $base and $base.off exist; remove one" >&2
+            exit 1
+        fi
+        found=1
+        if [[ $1 == on ]]; then from=$base.off to=$base; else from=$base to=$base.off; fi
+        [[ $path == "$from" ]] || continue
+        command mv -- "$from" "$to"
+        changed=1
+    done
+    if [[ -z $found ]]; then
+        echo "git hooks: no hook $name in $dir (git hooks install $name)" >&2
+        exit 1
+    fi
+    if [[ -n $changed ]]; then echo "$name $1"; else echo "$name is already $1"; fi
+}
+
+# Every hook that is on, by name, once each; never a dispatcher.
+on_now() {
+    local path name
+    for path in "$dir"/*.d/* "$dir"/*; do
+        name=${path##*/}
+        [[ ! -d $path && $name != *.off && $name != *.sample ]] && ! is_dispatch "$path" && echo "$name"
+    done | sort -u
 }
 
 case ${1-} in
     '')
-        hooks | while read -r name; do
-            state=on
-            [[ $name == *.off ]] && state=off
-            printf '%-3s %-16s %s\n' "$state" "${name%.off}" "$(realpath -m "$dir/$name")"
+        hooks_dir
+        for path in "$dir"/*; do
+            name=${path##*/}
+            [[ ! -d $path && $name != *.sample ]] || continue
+            if is_dispatch "$path"; then
+                for entry in "$path.d"/*; do
+                    entry_name=${entry##*/}
+                    state=on
+                    [[ $entry_name == *.off ]] && state=off
+                    printf '%-3s %-18s %-13s %s\n' "$state" "${name%.off}" "${entry_name%.off}" "$(realpath -m -- "$entry")"
+                done
+            else
+                state=on
+                [[ $name == *.off ]] && state=off
+                printf '%-3s %-18s %-13s %s\n' "$state" "${name%.off}" "${name%.off}" "$(realpath -m -- "$path")"
+            fi
         done
         ;;
-    on | off)
-        state=$1
-        shift
-        if (($# == 0)); then
-            for name in $(hooks); do
-                [[ -L $dir/$name ]] && set -- "$@" "${name%.off}"
-            done
-            if (($# == 0)); then
-                echo "git hooks: no linked hook in $dir" >&2
-                exit 1
-            fi
-        fi
-        for name in "$@"; do
-            switch "$state" "$name"
+    available)
+        in_repo && hooks_dir
+        for name in $(packaged); do
+            here=-
+            [[ -n $dir ]] && here=$(state "$name")
+            printf '%-3s %-13s %s\n' "$here" "$name" "$(sed -n '2s/^# [^ ]* -- //p' "$catalog/$name")"
         done
+        ;;
+    show)
+        (($# == 2)) || { echo "usage: git hooks show NAME" >&2; exit 2; }
+        check_packaged "$2"
+        awk 'NR == 1 {next} !/^#/ {exit} {sub(/^# ?/, ""); print}' "$catalog/$2"
+        echo
+        for key in $(field "$2" config); do
+            printf '%s = %s\n' "$key" "$(git config --get "$key" || echo '(unset)')"
+        done
+        if in_repo; then
+            hooks_dir
+            here=$(state "$2")
+            printf 'here: %s\n' "${here/#-/not installed}"
+        else
+            echo "here: not in a git repository"
+        fi
+        ;;
+    install | remove)
+        command=$1
+        shift
+        hooks_dir
+        (($#)) || set -- $(packaged)
+        check_packaged "$@"
+        "$command" "$@"
+        ;;
+    on)
+        (($# > 1)) || { echo "usage: git hooks on NAME... (git hooks available lists them)" >&2; exit 2; }
+        shift
+        hooks_dir
+        for name; do
+            [[ -f $catalog/$name ]] || continue
+            for key in $(field "$name" requires); do
+                git config --get "$key" >/dev/null || {
+                    echo "git hooks: $name needs git config $key; set it first (git hooks show $name)" >&2
+                    exit 1
+                }
+            done
+        done
+        for name; do
+            switch on "$name"
+        done
+        ;;
+    off)
+        shift
+        hooks_dir
+        (($#)) || set -- $(on_now)
+        for name; do
+            switch off "$name"
+        done
+        ;;
+    -h)
+        sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"
         ;;
     *)
-        echo "usage: git hooks [on|off [NAME...]]" >&2
+        echo "usage: git hooks [available | show NAME | install [NAME...] | remove [NAME...] | on NAME... | off [NAME...] | -h]" >&2
         exit 2
         ;;
 esac

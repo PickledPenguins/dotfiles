@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# msg-format -- refuse a commit message that breaks the usual git form.
+# events: commit-msg
+# config: hooks.subjectMax
+#
+# The subject line holds at most hooks.subjectMax characters (default 72)
+# and does not end in a period; a body is parted from it by a blank line.
+# Comments and everything below the scissors line of commit --verbose are
+# not part of the message.  A fixup!, squash! or amend! commit is not
+# checked, nor an empty message (git refuses that itself).
+set -euo pipefail
+
+max=$(git config --type=int hooks.subjectMax || echo 72)
+mapfile -t lines < <(sed '/^. -\{24\} >8 -\{24\}$/,$d' "$1" | git stripspace --strip-comments)
+((${#lines[@]})) || exit 0
+subject=${lines[0]}
+case $subject in fixup!* | squash!* | amend!*) exit 0 ;; esac
+problems=()
+((${#subject} <= max)) || problems+=("the subject is ${#subject} characters, over hooks.subjectMax ($max)")
+[[ $subject != *. ]] || problems+=("the subject ends in a period")
+((${#lines[@]} < 2)) || [[ -z ${lines[1]} ]] || problems+=("line 2 is not blank")
+((${#problems[@]})) || exit 0
+printf 'msg-format: %s\n' "${problems[@]}" >&2
+echo "msg-format: the message is kept in $(git rev-parse --git-path COMMIT_EDITMSG); fix it, or commit with --no-verify" >&2
+exit 1
