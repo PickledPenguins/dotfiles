@@ -32,7 +32,7 @@ _ps_seg_venv()    { [[ -n "${VIRTUAL_ENV-}" ]] && printf '(%s)' "$(basename "$VI
 # Count of background jobs in this shell, silent when there are none.
 _ps_seg_jobs() {
     local -a j; mapfile -t j < <(jobs 2>/dev/null)
-    (( ${#j[@]} > 0 )) && printf '⚙ %d' "${#j[@]}"
+    (( ${#j[@]} > 0 )) && printf '⚙%d' "${#j[@]}"
 }
 
 # Active conda environment in parentheses, silent for base.
