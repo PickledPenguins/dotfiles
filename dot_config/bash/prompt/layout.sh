@@ -125,3 +125,9 @@ prompt_row cmd      ' @exit @cmd_time\$ '
 # The rows in order, with a rail down the left side only.
 prompt_layout --sides l top git env cmd
 
+# A blank line above each prompt, so one command's output stands apart from
+# the next.  prompt_build rewrites PS1 at every prompt, so the line is added
+# right after it.  After Ctrl-L the screen starts with that blank line.
+_prompt_gap() { PS1="\n$PS1"; }
+[[ "$PROMPT_COMMAND" == *_prompt_gap* ]] || PROMPT_COMMAND="${PROMPT_COMMAND/prompt_build/prompt_build; _prompt_gap}"
+

@@ -125,9 +125,9 @@ here is scheduled; an item is cited by its label.  Back to the
   `linuxbin` as a standalone script rather than here as a function, since a
   function in `40-functions.sh` exists only in interactive shells.
 - **F.2.i  `@cmd_time` counts the time spent at the prompt.**  The default
-  `PROMPT_COMMAND` is `_title_prompt;prompt_build;history -a`.
+  `PROMPT_COMMAND` is `_title_prompt;prompt_build;_prompt_gap;history -a`.
   `prompt_build` arms the toolkit's timer, and the DEBUG trap fires for
-  `history -a` while `PROMPT_COMMAND` is still running, so the start time
+  `_prompt_gap` while `PROMPT_COMMAND` is still running, so the start time
   is when the prompt was drawn (`prompt/toolkit/lib/cmd_timer.sh:50`).
   Wait 3.5 s, run `true`, and the next prompt shows `[✓] 3s`; the box
   layout shows `@cmd_time` on every prompt.  From the 2026-10-07 creview,

@@ -74,8 +74,11 @@ valid links, broken links elsewhere, files -- is untouched.
    go to stderr.
 6. The last module, `90-local.sh`, sources **`~/.bashrc.local`** if present.
 7. On each prompt, `PROMPT_COMMAND` runs.  Each module prepends its entry,
-   so the later module runs earlier: `_title_prompt;prompt_build;history -a`
-   by default, with `_venv_auto` (`75-python`, when enabled) first of all.
+   so the later module runs earlier:
+   `_title_prompt;prompt_build;_prompt_gap;history -a` by default, with
+   `_venv_auto` (`75-python`, when enabled) first of all.  `_prompt_gap`
+   (`prompt/layout.sh`) goes in right after `prompt_build` and puts a blank
+   line above the prompt it built.
    Anything ahead of `prompt_build` must return the `$?` it found, since
    the prompt shows that status.  The toolkit arms its command timer in
    `prompt_build`, and `history -a` after it starts the timer early, so

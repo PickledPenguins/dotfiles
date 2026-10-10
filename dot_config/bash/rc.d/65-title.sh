@@ -36,7 +36,7 @@ _title_prompt() {
 # through a DEBUG trap added after any trap already there (the prompt's
 # command timer claims one during the first prompt_build).
 _title_command() {
-    case "$BASH_COMMAND" in _title_*|prompt_build*|history*|_venv_auto*) return ;; esac
+    case "$BASH_COMMAND" in _title_*|prompt_build*|_prompt_gap*|history*|_venv_auto*) return ;; esac
     printf '\e]0;%s\a' "${BASH_COMMAND:0:60}"
 }
 _title_arm() {

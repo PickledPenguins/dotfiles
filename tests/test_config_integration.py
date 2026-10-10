@@ -108,7 +108,7 @@ def test_bashrc_sourced_again_leaves_prompt_command_as_it_was(linked):
         except OSError:                 # EIO: the terminal's other side is closed
             break
     os.close(main)
-    first = "_title_prompt; prompt_build; history -a"
+    first = "_title_prompt; prompt_build; _prompt_gap; history -a"
     assert (proc.returncode, out.decode().splitlines()) == (0, [first, first])
 
 
@@ -339,6 +339,14 @@ def test_prompt_module_builds_ps1_with_the_toolkit(linked):
     proc = bash(linked, "type -t prompt_build; prompt_build; echo \"$PS1\" | head -1")
     assert proc.stdout.splitlines()[0] == "function"
     assert "╭" in proc.stdout.splitlines()[1]
+
+
+def test_prompt_has_one_blank_line_above_it_however_often_it_is_drawn(linked):
+    draw = 'eval "$PROMPT_COMMAND"; '
+    proc = bash(linked, draw * 2 + 'source "$DOTFILES_BASH_DIR/prompt/layout.sh"; ' + draw
+                + 'printf "%s" "${PS1@P}"')
+    lines = proc.stdout.split("\n")
+    assert lines[0] == "" and "╭" in lines[1]
 
 
 @needs("script")
