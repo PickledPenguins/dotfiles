@@ -198,7 +198,7 @@ done < "$LISTING"
     proc = run(["bash", "--rcfile", str(home / ".bashrc"), "-i", "-c", script], home,
                env={"LISTING": str(listing)})
     fields = proc.stdout.split("\0")
-    errors = dict(zip(fields[0::2], fields[1::2]))
+    errors = dict(zip(fields[0::2], fields[1::2], strict=False))
     return [errors.get(str(p), f"never reported (shell stderr: {problems(proc)})") for p in copies]
 
 
@@ -532,5 +532,5 @@ def test_every_option_loads_when_switched_on(rel, source, linked, tmp_path):
         errors = load(linked, copies, all_on)
     else:
         errors = load(linked, copies)
-    failures = [f"{name}: {error}" for name, error in zip(options, errors) if error]
+    failures = [f"{name}: {error}" for name, error in zip(options, errors, strict=True) if error]
     assert not failures, f"~/{rel} with one option switched on:\n" + "\n".join(failures)
