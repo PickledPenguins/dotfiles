@@ -174,6 +174,25 @@ def test_debug_left_refuses_a_debugger_call(linked):
     assert proc.stderr == "debug-left: a.py: breakpoint()\ndebug-left: remove them, or commit with --no-verify\n"
 
 
+def test_content_hooks_check_a_renamed_file(linked):
+    # git pairs a moved file with its old name (status R), so it is neither added nor modified
+    proc = hooks(linked, "seq 40 >old.py && echo x=1 >env.txt && git add . && git commit -qm f && "
+                         "use big-file debug-left secrets && git config hooks.maxFileSize 100 && "
+                         "git mv old.py new.py && git mv env.txt .env && "
+                         "printf 'token = \"hunter2hunter2\"\\nbreakpoint()\\n' >>new.py && git add new.py && "
+                         "HOOKS_SKIP='debug-left secrets' git commit -qm mv; echo $?; "
+                         "HOOKS_SKIP='big-file secrets' git commit -qm mv; echo $?; "
+                         "HOOKS_SKIP='big-file debug-left' git commit -qm mv; echo $?")
+    assert proc.stdout == "1\n1\n1\n"
+    assert proc.stderr == ("big-file: new.py is 149 bytes, over hooks.maxFileSize (100)\n"
+                           "big-file: unstage it, or commit with --no-verify\n"
+                           "debug-left: new.py: breakpoint()\n"
+                           "debug-left: remove them, or commit with --no-verify\n"
+                           "secrets: new.py: token = \"hunter2hunter2\"\n"
+                           "secrets: .env is a file that usually holds a secret\n"
+                           "secrets: remove them, or commit with --no-verify\n")
+
+
 def test_lint_runs_the_command_on_the_matching_staged_files(linked):
     proc = hooks(linked, "git config hooks.lint 'echo linted' && git config hooks.lintFiles '*.py' && use lint && "
                          "touch a.py b.txt && git add a.py b.txt && git commit -qm f && "
@@ -195,6 +214,13 @@ def test_branch_tag_prefixes_the_ticket_once(linked):
                          "git commit -q --allow-empty -m 'ABC-12 again' && git switch -q -c plain && "
                          "git commit -q --allow-empty -m plain && git log --format=%s -3")
     assert proc.stdout == "plain\nABC-12 again\nABC-12: fix\n"
+
+
+def test_branch_tag_prefixes_a_message_written_in_the_editor(linked):
+    # the file git hands the hook already says "# On branch ABC-12-login"
+    proc = hooks(linked, "use branch-tag && git switch -q -c ABC-12-login && "
+                         "GIT_EDITOR='sed -i 1s/\\$/fix/' git commit -q --allow-empty && git log --format=%s -1")
+    assert proc.stdout == "ABC-12: fix\n"
 
 
 def test_msg_format_checks_the_subject_and_the_blank_line(linked):

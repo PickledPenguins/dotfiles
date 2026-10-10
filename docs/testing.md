@@ -7,8 +7,8 @@ Back to the [README](../README.md).
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
 | `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (`.git/hooks/pre-push`, installed switched off by `./run-tests.sh hook`; `git hooks on pre-push` switches it on) | ~2 s |
-| `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~110 s |
-| `./run-tests.sh all` | both | | ~115 s |
+| `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~130 s |
+| `./run-tests.sh all` | both | | ~130 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
 
@@ -22,15 +22,15 @@ Generated files (coverage data) land in `.build/`; the pytest cache is
 disabled.  Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
 
-## Numbers (2026-10-09, this machine, measured on the commit that added this line)
+## Numbers (2026-10-10, this machine, measured on the commit that added this line)
 
-- fast: 336 tests, 3.8 s.  long: 322 passed and 14 skipped (programs not
+- fast: 336 tests, 3.6 s.  long: 325 passed and 14 skipped (programs not
   installed here: conda, sqlite3, ctags, ripgrep, matplotlib in the test
-  interpreter; settings whose `Needs:` program is missing), 139 s, of
+  interpreter; settings whose `Needs:` program is missing), 131 s, of
   which the toolkit's 165 bats tests are about 45 s.  A gdb
   built without debuginfod support passes the debuginfod setting.
-- coverage of `dots`: 100% lines (360), 100% branches (152); floor 100.
-- mutation: 50 mutants, 50 caught, 0 survivors.  The list is hand-written
+- coverage of `dots`: 100% lines (363), 100% branches (154); floor 100.
+- mutation: 51 mutants, 51 caught, 0 survivors.  The list is hand-written
   (no mutmut here), one mutant per decision in the script: each attribute
   prefix, the ignore matching, the root-dotfile skip, the home-directory
   guard, each state classification, each mode bit, the force/dry-run

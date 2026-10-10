@@ -242,6 +242,19 @@ here is scheduled; an item is cited by its label.  Back to the
   built on it would need to tell them apart from its input alone, and
   would guess.  An action after a push stays a wrapper (`git ps && ...`).
   `git hooks -h` says so too.
+- **F.2.ae  Repositories made from the git template depend on the
+  checkout's path.**  `dots` links each file of
+  `~/.config/git/template/hooks/` to the source tree by absolute path, and
+  `git init` copies a symlink as it is, so `.git/hooks/EVENT` in a new
+  repository points into `.../dotfiles/dot_config/git/template/`, while
+  `git hooks install` links through `~/.local/share/git-hooks`.  Move the
+  checkout and every repository made from the template has dangling hooks,
+  which git skips without a word; `dots apply` repairs the home links, not
+  those.  Only once `init.templateDir` in `core.gitconfig` is switched on.
+  From the 2026-10-10 creview.  Future work because the fix has more than
+  one shape: a sentence in the template row of `configuration.md`, or a
+  template whose hooks resolve through `~/.local/share/git-hooks` (which
+  `dots` cannot produce: it links every file to its source).
 
 ## F.3 tests
 
@@ -273,7 +286,11 @@ here is scheduled; an item is cited by its label.  Back to the
   driven through `breaks-it` by `mutate`, whose test command is the long
   subset that loads the file, or `bats` for a toolkit file.  Future work
   because it is a new gate, and each mutant costs a long-suite subset
-  (seconds, not the fast suite's milliseconds).
+  (seconds, not the fast suite's milliseconds).  The 2026-10-10 ctesting
+  audit adds `git-hooks` (`ensure_dispatch`, `tidy`, `switch`, `on_now`),
+  the dispatcher's pre- against post- status rule and `HOOKS_SKIP`
+  matching, and the 18 packaged hooks, whose tests are in the long
+  `test_git_hooks.py`.
 - **F.3.e  A toolkit test file named for a release.**
   `prompt/toolkit/tests/test_v012_changes.bats` holds 31 tests of features
   from v0.1.2 to v0.1.4 (cache, command timer, `term_utils`, `_ps_expand`,
@@ -284,6 +301,29 @@ here is scheduled; an item is cited by its label.  Back to the
   to, and moving a test that sources one library into a file whose
   `setup` loads them all changes what it isolates.  A toolkit-only commit
   either way, with the README's test table updated.
+- **F.3.f  `tests/hooks/pre-push` is a second copy of the packaged
+  `test-push` hook.**  Both unset the git variables, check out each pushed
+  tip in a temporary worktree, run the tests there and stop the push on a
+  failure; the repository's copy also skips a commit that lacks the file.
+  A fix to one has to be made in the other.  And `./run-tests.sh hook`
+  (`run-tests.sh:63`) links `.git/hooks/pre-push.off` beside whatever is
+  at `.git/hooks/pre-push`: once `git hooks install` has put the
+  dispatcher there, the `git hooks on pre-push` it advises stops with
+  `git hooks: both .../pre-push and .../pre-push.off exist; remove one`.
+  From the 2026-10-10 creview.  Future work because either fix changes a
+  runner command and a documented path, and which hook to run is the
+  owner's call.  Fix: drop `tests/hooks/pre-push` and `hook`, and document
+  `git config hooks.test "./run-tests.sh fast"` with
+  `git hooks install test-push`; or keep `hook` and link into
+  `pre-push.d/pre-push.off` when the dispatcher owns the event.
+- **F.3.g  Push hooks are tested only against a named remote.**
+  `protect`, `wip-guard` and `test-push` take the remote from `$1`, which
+  is the URL when a push names one.  `wip-guard` then builds
+  `--remotes=URL`, which matches no ref, so a new branch has every commit
+  in its history checked, not only the unpushed ones.  No test pushes to a
+  URL.  From the 2026-10-10 ctesting audit.  Future work because the test
+  would fail today on what may be a defect: whether a URL push should fall
+  back to every remote-tracking branch (`--remotes`) is a design call.
 
 ## F.4 housekeeping
 

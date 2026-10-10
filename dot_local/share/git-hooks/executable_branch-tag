@@ -16,6 +16,7 @@ branch=$(git symbolic-ref --short -q HEAD) || exit 0
 pattern=$(git config hooks.tagPattern || echo '[A-Z][A-Z0-9]+-[0-9]+')
 tag=$(grep -oE -m1 -e "$pattern" <<<"$branch" | head -n1) || exit 0
 [[ -n $tag ]] || exit 0
-grep -qF -e "$tag" "$file" && exit 0
+# Not in git's comments: they name the branch, and so hold the tag.
+[[ $(sed '/^. -\{24\} >8 -\{24\}$/,$d' "$file" | git stripspace --strip-comments) == *"$tag"* ]] && exit 0
 message=$(<"$file")
 printf '%s: %s\n' "$tag" "$message" >"$file"

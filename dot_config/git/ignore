@@ -8,7 +8,8 @@
 # A pattern here hides matching files in every repository, including files
 # a project meant to commit.
 
-# Editors: vim swap, backup and netrw files, tags, IDE project folders.
+# Editors: vim swap, backup and netrw files, tags (and the .tags.* file
+# git ctags writes while it rebuilds them), IDE project folders.
 # `tags` also hides a directory of that name (a site's tags/ pages).
 *~
 *.swp
@@ -16,6 +17,7 @@
 .*.sw?
 .netrwhist
 tags
+.tags.*
 .idea/
 .vscode/
 *.sublime-workspace

@@ -33,7 +33,7 @@ case "$command" in
     long) exec $PYTEST -m long "$@" ;;
     all)  exec $PYTEST "$@" ;;
     cov)
-        python3 -m coverage run --rcfile tests/coveragerc -m pytest -q -p no:cacheprovider -m "not long" "$@"
+        python3 -m coverage run --rcfile tests/coveragerc -m pytest -q -p no:cacheprovider -p no:benchmark -m "not long" "$@"
         python3 -m coverage report --rcfile tests/coveragerc
         ;;
     mutate)

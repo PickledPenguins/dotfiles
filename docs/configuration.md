@@ -227,7 +227,7 @@ Read-only variables the loader sets for modules and for you:
 | `~/.config/python/pythonrc.py` | REPL history and completion before 3.13; `json math re Path pp` imported.  Off: datetime, numpy/pandas, pretty display, rich, colored prompt |
 | `~/.config/pip/pip.conf` | timeout.  Off: `require-virtualenv`, version check, mirror, extra index, trusted host, no cache, `--user` |
 | `~/.ctags.d/default.ctags` | universal-ctags excludes (caches, virtualenvs, build output, `target`) and fields.  Off: no `vendor/`, no markdown |
-| `~/.local/bin/git-ctags` | `git ctags`: a `tags` file at the worktree root, then the packaged `ctags` hook installed and switched on, which rebuilds it in the background after `post-checkout`, `post-merge`, `post-rewrite` and `post-commit`; `git ctags off` removes the hook and the file.  Needs: universal-ctags |
+| `~/.local/bin/git-ctags` | `git ctags`: a `tags` file at the worktree root, then the packaged `ctags` hook installed and switched on, which rebuilds it in the background after `post-checkout`, `post-merge`, `post-rewrite` and `post-commit`; `git ctags off` removes the hook and the file.  Exit 2 on a usage error, 1 without universal-ctags.  Needs: universal-ctags |
 | `~/.local/bin/git-hooks` | `git hooks`: install the [packaged git hooks](#packaged-git-hooks-localsharegit-hooks) in a repository, list its hooks, show what one does, switch them on and off |
 | `~/.local/share/git-hooks/` | the packaged git hooks and their dispatcher, one file each; see [Packaged git hooks](#packaged-git-hooks-localsharegit-hooks) |
 | `~/.config/kitty/kitty.conf` | everything off: fonts, scrollback, copy on select, cursor, bell, window and tab look, opacity, themes, `term xterm-256color`, shell integration, remote control, keys; reads `local.conf` |
@@ -263,7 +263,9 @@ event name, in the state it was in, and `git hooks on pre-push` still
 switches it; `remove` moves it back once no packaged hook is left for the
 event.  `git hooks on` and `off` also switch a plain hook at the top of
 `.git/hooks` by name.  Settings are per repository (`git config`, or
-`--global` for every one).
+`--global` for every one).  `git hooks` exits 2 on a usage error and 1
+when it refuses: no such packaged hook, a hook not installed, a required
+setting not made, or a hook and its `.off` both present.
 
 | Hook | Event | Does | Settings |
 |------|-------|------|----------|
@@ -285,8 +287,9 @@ event.  `git hooks on` and `off` also switch a plain hook at the top of
 | `submodules` | post-checkout, post-merge, post-rewrite | `git submodule update --init --recursive` where `.gitmodules` exists | |
 | `ctags` | post-checkout, post-merge, post-rewrite, post-commit | `git ctags --hook` in the background | |
 
-The post- hooks skip a file checkout, an amend and the steps inside a
-rebase.  git has no post-push event, so there is no post-push hook
+`deps-changed`, `pyc-clean` and `submodules` skip a file checkout, an
+amend and the steps inside a rebase; `ctags` runs on every one.  git has
+no post-push event, so there is no post-push hook
 ([F.2.ad](future-work.md)).
 
 ## `.dotsignore`
