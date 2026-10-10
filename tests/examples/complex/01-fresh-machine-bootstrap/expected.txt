@@ -3,13 +3,13 @@ conflict    .gitconfig
 conflict    .profile
 conflict    .tmux.conf
 conflict    .vimrc
-conflict: 5  missing: 100
+conflict: 5  missing: 136
 conflict  .bashrc  (use --force to back it up and replace)
 conflict  .gitconfig  (use --force to back it up and replace)
 conflict  .profile  (use --force to back it up and replace)
 conflict  .tmux.conf  (use --force to back it up and replace)
 conflict  .vimrc  (use --force to back it up and replace)
-100 change(s), 5 conflict(s) left
+136 change(s), 5 conflict(s) left
 exit 1
 backup    .bashrc  ->  HOME/.dotfiles-backup/TS/.bashrc
 backup    .gitconfig  ->  HOME/.dotfiles-backup/TS/.gitconfig
@@ -18,7 +18,7 @@ backup    .tmux.conf  ->  HOME/.dotfiles-backup/TS/.tmux.conf
 backup    .vimrc  ->  HOME/.dotfiles-backup/TS/.vimrc
 5 change(s)
 exit 0
-ok: 105
+ok: 141
 exit 0
 14
 Old Name

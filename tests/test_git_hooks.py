@@ -1,5 +1,5 @@
 """`git hooks`, the packaged hooks in ~/.local/share/git-hooks, their
-dispatcher, and `git ctags` on top.
+dispatcher, the template that installs them all, and `git ctags` on top.
 
 Every test runs real git in a repository under a HOME that dots applied this
 checkout to, so the hooks run from where `dots apply` links them.
@@ -289,6 +289,16 @@ def test_submodules_follow_a_switch(linked):
                          "git -C lib pull -q && git commit -qam l2 && use submodules && git switch -q main && "
                          "git -C lib log --format=%s -1")
     assert proc.stdout == "l1\n"
+
+
+def test_template_holds_what_install_leaves(linked):
+    proc = hooks(linked, "tree() { (cd \"$1\" && find . ! -name '*.sample' | sort | "
+                         "while read -r p; do echo \"$p $(test -L \"$p\" && realpath \"$p\")\"; done); }; "
+                         "git hooks install >/dev/null && tree .git/hooks >../installed && "
+                         f"git init -q --template={linked}/.config/git/template ../t && cd ../t && "
+                         "tree .git/hooks >../templated && diff ../installed ../templated && grep -c . ../templated && "
+                         "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")
+    assert (proc.stdout, proc.stderr) == (f"{1 + 10 * 2 + 26}\nwhitespace on\n1\n", "")
 
 
 # ── git ctags ─────────────────────────────────────────────────────────────

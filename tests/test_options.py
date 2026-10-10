@@ -47,6 +47,7 @@ NOT_IN_THE_FORMAT = {
     ".local/bin/git-ctags": "the git ctags command, linked onto PATH; code, not options",
     ".local/bin/git-hooks": "the git hooks command, linked onto PATH; code, not options",
     ".local/share/git-hooks/*": "the packaged git hooks and their dispatcher; code, not options",
+    ".config/git/template/*": "links to the packaged git hooks, copied by git init; code, not options",
 }
 
 #: Code lines that are structure rather than a setting, so need no description.
