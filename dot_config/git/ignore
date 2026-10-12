@@ -1,6 +1,7 @@
 # ignore -- the global gitignore (~/.config/git/ignore), read by every
-# repository.  Editor and OS leftovers only: a project's own build output
-# belongs in its .gitignore, so everyone who clones it gets that too.
+# repository.  Editor, OS and coding-agent leftovers only: a project's own
+# build output belongs in its .gitignore, so everyone who clones it gets that
+# too.
 #
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
@@ -40,6 +41,18 @@ __pycache__/
 
 # Coding agents' per-user settings.
 **/.claude/settings.local.json
+
+# Coding agents' instruction and handoff files, at a repository's root only,
+# so a project whose product is agent config (skills/agent-config/) can still
+# commit its own.  They never belong in a repository.
+/CLAUDE.md
+/AGENTS.md
+/GEMINI.md
+/HANDOFF.md
+/.claude/
+/.agent/
+/.agents/
+/.gemini/
 
 # Merge and patch leftovers: *.orig from mergetool, *.rej from a failed patch.
 #*.orig
