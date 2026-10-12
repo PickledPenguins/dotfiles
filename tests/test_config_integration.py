@@ -759,7 +759,7 @@ def test_history_log_lines_and_hgrep(panes):
     panes.run("work", "cd /")
     panes.type("work", " cd /tmp")      # not recorded, but where the next one runs
     panes.run("work", "echo hello | wc -c")
-    log = (panes.home / ".hist" / "log").read_text().splitlines()
+    log = (panes.home / ".hist" / "log" / time.strftime("%Y-%m")).read_text().splitlines()
     assert [line.split("\t")[1:] for line in log] == [
         [os.uname().nodename, "work", str(panes.home), "cd /"],
         [os.uname().nodename, "work", "/tmp", "echo hello | wc -c"],
@@ -771,7 +771,7 @@ def test_history_log_lines_and_hgrep(panes):
 
 def test_history_record_hands_on_the_exit_status_and_escapes_lines_and_tabs(linked):
     proc = bash(linked, "set -o history; history -s $'for i in 1\\ndo :\\ndone'; history -s $'a\\tb'; "
-                        "false; _hist_record; echo $?; cut -f5- ~/.hist/log", local="_hist_log_start\n")
+                        "false; _hist_record; echo $?; cut -f5- ~/.hist/log/*", local="_hist_log_start\n")
     assert proc.stdout == "1\nfor i in 1\\ndo :\\ndone\na\\tb\n"
 
 
@@ -787,18 +787,43 @@ def test_history_hgrep_refuses_bad_arguments_and_a_missing_log(linked):
     proc = bash(linked, "hgrep; echo $?; hgrep x y; echo $?; hgrep x")
     assert proc.stdout == "2\n2\n"
     assert proc.stderr == ("usage: hgrep PATTERN [N]\nusage: hgrep PATTERN [N]\n"
-                           f"hgrep: no {linked}/.hist/log; switch the log on in 12-history.sh")
+                           f"hgrep: no log in {linked}/.hist/log; switch the log on in 12-history.sh")
 
 
 def test_history_hgrep_takes_backslashes_as_written_and_any_case_without_capitals(linked):
-    (linked / ".hist").mkdir()
-    (linked / ".hist" / "log").write_text("".join(
+    (linked / ".hist" / "log").mkdir(parents=True)
+    (linked / ".hist" / "log" / "2026-10").write_text("".join(
         f"2026-10-12 10:00:0{i}\th\t-\t/d\t{cmd}\n" for i, cmd in enumerate(["make a.py", "make abpy", "Make X"])))
     proc = bash(linked, r"hgrep 'a\.py'; hgrep make; hgrep Make")
     assert proc.stdout.replace("2026-10-12 10:00:0", "") == (
         "0  /d  make a.py\n"
         "0  /d  make a.py\n1  /d  make abpy\n2  /d  Make X\n"
         "2  /d  Make X\n")
+
+
+def test_history_log_keeps_the_last_months_and_hgrep_reads_them_oldest_first(linked):
+    logs = linked / ".hist" / "log"
+    logs.mkdir(parents=True)
+    year, month = map(int, time.strftime("%Y %m").split())
+    def ago(n):
+        y, m = divmod(year * 12 + month - 1 - n, 12)
+        return f"{y:04d}-{m + 1:02d}"
+    for n in 3, 2, 0:
+        (logs / ago(n)).write_text(f"t\th\t-\t/d\techo {n}\n")
+    (logs / "2000-saved").write_text("kept\n")
+    proc = bash(linked, "hgrep echo; ls ~/.hist/log", before="DOTFILES_HIST_LOG_MONTHS=3\n",
+                local="_hist_log_start\n")
+    assert proc.stdout == f"t  /d  echo 2\nt  /d  echo 0\n2000-saved\n{ago(2)}\n{ago(0)}\n"
+
+
+def test_history_a_new_shell_deletes_the_scratch_files_of_shells_gone(linked, tmp_path):
+    runtime = tmp_path / "run"
+    runtime.mkdir()
+    dead = subprocess.run(["sh", "-c", "echo $$"], capture_output=True, text=True).stdout.strip()
+    for name in f"bash-history.{dead}", f"bash-history.{os.getpid()}", "bash-history.x", "other.1":
+        (runtime / name).write_text("")
+    proc = bash(linked, 'ls "$XDG_RUNTIME_DIR" | grep -vx "bash-history.$$"', env={"XDG_RUNTIME_DIR": str(runtime)}, local="_hist_log_start\n")
+    assert proc.stdout == f"bash-history.{os.getpid()}\nbash-history.x\nother.1\n"
 
 
 def test_history_unset_or_null_histfile_keeps_commands_out_of_everything(linked):

@@ -19,14 +19,18 @@
 # starts.  Each machine has its own HOST directory, so a home shared over
 # NFS never mixes up two machines' process IDs.
 #
+# The log is ~/.hist/log/YYYY-MM, one file a month.  When a shell with the
+# log on starts, months older than the last DOTFILES_HIST_LOG_MONTHS go.
+#
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off.  `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
-#   DOTFILES_HISTDIR     pane history files and the log     default: ~/.hist
-#   DOTFILES_HIST_DAYS   days a closed pane file is kept    default: 90
+#   DOTFILES_HISTDIR          pane history files and the log    default: ~/.hist
+#   DOTFILES_HIST_DAYS        days a closed pane file is kept   default: 90
+#   DOTFILES_HIST_LOG_MONTHS  months of the log kept            default: 12
 
 # Where the pane files and the log go.
 _hist_dir="${DOTFILES_HISTDIR:-$HOME/.hist}"
@@ -161,18 +165,19 @@ _hist_record() {
     [[ -n ${HISTFILE-} && $HISTFILE != /dev/null ]] || return "$status"
     printf '%s' "$entries" >> "$HISTFILE"
     [[ $HISTFILE == "${_hist_pane_file-}" ]] && printf '%s' "$entries" >> "$_hist_shared"
-    [[ -n ${_hist_log_file-} ]] && _hist_log "$entries" "$dir"
+    [[ -n ${_hist_log_dir-} ]] && _hist_log "$entries" "$dir"
     return "$status"
 }
 
-# _hist_log ENTRIES DIR: add history-file ENTRIES, typed in DIR, to the
-# log, one line each: time, host, tmux session (- outside tmux), DIR, the
-# command.  A command over several lines is joined with \n, and a
+# _hist_log ENTRIES DIR: add history-file ENTRIES, typed in DIR, to this
+# month's log, one line each: time, host, tmux session (- outside tmux),
+# DIR, the command.  A command over several lines is joined with \n, and a
 # tab in the command or directory is written \t.
 _hist_log() {
     local where=${_hist_session:--} dir=${2//$'\t'/\\t}
-    local line epoch now cmd='' out='' stamped=''
+    local line epoch now month cmd='' out='' stamped=''
     printf -v now '%(%s)T' -1
+    printf -v month '%(%Y-%m)T' "$now"
     epoch=$now
     [[ $1 =~ ^#[0-9]+$'\n' ]] && stamped=1
     while IFS= read -r line; do
@@ -189,12 +194,22 @@ _hist_log() {
     done <<< "${1%$'\n'}"
     [[ -n $cmd ]] && printf -v out '%s%(%F %T)T\t%s\t%s\t%s\t%s\n' \
         "$out" "$epoch" "$HOSTNAME" "$where" "$dir" "${cmd//$'\t'/\\t}"
-    printf '%s' "$out" >> "$_hist_log_file"
+    printf '%s' "$out" >> "$_hist_log_dir/$month"
 }
 
-# Turn the log on for this shell: the tmux session is looked up once.
+# Turn the log on for this shell: drop the months too old to keep, and look
+# the tmux session up once.
 _hist_log_start() {
-    _hist_log_file="$_hist_dir/log"
+    _hist_log_dir="$_hist_dir/log"
+    [[ -d $_hist_log_dir ]] || ( umask 077 && command mkdir -p -- "$_hist_log_dir" ) || return 0
+    local f year month first
+    printf -v month '%(%Y %m)T' -1
+    read -r year month <<< "$month"
+    (( month = year * 12 + 10#$month - ${DOTFILES_HIST_LOG_MONTHS:-12} ))
+    printf -v first '%04d-%02d' $(( month / 12 )) $(( month % 12 + 1 ))
+    for f in "$_hist_log_dir"/*; do
+        [[ ${f##*/} =~ ^[0-9]{4}-[0-9]{2}$ && ${f##*/} < $first ]] && command rm -f -- "$f"
+    done
     if [[ -z ${_hist_session-} && -n ${TMUX_PANE-} ]]; then
         _hist_session=$(tmux display -p -t "$TMUX_PANE" '#{session_name}' 2>/dev/null)
     fi
@@ -203,11 +218,16 @@ _hist_log_start() {
 
 # Put _hist_record in PROMPT_COMMAND once, ahead of what is there.  Its
 # scratch file holds only what is typed between two prompts and goes when
-# the shell exits, unless an EXIT trap was set already: that one is kept,
-# and the scratch file stays behind, empty.
+# the shell exits, unless an EXIT trap was set already: that one is kept.
+# The scratch files of shells that are gone, left by that or by a kill,
+# go when the next shell starts.
 _hist_hook() {
     [[ -d $_hist_dir/$HOSTNAME ]] || ( umask 077 && command mkdir -p -- "$_hist_dir/$HOSTNAME" )
     _hist_scratch="${XDG_RUNTIME_DIR:-$_hist_dir/$HOSTNAME}/bash-history.$$"
+    local f
+    for f in "${_hist_scratch%.*}".*; do
+        [[ ${f##*.} =~ ^[0-9]+$ ]] && ! kill -0 "${f##*.}" 2>/dev/null && command rm -f -- "$f"
+    done
     local trap_before
     trap_before=$(trap -p EXIT)
     [[ -n $trap_before ]] || trap 'command rm -f -- "$_hist_scratch"' EXIT
@@ -219,12 +239,12 @@ _hist_hook() {
 # regular expression, matched in any case when it has no capital letter.
 # Needs the log setting below.
 hgrep() {
-    local log="$_hist_dir/log"
     [[ $# -ge 1 && $# -le 2 && ${2:-1} =~ ^[0-9]+$ ]] || { echo "usage: hgrep PATTERN [N]" >&2; return 2; }
-    [[ -r $log ]] || { echo "hgrep: no $log; switch the log on in 12-history.sh" >&2; return 1; }
+    local logs=("$_hist_dir"/log/[0-9]*)
+    [[ -f ${logs[0]-} ]] || { echo "hgrep: no log in $_hist_dir/log; switch the log on in 12-history.sh" >&2; return 1; }
     # The pattern goes through the environment: awk -v would expand its \.
     HGREP_RE=$1 awk -F'\t' 'BEGIN { re = ENVIRON["HGREP_RE"]; fold = re !~ /[A-Z]/ }
-        (fold ? tolower($5) : $5) ~ re { print $1 "  " $4 "  " $5 }' "$log" | tail -n "${2:-30}"
+        (fold ? tolower($5) : $5) ~ re { print $1 "  " $4 "  " $5 }' "${logs[@]}" | tail -n "${2:-30}"
 }
 
 # One history file per tmux pane, kept after the pane closes and picked up
@@ -235,6 +255,6 @@ hgrep() {
 #_hist_pane_start
 
 # Every command, from every shell, with its time, host, tmux session and
-# directory, also goes to ~/.hist/log for hgrep to search.  The log is
-# never trimmed: about 100 bytes a command.
+# directory, also goes to ~/.hist/log for hgrep to search: about 100 bytes
+# a command, kept for DOTFILES_HIST_LOG_MONTHS months.
 #_hist_log_start
