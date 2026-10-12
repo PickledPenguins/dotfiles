@@ -4,6 +4,11 @@
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off.  `dots options WORD` searches every file.
 
+# A batch or CI job that is not interactive (PBS, Slurm, GitLab, GitHub)
+# runs none of this.  clear_console without a terminal fails, and GitLab's
+# shell executor then fails the job ("prepare environment: exit status 1").
+#[[ $- != *i* && -n ${PBS_JOBID-}${SLURM_JOB_ID-}${GITLAB_CI-}${GITHUB_ACTIONS-} ]] && return
+
 # Clear the console on logout from its top-level shell, so the next person
 # at the machine does not see your scrollback (Debian's clear_console).
 if [[ "$SHLVL" == 1 ]] && command -v clear_console >/dev/null 2>&1; then

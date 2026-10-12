@@ -211,9 +211,9 @@ Read-only variables the loader sets for modules and for you:
 
 | Target | Purpose |
 |--------|---------|
-| `~/.profile` | POSIX login: PATH and `LANG` for non-bash shells and display managers.  Off: `EDITOR` for desktop programs, session `umask` |
-| `~/.bash_profile` | `.profile`, then `profile.d/*.sh`, then `.bashrc`.  Off: tmux on ssh login, `startx` on tty1 |
-| `~/.bash_logout` | `clear_console` on a top-level logout.  Off: `clear` |
+| `~/.profile` | POSIX login: PATH and `LANG` for non-bash shells and display managers.  Off: `EDITOR` for desktop programs, session `umask`, nothing in a batch or CI job |
+| `~/.bash_profile` | `.profile`, then `profile.d/*.sh`, then `.bashrc`.  Off: nothing in a batch or CI job (PBS, Slurm, GitLab, GitHub), tmux on ssh login, `startx` on tty1 |
+| `~/.bash_logout` | `clear_console` on a top-level logout.  Off: nothing in a batch or CI job, `clear` |
 | `~/.inputrc` | readline: case-insensitive completion, single-Tab listing, colored stats, history search on Up/Down, Ctrl-arrows by word, Ctrl-Delete, Alt-S sudo.  Off: vi mode with mode strings and cursor shapes, `keyseq-timeout`, hidden files, horizontal lists, menu completion, `mark-modified-lines`, `expand-tilde`, Ctrl-P/N prefix search, `search-ignore-case`, Ctrl-W by path, Ctrl-Backspace, Alt-L, vi `jj`/`gg`/`G` |
 | `~/.editorconfig` | 2-space default (python too), 4 for rust/c/java/sh, tabs for make/go.  Off: `max_line_length`, CRLF for batch files |
 | `~/.curlrc` | follow redirects, connect timeout, stalled-transfer limit, retries, progress bar.  Off: whole-transfer time limit, silent, compressed, fail, newline after output, remote time, create dirs, netrc, IPv4, user agent, proxy |

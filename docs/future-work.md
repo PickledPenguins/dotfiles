@@ -264,27 +264,6 @@ here is scheduled; an item is cited by its label.  Back to the
   `xargs`, `find -exec`, vim's `:!`, cron and other shells, and costs no
   startup time.  Then a pass over `30-aliases.sh` and `40-functions.sh`
   sorting each name by it.
-- **F.2.ao  Batch and CI jobs read the login files.**  From the owner's
-  TODOs of 2026-10-12 (`50-completion.sh`): a PBS, Slurm, GitLab or
-  GitHub job should run the same for everyone, so it should not read this
-  configuration.  `~/.bashrc` already stops at once in a shell that is not
-  interactive (`dot_bashrc`, `case $- in *i*`), so `rc.d/` never loads in a
-  job.  What does load is the login part: a PBS job script runs in a login
-  shell, as does GitLab's shell executor (`bash --login`), and that reads
-  `~/.bash_profile`, so `~/.profile` (PATH, locale) and every
-  `profile.d/*.sh`; at logout `~/.bash_logout` runs `clear_console` when
-  `SHLVL` is 1, the known cause of GitLab's "prepare environment: exit
-  status 1".  Slurm's `sbatch` runs `#!/bin/bash` as no login shell (only
-  `#!/bin/bash -l` reads the files) but copies the submitting shell's whole
-  environment, which `#SBATCH --export=NONE` stops, not a dotfile.  GitHub
-  Actions runs `bash --noprofile --norc`, so reads nothing.  Proposed: an
-  off setting at the top of `~/.bash_profile` and `~/.profile`, and the
-  same test in `~/.bash_logout`, returning when the shell is not
-  interactive and `PBS_JOBID`, `SLURM_JOB_ID`, `GITLAB_CI` or
-  `GITHUB_ACTIONS` is set.  Interactive jobs (`qsub -I`, `srun --pty
-  bash`) keep the whole configuration.  What goes: a job script that
-  counted on `~/.local/bin` or a conda path from `~/.profile` must set PATH
-  itself.  About 6 lines in 3 files, a test per variable.
 - **F.2.ap  Read-only variables a system file sets.**  From the owner's
   TODOs of 2026-10-12, with `TIMEOUT` as the example, most likely `TMOUT`:
   clusters set it in `/etc/profile` and mark it read-only, so the shell

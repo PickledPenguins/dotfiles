@@ -594,6 +594,59 @@ def test_profile_is_posix_sh(linked):
     assert (proc.returncode, proc.stdout, proc.stderr) == (0, "C.UTF-8\n", "")
 
 
+def switch_on_job_skip(home, name):
+    """~/NAME with its batch-job setting switched on"""
+    path = home / name
+    text = path.read_text()
+    switched = re.sub(r"^#(\[\[? .*PBS_JOBID)", r"\1", text, flags=re.M)
+    assert switched != text
+    path.unlink()
+    path.write_text(switched)
+
+
+JOB_VARIABLES = ["PBS_JOBID", "SLURM_JOB_ID", "GITLAB_CI", "GITHUB_ACTIONS"]
+
+
+def test_login_files_skip_a_batch_job_but_not_an_interactive_one(linked):
+    switch_on_job_skip(linked, ".bash_profile")
+    (linked / ".config" / "bash" / "profile.d").mkdir()
+    (linked / ".config" / "bash" / "profile.d" / "x.sh").write_text("export FROM_PROFILE_D=1\n")
+
+    def login(flags, **job):
+        env = {"HOME": str(linked), "PATH": "/usr/bin:/bin", "TERM": "dumb", **job}
+        return subprocess.run(["bash", *flags, "-c", 'echo "${FROM_PROFILE_D-none} ${LANG-none}"'],
+                              env=env, capture_output=True, text=True, stdin=subprocess.DEVNULL).stdout
+
+    assert [login(["-l"], **{v: "1"}) for v in JOB_VARIABLES] == ["none none\n"] * 4
+    assert login(["-l"]) == "1 C.UTF-8\n"
+    assert login(["-l", "-i"], PBS_JOBID="1").endswith("1 C.UTF-8\n")
+
+
+@needs("dash")
+def test_profile_skips_a_batch_job_in_sh(linked):
+    switch_on_job_skip(linked, ".profile")
+
+    def login(*flags, **job):
+        return subprocess.run(["dash", "-l", *flags, "-c", "echo ${LANG-none}"], capture_output=True,
+                              text=True, stdin=subprocess.DEVNULL,
+                              env={"HOME": str(linked), "PATH": "/usr/bin:/bin", **job}).stdout
+
+    assert (login(SLURM_JOB_ID="7"), login(), login("-i", SLURM_JOB_ID="7")) == (
+        "none\n", "C.UTF-8\n", "C.UTF-8\n")
+
+
+def test_bash_logout_leaves_the_console_alone_in_a_batch_job(linked, tmp_path):
+    switch_on_job_skip(linked, ".bash_logout")
+    fake = stubs(tmp_path, clear_console='echo "clear_console $*"\n')
+
+    def logout(**job):
+        env = {"HOME": str(linked), "PATH": f"{fake}:/usr/bin:/bin", "TERM": "dumb", "SHLVL": "0", **job}
+        return subprocess.run(["bash", "--noprofile", "-l", "-c", "exit"], env=env, capture_output=True,
+                              text=True, stdin=subprocess.DEVNULL).stdout
+
+    assert (logout(GITLAB_CI="true"), logout()) == ("", "clear_console -q\n")
+
+
 # ── history (12-history.sh) ───────────────────────────────────────────────
 
 HISTORY_ON = "_hist_pane_start\n_hist_log_start\n"

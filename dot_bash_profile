@@ -12,6 +12,12 @@
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off.  `dots options WORD` searches every file.
 
+# A batch or CI job that is not interactive (PBS, Slurm, GitLab, GitHub)
+# reads none of this, so it runs the same for everyone who submits it.
+# Interactive jobs (qsub -I, srun --pty bash) read it all.  A job script
+# that needs ~/.local/bin or a conda path on PATH then sets it itself.
+#[[ $- != *i* && -n ${PBS_JOBID-}${SLURM_JOB_ID-}${GITLAB_CI-}${GITHUB_ACTIONS-} ]] && return
+
 # PATH and locale, shared with non-bash login shells.
 [[ -r ~/.profile ]] && source ~/.profile
 

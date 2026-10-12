@@ -7,6 +7,10 @@
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off.  `dots options WORD` searches every file.
 
+# A batch or CI job that is not interactive (PBS, Slurm, GitLab, GitHub)
+# reads none of this, as in ~/.bash_profile, for jobs whose shell is sh.
+#[ -n "${PBS_JOBID-}${SLURM_JOB_ID-}${GITLAB_CI-}${GITHUB_ACTIONS-}" ] && case $- in *i*) ;; *) return ;; esac
+
 # Your own programs first on PATH: ~/.local/bin and ~/bin, when they exist.
 for d in "$HOME/.local/bin" "$HOME/bin"; do
     if [ -d "$d" ]; then
