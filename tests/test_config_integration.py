@@ -13,6 +13,7 @@ import pty
 import re
 import select
 import shutil
+import socket
 import subprocess
 import threading
 import time
@@ -24,7 +25,7 @@ from conftest import REPO
 
 pytestmark = pytest.mark.long
 
-BASH_MODULES = ["env", "options", "history", "path", "aliases", "functions", "dirs", "completion",
+BASH_MODULES = ["env", "options", "history", "tmux-env", "path", "aliases", "functions", "dirs", "completion",
                 "prompt", "title", "conda", "python", "tools", "hpc", "local"]
 VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
                "35-folding", "40-files", "45-filetypes", "50-keys", "52-tags", "55-netrw"]
@@ -1148,6 +1149,121 @@ def test_tmux_local_override_and_off_module(linked):
     proc = tmux(linked, "show", "-g", "history-limit", ";", "show", "-g", "@plugin")
     assert proc.stdout.splitlines()[0] == "history-limit 7"
     assert "@plugin" not in proc.stdout             # 50-plugins.conf.off not read
+
+
+def test_tmux_env_check_applies_the_file_once_and_keeps_the_status(linked, tmp_path):
+    env_file = tmp_path / "s.env.41.3"
+    env_file.write_text("export DISPLAY=:5\nunset XAUTHORITY\n")
+    script = (f"XAUTHORITY=x; false; _tmux_env_check; echo $? $DISPLAY ${{XAUTHORITY-unset}}; "
+              f"DISPLAY=mine; _tmux_env_check; echo $DISPLAY; "
+              f"echo 'export DISPLAY=:6' > {env_file}; _tmux_env_check; echo $DISPLAY; "
+              f"_tmux_env_start; _tmux_env_start; echo \"$PS0\"")
+    proc = bash(linked, script, env={"TMUX": f"{tmp_path}/s,41,3"})
+    assert (proc.stdout, proc.stderr) == ("1 :5 unset\nmine\n:6\n${ _tmux_env_check; }\n", "")
+
+
+class Clients:
+    """A private tmux server running the applied configuration with the
+    client-env settings switched on, one session, and terminals for clients
+    to attach from."""
+
+    def __init__(self, home, tmp_path):
+        self.home, self.tmp = home, tmp_path
+        self.sock = str(tmp_path / "tmux.sock")
+        # The pane's shell starts with an XAUTHORITY the clients do not have
+        self.env = shell_env(home, {"XAUTHORITY": "stale"})
+        self.clients = []
+        conf = (home / ".config/tmux/conf.d/45-client-env.conf").read_text()
+        (home / ".tmux.conf.local").write_text(re.sub(r"(?m)^#(set-hook )", r"\1", conf))
+        (home / ".bashrc.local").write_text("_tmux_env_start\n")
+        self.tmux("-f", str(home / ".tmux.conf"), "new", "-d", "-s", "a", f"bash --rcfile {home}/.bashrc -i")
+
+    def tmux(self, *args):
+        proc = subprocess.run(["tmux", "-S", self.sock, *args], env=self.env, cwd=str(self.home),
+                              capture_output=True, text=True, timeout=10)
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout
+
+    def attach(self, **env):
+        """A client attached from a terminal whose environment adds env;
+        what tmux draws on it is read and dropped."""
+        main, side = pty.openpty()
+        env = {k: v for k, v in dict(self.env, **env).items() if k != "XAUTHORITY"}
+        proc = subprocess.Popen(["tmux", "-S", self.sock, "attach", "-t", "a"], stdin=side, stdout=side,
+                                stderr=side, env=env, start_new_session=True)
+        os.close(side)
+        threading.Thread(target=self.drain, args=(main,), daemon=True).start()
+        self.clients.append(proc)
+        wait_until(lambda: len(self.tmux("list-clients").splitlines()) == len(self.clients))
+        return proc, main
+
+    @staticmethod
+    def drain(fd):
+        try:
+            while os.read(fd, 65536):
+                pass
+        except OSError:                 # EIO: the client has gone, nothing more to read
+            pass
+
+    def env_file(self):
+        files = list(self.tmp.glob("tmux.sock.env.*"))
+        return files[0].read_text() if len(files) == 1 else ""
+
+    def type_on(self, client, display, command):
+        """Type a key on the client, wait for the hook to write its
+        display, then type command and wait for the file it writes."""
+        os.write(client[1], b" ")
+        wait_until(lambda: f"DISPLAY={display}\n" in self.env_file())
+        out = self.tmp / f"out{len(list(self.tmp.glob('out*')))}"
+        os.write(client[1], f"{command} > {out}.tmp; mv {out}.tmp {out}\r".encode())
+        wait_until(out.exists)
+        return out.read_text()
+
+    def close(self):
+        subprocess.run(["tmux", "-S", self.sock, "kill-server"], capture_output=True)
+        for proc in self.clients:
+            proc.kill()
+            proc.wait()
+
+
+def wait_until(condition):
+    deadline = time.monotonic() + 10
+    while not condition():
+        assert time.monotonic() < deadline, "timed out"
+        time.sleep(0.02)
+
+
+@needs("tmux")
+def test_tmux_env_follows_the_client_typed_on_last(linked, tmp_path):
+    agents = [socket.socket(socket.AF_UNIX) for _ in range(2)]
+    for n, agent in enumerate(agents, 1):
+        agent.bind(str(tmp_path / f"agent{n}"))
+    clients = Clients(linked, tmp_path)
+    try:
+        # Files of an earlier server and of a session that is gone, deleted
+        # at the first run (env_file reads only a lone file)
+        server = clients.tmux("display", "-p", "#{pid}").strip()
+        for stale in ("1.0", f"{server}.99"):
+            (tmp_path / f"tmux.sock.env.{stale}").write_text("export DISPLAY=:9\n")
+        first = clients.attach(DISPLAY=":1", SSH_AUTH_SOCK=str(tmp_path / "agent1"))
+        second = clients.attach(DISPLAY=":2", SSH_AUTH_SOCK=str(tmp_path / "agent2"))
+        show = 'echo "$DISPLAY $SSH_AUTH_SOCK ${XAUTHORITY-unset}"'
+        link = linked / ".ssh/agent.sock"
+        # The pane's shell started before either client attached.  It takes
+        # the values of the client typed on, before the command it runs.
+        assert clients.type_on(first, ":1", show) == f":1 {link} unset\n"
+        assert os.readlink(link) == str(tmp_path / "agent1")
+        assert clients.type_on(second, ":2", show) == f":2 {link} unset\n"
+        assert os.readlink(link) == str(tmp_path / "agent2")
+        assert clients.tmux("show-environment", "-t", "a", "DISPLAY") == "DISPLAY=:2\n"
+        # The client typed on last leaves: the other one takes over
+        second[0].kill()
+        wait_until(lambda: "DISPLAY=:1\n" in clients.env_file())
+        assert os.readlink(link) == str(tmp_path / "agent1")
+    finally:
+        clients.close()
+        for agent in agents:
+            agent.close()
 
 
 # ── git ───────────────────────────────────────────────────────────────────

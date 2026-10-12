@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# client-env: give a tmux session the environment of the client typed on
+# last.  Run by the hooks in conf.d/45-client-env.conf:
+#
+#   client-env SOCKET SERVER_PID CLIENT_PID SESSION_ID
+#
+# For each name in update-environment (DISPLAY, SSH_AUTH_SOCK, XAUTHORITY
+# ...) it takes the client's value, from /proc/CLIENT_PID/environ, or where
+# there is no /proc from the session, into which tmux copied the attaching
+# client's values.  The values are set in the session, for the panes and
+# programs tmux starts next, and written to SOCKET.env.SERVER_PID.SESSION
+# for the shells already running, which apply them before their next
+# command (rc.d/15-tmux-env.sh).  A name the client lacks is unset, as
+# tmux does on attach.
+#
+# A live SSH_AUTH_SOCK is linked from ~/.ssh/agent.sock and the session
+# gets the link instead, so programs already running (vim, git in a loop)
+# follow it to the agent of the client typed on last.
+#
+# Files of sessions or servers that are gone are deleted.
+set -euo pipefail
+
+socket=$1 server=$2 pid=$3 session=${4#\$}
+link=$HOME/.ssh/agent.sock
+file=$socket.env.$server.$session
+
+names=$(tmux -S "$socket" show -gv update-environment)
+mapfile -t names <<< "$names"
+declare -A client=()
+if [[ -r /proc/$pid/environ ]]; then
+    while IFS= read -r -d '' pair; do client[${pair%%=*}]=${pair#*=}; done < "/proc/$pid/environ"
+else
+    while IFS= read -r pair; do
+        [[ $pair == -* ]] || client[${pair%%=*}]=${pair#*=}
+    done < <(tmux -S "$socket" show-environment -t "\$$session")
+fi
+
+# Replaced by rename, so a program never finds the link missing.
+agent=${client[SSH_AUTH_SOCK]-}
+if [[ -S $agent && $agent != "$link" ]]; then
+    command mkdir -p -m 700 "${link%/*}"
+    command ln -sfn "$agent" "$link.$$"
+    command mv -f "$link.$$" "$link"
+fi
+[[ -S $link && -v client[SSH_AUTH_SOCK] ]] && client[SSH_AUTH_SOCK]=$link
+
+body='' commands=()
+for name in "${names[@]}"; do
+    if [[ -v client[$name] ]]; then
+        printf -v line 'export %s=%q\n' "$name" "${client[$name]}"
+        commands+=(set-environment -t "\$$session" "$name" "${client[$name]}" ';')
+    else
+        line="unset $name"$'\n'
+        commands+=(set-environment -r -t "\$$session" "$name" ';')
+    fi
+    body+=$line
+done
+sessions=$(tmux -S "$socket" "${commands[@]}" list-sessions -F '#{session_id}')
+mapfile -t sessions <<< "$sessions"
+
+# Shells compare the whole file, so it is only replaced when it changed.
+if [[ ! -f $file || $(< "$file")$'\n' != "$body" ]]; then
+    printf %s "$body" > "$file.$$"
+    command mv -f "$file.$$" "$file"
+fi
+
+for old in "$socket".env.*; do
+    [[ -f $old ]] || continue
+    keep=${old#"$socket".env.}
+    [[ ${keep%%.*} == "$server" && " ${sessions[*]} " == *" \$${keep#*.} "* ]] || command rm -f -- "$old"
+done

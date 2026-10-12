@@ -1,6 +1,7 @@
 bashrc: env
 bashrc: options
 bashrc: history
+bashrc: tmux-env
 bashrc: path
 bashrc: aliases
 bashrc: skip functions
