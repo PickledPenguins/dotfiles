@@ -84,9 +84,9 @@ rgv() { vim -q <(rg --vimgrep "$@"); }
 # bak FILE -- copy FILE to FILE.YYYYmmdd-HHMMSS.bak, keeping its mode and times.
 bak() { command cp -a -- "$1" "$1.$(date +%Y%m%d-%H%M%S).bak"; }
 
-# swap A B -- exchange the names of two files.  When B cannot be moved, A
+# swapname A B -- exchange the names of two files.  When B cannot be moved, A
 # gets its name back rather than staying under the temporary one.
-swap() {
+swapname() {
     local tmp; tmp=$(mktemp -d -- "${1%/}.XXXXXX") || return
     command mv -- "$1" "$tmp/x" || { command rmdir -- "$tmp"; return 1; }
     command mv -- "$2" "$1" || { command mv -- "$tmp/x" "$1"; command rmdir -- "$tmp"; return 1; }
@@ -137,14 +137,14 @@ retry() {
     return 1
 }
 
-# timer CMD... -- run CMD and print its wall time to the millisecond.
+# timit CMD... -- run CMD and print its wall time to the millisecond.
 # Bash 4 has no EPOCHREALTIME and prints 0.000 s.
 # Needs: bash 5+
-timer() {
+timit() {
     local t0=${EPOCHREALTIME/./}
     "$@"
     local rc=$? t1=${EPOCHREALTIME/./}
-    printf 'timer: %d.%03d s (exit %d)\n' $(( (t1 - t0) / 1000000 )) $(( (t1 - t0) / 1000 % 1000 )) "$rc" >&2
+    printf 'timit: %d.%03d s (exit %d)\n' $(( (t1 - t0) / 1000000 )) $(( (t1 - t0) / 1000 % 1000 )) "$rc" >&2
     return "$rc"
 }
 

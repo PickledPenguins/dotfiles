@@ -227,8 +227,8 @@ def test_functions_use_command_to_bypass_verbose_aliases(linked):
     assert proc.stdout == "done\n"          # no 'mkdir: created directory' from the -pv alias
 
 
-def test_functions_swap_exchanges_names_and_restores_on_failure(linked):
-    proc = bash(linked, "echo A > a; echo B > b; swap a b; cat a b; swap a missing; echo $?; ls")
+def test_functions_swapname_exchanges_names_and_restores_on_failure(linked):
+    proc = bash(linked, "echo A > a; echo B > b; swapname a b; cat a b; swapname a missing; echo $?; ls")
     assert proc.stdout == "B\nA\n1\na\nb\n"
     assert "missing" in proc.stderr
 
@@ -256,11 +256,11 @@ def test_functions_bd_and_cdf_change_directory(linked):
     assert proc.stderr == "bd: no parent directory starts with 'nothere'"
 
 
-def test_functions_retry_and_timer_hand_on_the_exit_status(linked):
-    proc = bash(linked, "retry 2 false; echo $?; retry 3 true; echo $?; timer bash -c 'exit 3'; echo $?")
+def test_functions_retry_and_timit_hand_on_the_exit_status(linked):
+    proc = bash(linked, "retry 2 false; echo $?; retry 3 true; echo $?; timit bash -c 'exit 3'; echo $?")
     assert proc.stdout == "1\n0\n3\n"
     assert proc.stderr.splitlines()[:2] == ["retry: attempt 1/2 failed", "retry: attempt 2/2 failed"]
-    assert re.fullmatch(r"timer: \d+\.\d{3} s \(exit 3\)", proc.stderr.splitlines()[2])
+    assert re.fullmatch(r"timit: \d+\.\d{3} s \(exit 3\)", proc.stderr.splitlines()[2])
 
 
 def test_functions_retry_sleeps_between_attempts_not_after_the_last(linked):
