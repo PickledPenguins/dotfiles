@@ -1,0 +1,28 @@
+# ~/.config/systemd/user/tool-report.service -- the skills repository's
+# daily report of tool candidates and agent routing (`tool-report run`),
+# started by tool-report.timer.  Its output goes to the journal:
+#   journalctl --user -u tool-report
+# Where ~/work/ai/skills is not checked out, it is skipped without an error.
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+[Unit]
+# The name systemctl status and the journal show.
+Description=Daily tool-candidates and routing report (skills repository)
+
+# Skipped, not failed, on a machine without the skills checkout.
+ConditionFileIsExecutable=%h/work/ai/skills/bin/tool-report
+
+[Service]
+# Runs to the end once each time the timer fires.
+Type=oneshot
+
+# The report itself; %h is the home directory.
+ExecStart=%h/work/ai/skills/bin/tool-report run
+
+# The lowest CPU and disk priority, so the report never slows down what is
+# running in the foreground.
+#Nice=19
+#IOSchedulingClass=idle

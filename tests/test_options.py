@@ -436,6 +436,21 @@ def ctags(home, path):
     return problems(run(["ctags", f"--options={path}", "--version"], home))
 
 
+def systemd_unit(home, path):
+    """systemd-analyze verify on the copy under its real name, beside the other linked units.
+
+    A job's program may be missing on this machine (its Condition then skips it), and
+    verify reports that whatever the Condition says, so that line is not a problem.
+    """
+    units = home.parent / "units"
+    shutil.rmtree(units, ignore_errors=True)
+    shutil.copytree(home / ".config/systemd/user", units)
+    unit = units / path.name.split("-", 1)[1]
+    shutil.copy(path, unit)
+    proc = run(["systemd-analyze", "verify", "--user", "--man=no", str(unit)], home)
+    return "\n".join(l for l in problems(proc).splitlines() if "is not executable" not in l)
+
+
 #: target pattern -> (program that must be installed, loader)
 LOADERS = [
     (".config/bash/rc.d/*", "bash", bash_modules),
@@ -470,6 +485,7 @@ LOADERS = [
     (".npmrc", "npm", batched(npmrc)),
     (".config/ripgrep/config", "rg", each(ripgrep)),
     (".ctags.d/*", "ctags", each(ctags)),
+    (".config/systemd/user/*", "systemd-analyze", each(systemd_unit)),
 ]
 
 

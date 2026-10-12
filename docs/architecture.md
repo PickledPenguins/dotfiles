@@ -28,6 +28,7 @@ dot_gitconfig  dot_config/git/{core,color,aliases,diff,url,signing}.gitconfig  i
 dot_inputrc  dot_editorconfig  dot_curlrc  dot_wgetrc  dot_screenrc  dot_dircolors
 dot_gdbinit  dot_nanorc  dot_condarc  dot_Xresources  dot_ctags.d/  dot_config/{ripgrep,python,pip}/
 dot_config/{kitty,matplotlib}/  dot_ipython/profile_default/  dot_sqliterc     shipped with every setting off
+dot_config/systemd/user/        scheduled jobs as user timers, linked but enabled per machine
 private_dot_ssh/config          ~/.ssh/config (600) and ~/.ssh/sockets/ for ControlMaster
 dot_local/bin/dots              -> ../../dots: apply puts dots on PATH; unlink takes it off
 dot_local/share/bash-completion/completions/dots   Tab completion for dots

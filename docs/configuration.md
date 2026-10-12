@@ -239,6 +239,32 @@ Read-only variables the loader sets for modules and for you:
 | `~/.config/matplotlib/matplotlibrc` | everything off: screen and save dpi, figure size, constrained layout, tight bbox, PDF default, editable PDF fonts, grid, spines, font size, math font, LaTeX, Agg backend |
 | `~/.sqliterc` | everything off: headers, box and column modes, NULL display, timer, foreign keys |
 
+## Scheduled jobs (`~/.config/systemd/user/`)
+
+Jobs that cron would run, kept as systemd user timers so they live in this
+repository.  `dots apply` links every unit but enables none: each machine
+switches on the jobs it wants, and a machine that wants none does nothing.
+
+| Unit | Purpose |
+|------|---------|
+| `tool-report.service` | `~/work/ai/skills/bin/tool-report run`, the skills repository's daily report; skipped where that checkout is missing.  Off: lowest CPU and disk priority |
+| `tool-report.timer` | runs it daily at 06:15, and at the next start after a time the machine was off or asleep.  Off: up to 10 minutes' random delay |
+
+```sh
+systemctl --user daemon-reload                  # once after dots apply adds a unit
+systemctl --user enable --now tool-report.timer # switch a job on for this machine
+systemctl --user disable --now tool-report.timer
+systemctl --user list-timers                    # what is on, when each runs next
+journalctl --user -u tool-report                # what a run printed
+```
+
+A user timer runs only while the user's systemd runs, that is while logged
+in, unless `loginctl enable-linger` keeps it running.  To add a job, put
+`NAME.service` (what to run, `Type=oneshot`) and `NAME.timer` (when, and
+`WantedBy=timers.target`) here in the options format; a job that needs a
+program only some machines have gets `ConditionFileIsExecutable=` so it is
+skipped elsewhere.  `systemctl --user disable` a job before `dots unlink`.
+
 ## Packaged git hooks (`~/.local/share/git-hooks/`)
 
 Hooks people commonly want, every one off until switched on in a

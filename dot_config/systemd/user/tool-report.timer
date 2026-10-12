@@ -1,0 +1,31 @@
+# ~/.config/systemd/user/tool-report.timer -- when tool-report.service
+# runs: every morning, and at the next start when the machine was off or
+# asleep at that time.  `dots apply` links it switched off; switch it on
+# for this machine with
+#   systemctl --user enable --now tool-report.timer
+# (docs/configuration.md, Scheduled jobs).
+#
+# Each setting has its description in the comment above it.  A setting with
+# "#" directly in front of it is off: delete that "#" to turn it on, or add
+# one to turn a setting off.  `dots options WORD` searches every file.
+
+[Unit]
+# The name systemctl list-timers shows.
+Description=Daily tool-candidates and routing report (skills repository)
+
+[Timer]
+# Every day at 06:15 local time.
+OnCalendar=*-*-* 06:15
+
+# A run missed while the machine was off or asleep happens as soon as it is
+# back, which cron cannot do.
+Persistent=true
+
+# Up to 10 minutes later at random, so jobs set for the same minute do not
+# all start at once.
+#RandomizedDelaySec=10min
+
+[Install]
+# What `systemctl --user enable` hooks the timer to: timers.target, which
+# the user's systemd starts at login.
+WantedBy=timers.target
