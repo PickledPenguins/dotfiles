@@ -255,40 +255,6 @@ here is scheduled; an item is cited by its label.  Back to the
   one shape: a sentence in the template row of `configuration.md`, or a
   template whose hooks resolve through `~/.local/share/git-hooks` (which
   `dots` cannot produce: it links every file to its source).
-- **F.2.af  Toolchain PATH lines that ignore the XDG moves.**  From the
-  owner's TODOs of 2026-10-12 (`20-path.sh`).  cargo and go already follow
-  their moved homes (`${CARGO_HOME:-...}/bin`, `${GOPATH:-...}/bin`).  The
-  rest name the old place: `.NET` tools stay at `~/.dotnet/tools` while
-  `00-env.sh` moves `DOTNET_CLI_HOME`, which puts them under
-  `$DOTNET_CLI_HOME/.dotnet/tools`; npm's global prefix is whatever
-  `~/.config/npm/npmrc` says, but `20-path.sh` hard-codes `~/.npm-global`.
-  deno (`DENO_INSTALL_ROOT`), bun (`BUN_INSTALL`), cabal (`CABAL_DIR`),
-  ghcup (`GHCUP_USE_XDG_DIRS`) and pixi (`PIXI_HOME`) have moves of their
-  own that `00-env.sh` does not offer.  The fix: every PATH line reads its
-  tool's variable with the old default, and `00-env.sh` gains the missing
-  moves as off settings (npm's as `NPM_CONFIG_PREFIX`).  Every line
-  involved is off except cargo and go, so nothing is broken today.
-- **F.2.ag  A short gloss for the flags in every alias and function.**
-  From the owner's TODOs of 2026-10-12 (`40-functions.sh`, on `targz`'s
-  `-czf` and `ls -lh`): a very dense reference line for what each flag
-  does, so the file can be read without `man`.  About 32 of the 64 aliases
-  in `30-aliases.sh` and most of the 33 functions in `40-functions.sh` pass
-  flags; git aliases would be next.  The form proposed is one comment line
-  under the description, `# tar: -c create, -z gzip, -f FILE`, left out
-  where the description already says it.
-- **F.2.ah  One `ff` that takes find's own arguments.**  From the owner's
-  TODOs of 2026-10-12.  `ff PATTERN [DIR]` and `fd_ PATTERN [DIR]` (named
-  so as not to shadow the `fd` program) differ only in `-type d`, and
-  `fd_` is hard to remember.  Proposed: `ff PATTERN [FIND-ARGS...]` running
-  `find "${@:2}" -iname "*$1*"`, so `ff x`, `ff x src`, `ff x -type d` and
-  `ff x src -maxdepth 2 -type f` all work (GNU find takes `.` when no
-  directory is given).  `fd_` goes.
-- **F.2.ai  `rgv` defined where `rg` is missing.**  From the owner's TODOs
-  of 2026-10-12.  `rgv` is defined on every machine and fails when used
-  without ripgrep.  Defining it only when `type -P rg` finds the program
-  keeps the name out of completion there; `type -P` is a builtin, so
-  startup pays no fork.  The other on functions need only coreutils, vim
-  and python.
 - **F.2.aj  `:` instead of ` -- ` between a name and its description.**
   From the owner's TODOs of 2026-10-12: shorter, and the owner's house
   rule T4 says the same.  The ` -- ` form is the convention everywhere: the
@@ -305,31 +271,60 @@ here is scheduled; an item is cited by its label.  Back to the
   `xargs`, `find -exec`, vim's `:!`, cron and other shells, and costs no
   startup time.  Then a pass over `30-aliases.sh` and `40-functions.sh`
   sorting each name by it.
-- **F.2.al  `mark` replaces a bookmark without asking.**  From the
-  owner's TODOs of 2026-10-12.  `mark NAME` is `ln -sfn`, so marking a
-  second directory with a name in use loses the first.  Proposed: when
-  NAME points elsewhere, ask `mark: NAME -> OLD; replace? [y/N]`, as the
-  `cp -i` and `mv -i` aliases do; marking the same directory again stays
-  silent.
-- **F.2.am  The command log is never trimmed.**  `~/.hist/log`
-  (`12-history.sh`) grows about 100 bytes a command for good; the pane
-  files and the shared file are trimmed to `HISTFILESIZE` lines by bash.
-  At 500 commands a day that is about 18 MB a year, which `hgrep` (one awk
-  pass) reads in well under a second.  Trimming would mean rewriting a
-  file every shell appends to, which loses lines written during the
-  rewrite; a log per month (`log-2026-10`) avoids that, with `hgrep`
-  reading them all.  Not built until the size matters.
-- **F.2.an  Scheduled jobs are not in the repository.**  From the owner,
-  2026-10-12.  The crontab holds one line, the skills repository's
-  `tool-report run` at 06:15, and neither repository installs it.  `dots`
-  only links files, and a crontab is not a file in `$HOME`.  Two shapes:
-  a systemd user timer (`~/.config/systemd/user/NAME.timer` and
-  `.service`, which `dots` can link, enabled once with `systemctl --user
-  enable --now`; `Persistent=true` runs a job missed while the laptop
-  slept, which cron never does), or a `crontab` file in the tree loaded by
-  hand with `crontab FILE`.  A job that runs a skills tool may belong to
-  `skills/install.sh` rather than here, since it fails on a machine
-  without that repository.
+- **F.2.ao  Batch and CI jobs read the login files.**  From the owner's
+  TODOs of 2026-10-12 (`50-completion.sh`): a PBS, Slurm, GitLab or
+  GitHub job should run the same for everyone, so it should not read this
+  configuration.  `~/.bashrc` already stops at once in a shell that is not
+  interactive (`dot_bashrc`, `case $- in *i*`), so `rc.d/` never loads in a
+  job.  What does load is the login part: a PBS job script runs in a login
+  shell, as does GitLab's shell executor (`bash --login`), and that reads
+  `~/.bash_profile`, so `~/.profile` (PATH, locale) and every
+  `profile.d/*.sh`; at logout `~/.bash_logout` runs `clear_console` when
+  `SHLVL` is 1, the known cause of GitLab's "prepare environment: exit
+  status 1".  Slurm's `sbatch` runs `#!/bin/bash` as no login shell (only
+  `#!/bin/bash -l` reads the files) but copies the submitting shell's whole
+  environment, which `#SBATCH --export=NONE` stops, not a dotfile.  GitHub
+  Actions runs `bash --noprofile --norc`, so reads nothing.  Proposed: an
+  off setting at the top of `~/.bash_profile` and `~/.profile`, and the
+  same test in `~/.bash_logout`, returning when the shell is not
+  interactive and `PBS_JOBID`, `SLURM_JOB_ID`, `GITLAB_CI` or
+  `GITHUB_ACTIONS` is set.  Interactive jobs (`qsub -I`, `srun --pty
+  bash`) keep the whole configuration.  What goes: a job script that
+  counted on `~/.local/bin` or a conda path from `~/.profile` must set PATH
+  itself.  About 6 lines in 3 files, a test per variable.
+- **F.2.ap  Read-only variables a system file sets.**  From the owner's
+  TODOs of 2026-10-12, with `TIMEOUT` as the example, most likely `TMOUT`:
+  clusters set it in `/etc/profile` and mark it read-only, so the shell
+  logs out when idle.  Bash cannot unset or change a read-only variable in
+  the shell that has it, and the attribute is not inherited: a new bash
+  gets the plain value, or none when it was not exported.  The one way
+  without a debugger is to replace the shell: a knob
+  `DOTFILES_UNSET_READONLY="TMOUT ..."` read at the top of
+  `~/.bash_profile`, and when one of those names is read-only there,
+  `exec env -u NAME... bash -i` (not `-l`, which would read `/etc/profile`
+  and set it again), with a variable in the environment so the new shell
+  never does it twice.  What goes: that shell is not a login shell
+  (`logout` refuses, use `exit`; `shopt login_shell` is off), the
+  `/etc/profile` part already ran so nothing else is lost, and startup
+  forks one more bash on those machines only.  It does not help when the
+  system sets it in `/etc/bash.bashrc`, which every interactive bash
+  reads.  About 10 lines in `dot_bash_profile`, a knob row, a test with a
+  read-only variable.
+- **F.2.aq  A tmux pane keeps the DISPLAY of the ssh login that made
+  it.**  From the owner's TODOs of 2026-10-12.  On attach, tmux copies
+  `DISPLAY`, `SSH_AUTH_SOCK`, `XAUTHORITY` and the other names in its
+  default `update-environment` into the session, which only panes made
+  afterwards see; shells already running keep the old values, so X
+  programs started there fail.  ssh X11 forwarding adds the new display's
+  cookie to the same `~/.Xauthority`, so `XAUTHORITY` rarely changes;
+  `DISPLAY` and `SSH_AUTH_SOCK` do.  Proposed: a tmux hook on
+  `client-attached` touching a stamp file, and a `PROMPT_COMMAND` function
+  that, when the stamp is newer than its last look (a `-nt` test, no
+  fork), runs `eval "$(tmux show-environment -s)"` for those names, so
+  every shell picks them up at its next prompt.  Programs already running
+  (an open vim) keep the old values.  Asking tmux at every prompt instead
+  would cost a fork each.  An off setting in a new `rc.d` module and one
+  in `conf.d`, about 15 lines, a test that attaches with a new DISPLAY.
 
 ## F.3 tests
 
@@ -431,12 +426,3 @@ handoff.
   `docs/testing.md` and the pre-push hook all name `run-tests.sh` and
   `reviews/`.  `dots` stays in the root, since `dot_local/bin/dots` and the
   README use `~/.dotfiles/dots`.
-- **F.4.f  The touchpad moves the cursor while typing.**  From the
-  owner's TODOs of 2026-10-12.  The machine is a MacBook (bcm5974
-  trackpad) under KDE Plasma on Wayland; KWin reports disable-while-typing
-  already on and tap-to-click on.  A palm brushing the pad then counts as
-  a tap, a click that moves the text cursor.  System Settings, Touchpad:
-  turn tap-to-click off, or turn on "disable when a mouse is plugged in"
-  (supported, currently off).  Nothing for the repository: KDE writes
-  `~/.config/kcminputrc` itself, the reason htop's file is not linked
-  either (F.2.e).
