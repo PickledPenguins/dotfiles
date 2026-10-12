@@ -70,16 +70,16 @@ extract() {
 # editor swap files.
 targz() { tar --exclude-vcs --exclude='*.swp' -czf "${1%/}.tar.gz" "${1%/}" && ls -lh "${1%/}.tar.gz"; }
 
-# ff PATTERN [DIR] -- find files whose name contains PATTERN, any case.
-ff() { find "${2:-.}" -iname "*$1*" 2>/dev/null; }
-
-# fd_ PATTERN [DIR] -- the same for directories (the name fd is left for
-# the fd program).
-fd_() { find "${2:-.}" -type d -iname "*$1*" 2>/dev/null; }
+# ff PATTERN [FIND-ARGS...] -- find what has PATTERN in its name, any case.
+# FIND-ARGS go to find as written: where to look (default .), then tests,
+# as in `ff x src -type d` or `ff x -maxdepth 2`.
+ff() { find "${@:2}" -iname "*${1:?ff PATTERN [FIND-ARGS...]}*"; }
 
 # rgv PATTERN [PATH...] -- ripgrep, then open every match in vim's quickfix
-# list (:cn, :cp to step through).
-rgv() { vim -q <(rg --vimgrep "$@"); }
+# list (:cn, :cp to step through).  Only where rg is installed.
+if type -P rg >/dev/null; then
+    rgv() { vim -q <(rg --vimgrep "$@"); }
+fi
 
 # bak FILE -- copy FILE to FILE.YYYYmmdd-HHMMSS.bak, keeping its mode and times.
 bak() { command cp -a -- "$1" "$1.$(date +%Y%m%d-%H%M%S).bak"; }

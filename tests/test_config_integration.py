@@ -249,6 +249,26 @@ def test_functions_targz_archives_a_directory(linked):
     assert proc.stdout == "d/\nd/f\n"
 
 
+def test_functions_ff_hands_its_other_arguments_to_find(linked):
+    proc = bash(linked, "command mkdir -p src/aXy/deep/xy; touch src/xY.txt top-xy; ff xy | sort; echo --; "
+                        "ff xy src -type d | sort; echo --; ff xy src -maxdepth 1 | sort; ff")
+    assert proc.stdout == ("./src/aXy\n./src/aXy/deep/xy\n./src/xY.txt\n./top-xy\n--\n"
+                           "src/aXy\nsrc/aXy/deep/xy\n--\nsrc/aXy\nsrc/xY.txt\n")
+    assert "ff PATTERN [FIND-ARGS...]" in proc.stderr
+
+
+def test_functions_rgv_only_where_rg_is_installed(linked, tmp_path):
+    only_bash, with_rg = tmp_path / "only-bash", tmp_path / "with-rg"
+    for fake in only_bash, with_rg:
+        fake.mkdir()
+        (fake / "bash").symlink_to(shutil.which("bash"))
+    (with_rg / "rg").write_text("#!/bin/sh\n")
+    (with_rg / "rg").chmod(0o755)
+    found = bash(linked, "type -t rgv", env={"PATH": str(with_rg)})
+    missing = bash(linked, "type -t rgv || echo none", env={"PATH": str(only_bash)})
+    assert (found.stdout, missing.stdout) == ("function\n", "none\n")
+
+
 def test_functions_bd_and_cdf_change_directory(linked):
     proc = bash(linked, "command mkdir -p one/two/three; echo f > one/two/three/f; cd one/two/three; bd on; pwd; "
                         "bd nothere; echo $?; cdf two/three/f; pwd")
@@ -321,6 +341,15 @@ def test_functions_port_matches_the_local_address_column_only(linked, tmp_path):
 def test_dirs_module_marks(linked):
     proc = bash(linked, "command mkdir -p p/q; cd p/q; mark pq; cd; marks; jump pq; pwd; unmark pq; marks | wc -l")
     assert proc.stdout == f"pq               -> {linked}/p/q\n{linked}/p/q\n0\n"
+
+
+def test_dirs_module_mark_asks_before_moving_a_bookmark(linked):
+    proc = bash(linked, "command mkdir a b; cd a; mark m; mark m; echo same $?; cd ../b; "
+                        "mark m </dev/null; echo eof $?; mark m <<< n; echo n $?; marks; "
+                        "mark m <<< y; echo y $?; marks")
+    assert proc.stdout == (f"same 0\neof 1\nn 1\nm                -> {linked}/a\n"
+                           f"y 0\nm                -> {linked}/b\n")
+    assert proc.stderr == f"mark: m -> {linked}/a; replace? [y/N] " * 3
 
 
 def test_dirs_module_cdpath_includes_home(linked):

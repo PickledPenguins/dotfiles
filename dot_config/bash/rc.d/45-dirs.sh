@@ -1,7 +1,8 @@
 # 45-dirs.sh -- moving between directories: bookmarks, CDPATH, the pushd
 # stack, and what cd does.
 #
-#   mark NAME     remember the current directory as NAME
+#   mark NAME     remember the current directory as NAME; asks before
+#                 moving a NAME that points elsewhere
 #   jump NAME     go there (Tab completes names)
 #   unmark NAME   forget it
 #   marks         list them
@@ -23,8 +24,19 @@
 # `ls -l` shows them.
 DOTFILES_MARKS_DIR="${DOTFILES_MARKS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/marks}"
 
-# mark, unmark, marks and jump, as in the header.
-mark()   { command mkdir -p "$DOTFILES_MARKS_DIR" && command ln -sfn "$(pwd)" "$DOTFILES_MARKS_DIR/${1:?mark NAME}"; }
+# mark, unmark, marks and jump, as in the header.  mark asks on stderr and
+# reads the answer from stdin; anything but y keeps the old bookmark.
+mark() {
+    local link="$DOTFILES_MARKS_DIR/${1:?mark NAME}" old answer=
+    if [[ -L $link ]]; then
+        old=$(readlink -- "$link")
+        [[ $old == "$PWD" ]] && return 0
+        printf 'mark: %s -> %s; replace? [y/N] ' "$1" "$old" >&2
+        read -r answer
+        [[ $answer == [yY]* ]] || return 1
+    fi
+    command mkdir -p -- "$DOTFILES_MARKS_DIR" && command ln -sfn -- "$PWD" "$link"
+}
 unmark() { command rm -- "$DOTFILES_MARKS_DIR/${1:?unmark NAME}"; }
 marks()  {
     local m
