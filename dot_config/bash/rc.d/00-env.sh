@@ -137,6 +137,11 @@ export INPUTRC="$HOME/.inputrc"
 # npm: ~/.npmrc -> ~/.config/npm/npmrc and the ~/.npm cache -> ~/.cache/npm.
 #export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc" NPM_CONFIG_CACHE="$XDG_CACHE_HOME/npm"
 
+# npm global installs (npm install -g): into ~/.local/share/npm instead of
+# the system prefix, which needs root.  20-path.sh follows
+# NPM_CONFIG_PREFIX for the bin directory.
+#export NPM_CONFIG_PREFIX="$XDG_DATA_HOME/npm"
+
 # Rust: ~/.cargo and ~/.rustup -> ~/.local/share/cargo and rustup.
 # 20-path.sh follows CARGO_HOME for the bin directory.
 #export CARGO_HOME="$XDG_DATA_HOME/cargo" RUSTUP_HOME="$XDG_DATA_HOME/rustup"
@@ -158,8 +163,24 @@ export INPUTRC="$HOME/.inputrc"
 #export CUDA_CACHE_PATH="$XDG_CACHE_HOME/nv"
 
 # .NET: ~/.dotnet -> ~/.local/share/dotnet and ~/.nuget/packages ->
-# ~/.cache/NuGetPackages.
+# ~/.cache/NuGetPackages.  20-path.sh follows DOTNET_CLI_HOME for the
+# global tools.
 #export DOTNET_CLI_HOME="$XDG_DATA_HOME/dotnet" NUGET_PACKAGES="$XDG_CACHE_HOME/NuGetPackages"
+
+# deno: ~/.deno -> ~/.local/share/deno.  20-path.sh follows
+# DENO_INSTALL_ROOT for the bin directory.
+#export DENO_INSTALL_ROOT="$XDG_DATA_HOME/deno"
+
+# bun: ~/.bun -> ~/.local/share/bun.  20-path.sh follows BUN_INSTALL for
+# the bin directory.
+#export BUN_INSTALL="$XDG_DATA_HOME/bun"
+
+# ghcup: ~/.ghcup -> ~/.local/share/ghcup, its programs in ~/.local/bin.
+#export GHCUP_USE_XDG_DIRS=1
+
+# pixi: ~/.pixi -> ~/.local/share/pixi.  20-path.sh follows PIXI_HOME for
+# the bin directory.
+#export PIXI_HOME="$XDG_DATA_HOME/pixi"
 
 # ── Locale ────────────────────────────────────────────────────────────────
 

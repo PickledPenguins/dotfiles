@@ -38,26 +38,32 @@ path_append "${CARGO_HOME:-$HOME/.cargo}/bin"
 # Go: programs from `go install`.
 path_append "${GOPATH:-$HOME/go}/bin"
 
-# node: programs from `npm install -g` after `npm config set prefix ~/.npm-global`.
-path_append "$HOME/.npm-global/bin"
+# node: programs from `npm install -g`, in NPM_CONFIG_PREFIX (00-env.sh can
+# move it) or after `npm config set prefix ~/.npm-global`.
+path_append "${NPM_CONFIG_PREFIX:-$HOME/.npm-global}/bin"
 
-# deno: programs from `deno install`.
-#path_append "$HOME/.deno/bin"
+# deno: programs from `deno install`, in DENO_INSTALL_ROOT when 00-env.sh
+# moves it.
+#path_append "${DENO_INSTALL_ROOT:-$HOME/.deno}/bin"
 
-# bun: programs from `bun install -g`.
-#path_append "$HOME/.bun/bin"
+# bun: programs from `bun install -g`, in BUN_INSTALL when 00-env.sh moves it.
+#path_append "${BUN_INSTALL:-$HOME/.bun}/bin"
 
-# .NET global tools: `dotnet tool install -g`.
-#path_append "$HOME/.dotnet/tools"
+# .NET global tools: `dotnet tool install -g`, under DOTNET_CLI_HOME when
+# 00-env.sh moves it.
+#path_append "${DOTNET_CLI_HOME:-$HOME}/.dotnet/tools"
 
 # Julia versions installed by juliaup.
 #path_append "$HOME/.juliaup/bin"
 
-# Haskell: ghcup's toolchain and programs from `cabal install`.
-#path_append "$HOME/.ghcup/bin"; path_append "$HOME/.cabal/bin"
+# Haskell: ghcup's toolchain and programs from `cabal install`, in
+# CABAL_DIR when set.  With GHCUP_USE_XDG_DIRS (00-env.sh) ghcup puts its
+# programs in ~/.local/bin, already on PATH.
+#path_append "$HOME/.ghcup/bin"; path_append "${CABAL_DIR:-$HOME/.cabal}/bin"
 
-# pixi: global environments from `pixi global install`.
-#path_append "$HOME/.pixi/bin"
+# pixi: global environments from `pixi global install`, in PIXI_HOME when
+# 00-env.sh moves it.
+#path_append "${PIXI_HOME:-$HOME/.pixi}/bin"
 
 # CUDA compilers and tools in the usual install location (nvcc, nsys).
 #path_append /usr/local/cuda/bin

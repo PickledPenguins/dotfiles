@@ -181,6 +181,20 @@ def test_path_module_prepends_private_bins_once_and_leaves_the_repository_off(li
     assert str(REPO) not in entries  # dots comes from ~/.local/bin; run-tests.sh must not
 
 
+def test_path_module_toolchain_lines_follow_the_moved_homes(linked, tmp_path):
+    homes = {"CARGO_HOME": "", "GOPATH": "", "NPM_CONFIG_PREFIX": "", "DENO_INSTALL_ROOT": "",
+             "BUN_INSTALL": "", "CABAL_DIR": "", "PIXI_HOME": "", "DOTNET_CLI_HOME": "/.dotnet/tools"}
+    tools = tmp_path / "tools"
+    for name, below in homes.items():
+        (tools / name / (below.strip("/") or "bin")).mkdir(parents=True)
+    source = (REPO / "dot_config/bash/rc.d/20-path.sh").read_text()
+    switched_on = [line.lstrip("#") for line in source.splitlines() if re.match(r'#path_append .*\$\{', line)]
+    proc = bash(linked, 'tr : "\\n" <<<"$PATH"', local="\n".join(switched_on) + "\n",
+                env={name: str(tools / name) for name in homes})
+    found = sorted(entry for entry in proc.stdout.splitlines() if entry.startswith(str(tools)))
+    assert found == sorted(str(tools / name / (below.strip("/") or "bin")) for name, below in homes.items())
+
+
 def test_path_helpers_are_idempotent_and_skip_missing_dirs(linked):
     proc = bash(linked, 'path_prepend /usr; path_prepend /usr; path_append /nope/x; tr : "\\n" <<<"$PATH" | grep -c "^/usr$"; '
                         '[[ $PATH == */nope/x* ]] || echo skipped')
