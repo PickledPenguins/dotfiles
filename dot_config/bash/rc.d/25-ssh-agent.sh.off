@@ -1,4 +1,4 @@
-# 25-ssh-agent.sh -- one ssh-agent per machine, shared by every shell.
+# 25-ssh-agent.sh: one ssh-agent per machine, shared by every shell.
 #
 # Off: desktops usually run an agent already (gnome-keyring, KDE wallet,
 # 1Password).  Turn it on for headless boxes and hosts reached only by ssh:

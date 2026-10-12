@@ -1,4 +1,4 @@
-# ~/.bash_profile -- bash login shells: ssh, the console, `bash -l`.
+# ~/.bash_profile: bash login shells: ssh, the console, `bash -l`.
 #
 # Order:  ~/.profile  ->  ~/.config/bash/profile.d/*.sh  ->  ~/.bashrc
 #

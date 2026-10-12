@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# whitespace -- refuse a commit that adds trailing whitespace or a conflict marker.
+# whitespace: refuse a commit that adds trailing whitespace or a conflict marker.
 # events: pre-commit
 #
 # Runs git diff --cached --check on what is staged, so what counts as a

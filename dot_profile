@@ -1,4 +1,4 @@
-# ~/.profile -- login shells that are not bash (sh, dash) and graphical
+# ~/.profile: login shells that are not bash (sh, dash) and graphical
 # logins, whose environment every desktop program inherits.  Bash reads
 # ~/.bash_profile instead, which reads this first, so PATH is set the same
 # way everywhere.  Keep this POSIX sh: no [[ ]], no arrays.

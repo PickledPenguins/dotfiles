@@ -1,4 +1,4 @@
-" 30-indent.vim -- indentation: spaces or tabs, and how wide, by filetype.
+" 30-indent.vim: indentation: spaces or tabs, and how wide, by filetype.
 " vim 9.0.1799+ ships editorconfig as an optional package that these files
 " do not load, so a project's .editorconfig is not read.
 "

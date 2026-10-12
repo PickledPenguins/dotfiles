@@ -1,4 +1,4 @@
-# 75-python.sh -- python conveniences.  $PYTHONSTARTUP and the bytecode
+# 75-python.sh: python conveniences.  $PYTHONSTARTUP and the bytecode
 # settings are in 00-env.sh.  Nothing here when python3 is missing.
 #
 #   venv [DIR]   create DIR (default .venv) if missing, then activate it
@@ -31,7 +31,7 @@ alias json='python3 -m json.tool'
 # pt: pytest through the active python, quiet.
 alias pt='python3 -m pytest -q'
 
-# venv [DIR] -- create DIR (default .venv, or the knob) if missing, then activate it.
+# venv [DIR]: create DIR (default .venv, or the knob) if missing, then activate it.
 venv() {
     local dir="${1:-${DOTFILES_VENV_DIR:-.venv}}"
     [[ -d "$dir" ]] || python3 -m venv "$dir" || return

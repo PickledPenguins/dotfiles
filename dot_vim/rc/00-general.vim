@@ -1,4 +1,4 @@
-" 00-general.vim -- core behavior every other module assumes: encoding,
+" 00-general.vim: core behavior every other module assumes: encoding,
 " buffers, timing, mouse, clipboard.
 "
 " Each setting has its description in the comment above it.  A setting with

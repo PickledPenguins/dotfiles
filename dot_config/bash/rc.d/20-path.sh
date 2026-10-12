@@ -1,4 +1,4 @@
-# 20-path.sh -- PATH, and the helpers other modules and ~/.bashrc.local use
+# 20-path.sh: PATH, and the helpers other modules and ~/.bashrc.local use
 # to extend it.
 #
 #   path_prepend DIR   put DIR first on PATH

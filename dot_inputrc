@@ -1,4 +1,4 @@
-# ~/.inputrc -- readline, the line editor of bash and of python, gdb, psql,
+# ~/.inputrc: readline, the line editor of bash and of python, gdb, psql,
 # bc and others.  `bind -v` lists every variable, `bind -p` every key.
 # Comments must be on their own lines here.
 #

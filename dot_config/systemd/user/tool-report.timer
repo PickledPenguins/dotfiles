@@ -1,4 +1,4 @@
-# ~/.config/systemd/user/tool-report.timer -- when tool-report.service
+# ~/.config/systemd/user/tool-report.timer: when tool-report.service
 # runs: every morning, and at the next start when the machine was off or
 # asleep at that time.  `dots apply` links it switched off; switch it on
 # for this machine with

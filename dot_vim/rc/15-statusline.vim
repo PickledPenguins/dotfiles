@@ -1,4 +1,4 @@
-" 15-statusline.vim -- a status line without a plugin:
+" 15-statusline.vim: a status line without a plugin:
 "
 "   [2] ~/src/app.py [+]  python | utf-8[unix]        git:main   12/340 : 8  4%
 "

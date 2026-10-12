@@ -1,4 +1,4 @@
-# 85-hpc.sh -- PBS Pro, Slurm and Environment Modules shortcuts.  Every
+# 85-hpc.sh: PBS Pro, Slurm and Environment Modules shortcuts.  Every
 # block checks for its scheduler's commands first, so on a workstation this
 # file defines nothing.
 #
@@ -34,7 +34,7 @@ if command -v qstat >/dev/null; then
     alias qh='qstat -x -u "$USER"'
 fi
 
-# qtail JOBID -- follow the output file of a running PBS job.  qstat wraps a
+# qtail JOBID: follow the output file of a running PBS job.  qstat wraps a
 # long path onto tab-indented lines, joined here first.  The file fills as
 # the job runs only when the job writes it in place (qsub -k oed, or a site
 # with direct write); otherwise PBS keeps the output on the execution host
@@ -61,7 +61,7 @@ if command -v squeue >/dev/null; then
     alias sstart='squeue -u "$USER" --start'
 fi
 
-# srun-i [ARGS] -- an interactive login shell on a compute node.
+# srun-i [ARGS]: an interactive login shell on a compute node.
 command -v srun >/dev/null && srun-i() { srun --pty "$@" "${SHELL:-bash}" -l; }
 
 # Plain squeue and sacct use these columns, as sq and sacct-today do.

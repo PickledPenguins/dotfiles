@@ -1,4 +1,4 @@
-# ~/.gdbinit -- gdb defaults.  Comments must be on their own lines here.
+# ~/.gdbinit: gdb defaults.  Comments must be on their own lines here.
 #
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add

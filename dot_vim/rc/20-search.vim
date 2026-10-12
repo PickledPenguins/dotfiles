@@ -1,4 +1,4 @@
-" 20-search.vim -- searching and substitution.
+" 20-search.vim: searching and substitution.
 "
 " Each setting has its description in the comment above it.  A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn

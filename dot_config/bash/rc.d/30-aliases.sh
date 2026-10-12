@@ -1,4 +1,4 @@
-# 30-aliases.sh -- short names for longer commands, and safer or more
+# 30-aliases.sh: short names for longer commands, and safer or more
 # readable defaults for a few common ones.  Aliases apply only at the
 # prompt, never inside scripts.  Anything longer than a line is a function
 # in 40-functions.sh; aliases for tools that may be missing live with the

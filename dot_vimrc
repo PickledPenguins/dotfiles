@@ -1,4 +1,4 @@
-" ~/.vimrc -- loader only.  Settings live in ~/.vim/rc/NN-name.vim, one
+" ~/.vimrc: loader only.  Settings live in ~/.vim/rc/NN-name.vim, one
 " concern per file.
 "
 " Each setting has its description in the comment above it.  A setting with

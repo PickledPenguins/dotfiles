@@ -1,4 +1,4 @@
-" 10-ui.vim -- what the screen shows: numbers, the current line, invisible
+" 10-ui.vim: what the screen shows: numbers, the current line, invisible
 " characters, wrapping, colors, the cursor.
 "
 " Each setting has its description in the comment above it.  A setting with

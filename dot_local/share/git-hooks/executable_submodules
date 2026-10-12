@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# submodules -- check out the submodules a checkout, merge or rebase points at.
+# submodules: check out the submodules a checkout, merge or rebase points at.
 # events: post-checkout post-merge post-rewrite
 #
 # Runs git submodule update --init --recursive in a repository with a

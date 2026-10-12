@@ -1,4 +1,4 @@
-# ~/.ipython/profile_default/ipython_config.py -- IPython's defaults.  Every
+# ~/.ipython/profile_default/ipython_config.py: IPython's defaults.  Every
 # setting here is off, so IPython behaves as it does without a config file
 # until you choose.  `ipython --help-all` lists every option.
 #

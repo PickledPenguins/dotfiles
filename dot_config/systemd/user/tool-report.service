@@ -1,4 +1,4 @@
-# ~/.config/systemd/user/tool-report.service -- the skills repository's
+# ~/.config/systemd/user/tool-report.service: the skills repository's
 # daily report of tool candidates and agent routing (`tool-report run`),
 # started by tool-report.timer.  Its output goes to the journal:
 #   journalctl --user -u tool-report

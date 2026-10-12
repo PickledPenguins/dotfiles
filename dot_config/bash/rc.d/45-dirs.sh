@@ -1,4 +1,4 @@
-# 45-dirs.sh -- moving between directories: bookmarks, CDPATH, the pushd
+# 45-dirs.sh: moving between directories: bookmarks, CDPATH, the pushd
 # stack, and what cd does.
 #
 #   mark NAME     remember the current directory as NAME; asks before

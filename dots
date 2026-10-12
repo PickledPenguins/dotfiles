@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""dots -- a small chezmoi-alike that symlinks instead of copying.
+"""dots: a small chezmoi-alike that symlinks instead of copying.
 
 The source directory mirrors $HOME.  A source path becomes a target path by
 stripping attribute prefixes from every component:

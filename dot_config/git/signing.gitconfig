@@ -1,4 +1,4 @@
-# signing.gitconfig -- sign commits and tags.  Off until its include line in
+# signing.gitconfig: sign commits and tags.  Off until its include line in
 # ~/.gitconfig is on; needs user.signingkey in ~/.gitconfig.local:
 #
 #   GPG:  the key ID from  gpg --list-secret-keys --keyid-format long

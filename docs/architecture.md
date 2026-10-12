@@ -119,7 +119,7 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
 ## Extension points
 
 - **A bash module**: add `dot_config/bash/rc.d/NN-name.sh` with a header
-  (`# NN-name.sh -- what`, `Knobs:` block), read knobs as
+  (`# NN-name.sh: what`, `Knobs:` block), read knobs as
   `${DOTFILES_X:-default}`, guard on `command -v` for optional tools, use
   `command mkdir` etc. inside functions.  Add its name to `BASH_MODULES` in
   `tests/test_config_integration.py`, a test asserting one thing only it

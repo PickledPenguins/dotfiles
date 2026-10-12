@@ -1,4 +1,4 @@
-# diff.gitconfig -- how diffs are computed and shown, and the programs
+# diff.gitconfig: how diffs are computed and shown, and the programs
 # `git difftool` and `git mergetool` open.
 #
 # Each setting has its description in the comment above it.  A setting with

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wip-guard -- refuse to push work-in-progress commits to a protected branch.
+# wip-guard: refuse to push work-in-progress commits to a protected branch.
 # events: pre-push
 # config: hooks.protect hooks.wipPattern
 #

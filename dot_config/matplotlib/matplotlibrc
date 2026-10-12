@@ -1,4 +1,4 @@
-# ~/.config/matplotlib/matplotlibrc -- matplotlib's defaults for every
+# ~/.config/matplotlib/matplotlibrc: matplotlib's defaults for every
 # script.  Every setting here is off, so plots look as they do without this
 # file until you choose; a script's own rcParams win.
 # matplotlib.rcParams lists every key; matplotlib.matplotlib_fname() says

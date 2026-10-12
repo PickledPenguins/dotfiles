@@ -1,4 +1,4 @@
-" 50-keys.vim -- key mappings.  The leader is a comma.  Mapping lines take no
+" 50-keys.vim: key mappings.  The leader is a comma.  Mapping lines take no
 " trailing comment: it would become part of the mapping.
 "
 " Each setting has its description in the comment above it.  A setting with

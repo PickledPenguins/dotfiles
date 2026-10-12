@@ -1,4 +1,4 @@
-# core.gitconfig -- how git behaves: editor, pager, push, pull, fetch,
+# core.gitconfig: how git behaves: editor, pager, push, pull, fetch,
 # merge and rebase, status and log.  Display is color.gitconfig; diff tools
 # are diff.gitconfig.
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-push -- run the tests on each commit being pushed, in a clean checkout.
+# test-push: run the tests on each commit being pushed, in a clean checkout.
 # events: pre-push
 # config: hooks.test
 # requires: hooks.test

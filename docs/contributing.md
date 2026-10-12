@@ -48,7 +48,7 @@ the switch-on test skips it where the program is missing.  Then
 **Add a bash module** `dot_config/bash/rc.d/NN-name.sh`, in the same format:
 
 ```bash
-# 72-direnv.sh -- per-directory .envrc.  Skipped when direnv is absent.
+# 72-direnv.sh: per-directory .envrc.  Skipped when direnv is absent.
 #
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add

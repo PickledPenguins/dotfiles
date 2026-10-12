@@ -1,4 +1,4 @@
-# 12-history.sh -- one history file per tmux pane, a log of every command,
+# 12-history.sh: one history file per tmux pane, a log of every command,
 # and hgrep to search that log.  Bash 4.2+.
 #
 # With the pane setting on, each tmux pane keeps its own history file, so

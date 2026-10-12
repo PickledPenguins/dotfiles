@@ -1,4 +1,4 @@
-# ~/.config/python/pythonrc.py -- run when an interactive python starts
+# ~/.config/python/pythonrc.py: run when an interactive python starts
 # ($PYTHONSTARTUP, set in ~/.config/bash/rc.d/00-env.sh).  Not run by
 # scripts, python -c or IPython.
 #

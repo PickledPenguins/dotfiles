@@ -1,4 +1,4 @@
-" 40-files.vim -- swap, backup and undo files, and what happens on read
+" 40-files.vim: swap, backup and undo files, and what happens on read
 " and write.  All three kinds live under ~/.vim/tmp/, so a working tree never
 " collects .swp or ~ files.
 "

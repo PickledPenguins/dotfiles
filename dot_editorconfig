@@ -1,4 +1,4 @@
-# ~/.editorconfig -- indentation defaults for editors that read EditorConfig
+# ~/.editorconfig: indentation defaults for editors that read EditorConfig
 # (vim 9+, neovim, VS Code, JetBrains).  A project without its own
 # .editorconfig gets these; a project's file with root = true replaces them.
 # Comments must be on their own lines here.

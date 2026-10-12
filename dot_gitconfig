@@ -1,4 +1,4 @@
-# ~/.gitconfig -- loader only.  One include per concern; later includes
+# ~/.gitconfig: loader only.  One include per concern; later includes
 # override earlier ones, so the local file goes last.
 #
 # Each setting has its description in the comment above it.  A setting with

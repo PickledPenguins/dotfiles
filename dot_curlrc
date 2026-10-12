@@ -1,4 +1,4 @@
-# ~/.curlrc -- defaults for every curl call; an option on the command line
+# ~/.curlrc: defaults for every curl call; an option on the command line
 # wins.  `curl -q` as the first option skips this file.  Comments must be on
 # their own lines here.
 #

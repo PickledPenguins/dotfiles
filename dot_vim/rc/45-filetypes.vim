@@ -1,4 +1,4 @@
-" 45-filetypes.vim -- per-filetype behavior beyond indentation
+" 45-filetypes.vim: per-filetype behavior beyond indentation
 " (30-indent.vim), and file names vim does not recognize by itself.
 "
 " Each setting has its description in the comment above it.  A setting with

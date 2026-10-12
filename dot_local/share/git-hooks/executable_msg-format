@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# msg-format -- refuse a commit message that breaks the usual git form.
+# msg-format: refuse a commit message that breaks the usual git form.
 # events: commit-msg
 # config: hooks.subjectMax
 #

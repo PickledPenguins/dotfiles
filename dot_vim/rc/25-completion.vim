@@ -1,4 +1,4 @@
-" 25-completion.vim -- completion on the command line and in insert mode.
+" 25-completion.vim: completion on the command line and in insert mode.
 "
 " Each setting has its description in the comment above it.  A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn

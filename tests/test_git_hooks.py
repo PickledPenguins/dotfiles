@@ -100,7 +100,7 @@ def test_available_and_show_work_outside_a_repository(linked):
 def test_show_prints_the_header_and_each_setting_here(linked):
     proc = hooks(linked, "git config hooks.protect trunk && git hooks show protect")
     assert proc.stdout == (
-        "protect -- refuse a push that deletes or rewrites a protected branch.\n"
+        "protect: refuse a push that deletes or rewrites a protected branch.\n"
         "events: pre-push\nconfig: hooks.protect\n\n"
         "hooks.protect is the list of protected branches, separated by spaces;\n"
         "the default is \"main master\".  A push deleting one, or one that is not a\n"
@@ -111,7 +111,7 @@ def test_show_prints_the_header_and_each_setting_here(linked):
 
 def test_help_is_the_header(linked):
     proc = hooks(linked, "git hooks -h | head -2")
-    assert proc.stdout == ("git-hooks -- install the packaged git hooks in a repository, switch them on and off.\n\n")
+    assert proc.stdout == ("git-hooks: install the packaged git hooks in a repository, switch them on and off.\n\n")
 
 
 # ── the dispatcher ────────────────────────────────────────────────────────

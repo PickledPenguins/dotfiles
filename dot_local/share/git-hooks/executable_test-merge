@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-merge -- run the tests on a merge before git records it.
+# test-merge: run the tests on a merge before git records it.
 # events: pre-merge-commit
 # config: hooks.test
 # requires: hooks.test

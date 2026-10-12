@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# published -- refuse to rebase commits that are already pushed.
+# published: refuse to rebase commits that are already pushed.
 # events: pre-rebase
 #
 # A commit that some remote-tracking branch holds has been published;

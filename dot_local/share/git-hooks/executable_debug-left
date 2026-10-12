@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# debug-left -- refuse a commit that adds a debugger call.
+# debug-left: refuse a commit that adds a debugger call.
 # events: pre-commit
 #
 # Looks at the lines the staged changes add for breakpoint(), pdb or ipdb

@@ -1,4 +1,4 @@
-" 52-tags.vim -- tags files (ctags): where vim looks, and the <leader>t maps.
+" 52-tags.vim: tags files (ctags): where vim looks, and the <leader>t maps.
 "
 "   Ctrl-]          jump to the definition under the cursor; Ctrl-T back
 "   g] / g Ctrl-]   list every definition / jump if only one, else list

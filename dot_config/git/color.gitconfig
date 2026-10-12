@@ -1,4 +1,4 @@
-# color.gitconfig -- colors.  auto means only when writing to a terminal.
+# color.gitconfig: colors.  auto means only when writing to a terminal.
 #
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add

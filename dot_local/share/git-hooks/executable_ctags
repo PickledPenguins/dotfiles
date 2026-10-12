@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ctags -- rebuild the tags file in the background after HEAD moves.
+# ctags: rebuild the tags file in the background after HEAD moves.
 # events: post-checkout post-merge post-rewrite post-commit
 #
 # Runs git ctags --hook, which writes tags at the top of the work tree.

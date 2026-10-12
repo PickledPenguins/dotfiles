@@ -1,4 +1,4 @@
-# ~/.condarc -- conda defaults.  `conda config --describe KEY` explains any
+# ~/.condarc: conda defaults.  `conda config --describe KEY` explains any
 # key; `conda config --show` prints what applies.
 #
 # Each setting has its description in the comment above it.  A setting with

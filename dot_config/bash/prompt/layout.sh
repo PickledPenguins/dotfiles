@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# layout.sh -- what the prompt shows, for bash-prompt-toolkit (prompt.sh).
+# layout.sh: what the prompt shows, for bash-prompt-toolkit (prompt.sh).
 # Read by rc.d/60-prompt.sh after prompt.sh; this is the file to edit.
 #
 #   segment  a function that prints one piece of information; registered

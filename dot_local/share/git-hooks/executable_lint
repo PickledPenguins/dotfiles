@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lint -- run this repository's linter on the staged files before a commit.
+# lint: run this repository's linter on the staged files before a commit.
 # events: pre-commit
 # config: hooks.lint hooks.lintFiles
 # requires: hooks.lint

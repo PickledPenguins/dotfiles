@@ -236,7 +236,7 @@ def test_every_packaged_git_hook_header_is_well_formed():
     assert len(hooks) == len(list(GIT_HOOKS.iterdir())) - 1       # all but the dispatcher
     for f in hooks:
         name = f.name.removeprefix("executable_")
-        assert re.fullmatch(rf"# {re.escape(name)} -- .+\.", header(f)[0]), f"{name}: line 2 is not '# {name} -- summary.'"
+        assert re.fullmatch(rf"# {re.escape(name)}: .+\.", header(f)[0]), f"{name}: line 2 is not '# {name}: summary.'"
         assert set(header_field(f, "events").split()) <= GIT_EVENTS, f"{name}: an event git does not have"
         config = set(header_field(f, "config").split())
         assert set(header_field(f, "requires").split()) <= config, f"{name}: requires a key its config line lacks"

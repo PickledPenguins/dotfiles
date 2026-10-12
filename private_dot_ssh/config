@@ -1,4 +1,4 @@
-# ~/.ssh/config -- defaults for every host.  Your hosts go in
+# ~/.ssh/config: defaults for every host.  Your hosts go in
 # ~/.ssh/config.local (never committed), which is read first: ssh keeps the
 # first value it finds for each setting, so a Host block there wins over
 # the defaults here.

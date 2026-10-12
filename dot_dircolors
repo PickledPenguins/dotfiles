@@ -1,4 +1,4 @@
-# ~/.dircolors -- LS_COLORS, loaded by 30-aliases.sh via `dircolors -b`.
+# ~/.dircolors: LS_COLORS, loaded by 30-aliases.sh via `dircolors -b`.
 # Generated from `dircolors -p` (coreutils 9.7) with the tweaks marked ## below.
 # Format: TYPE or .ext, then an SGR code list -- 01 bold, 04 underline, 3x fg, 4x bg.
 # Configuration file for dircolors, a utility to help you set the

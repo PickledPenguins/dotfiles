@@ -1,4 +1,4 @@
-# ~/.screenrc -- for hosts that have GNU screen but not tmux.  Comments must
+# ~/.screenrc: for hosts that have GNU screen but not tmux.  Comments must
 # be on their own lines here.
 #
 # Each setting has its description in the comment above it.  A setting with

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# git-hooks -- install the packaged git hooks in a repository, switch them on and off.
+# git-hooks: install the packaged git hooks in a repository, switch them on and off.
 #
 #   git hooks                   this repository's hooks: state, event, name, file
 #   git hooks available         the packaged hooks: state here, name, summary
@@ -208,7 +208,7 @@ case ${1-} in
         for name in $(packaged); do
             here=-
             [[ -n $dir ]] && here=$(state "$name")
-            printf '%-3s %-13s %s\n' "$here" "$name" "$(sed -n '2s/^# [^ ]* -- //p' "$catalog/$name")"
+            printf '%-3s %-13s %s\n' "$here" "$name" "$(sed -n '2s/^# [^ ]*: //p' "$catalog/$name")"
         done
         ;;
     show)

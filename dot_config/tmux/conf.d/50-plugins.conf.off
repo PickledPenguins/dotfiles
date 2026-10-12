@@ -1,4 +1,4 @@
-# 50-plugins.conf -- plugins through tpm.  Off until wanted: install tpm,
+# 50-plugins.conf: plugins through tpm.  Off until wanted: install tpm,
 # drop the .off suffix, turn on the plugins you want, then prefix I
 # installs them (prefix U updates).
 #

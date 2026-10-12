@@ -1,4 +1,4 @@
-# 10-options.sh -- how bash itself behaves: globbing, cd, jobs, history,
+# 10-options.sh: how bash itself behaves: globbing, cd, jobs, history,
 # the terminal, file permissions and resource limits.  Bash 4+.
 #
 # Each setting has its description in the comment above it.  A setting with

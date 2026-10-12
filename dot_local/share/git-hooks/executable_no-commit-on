@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# no-commit-on -- refuse a commit made straight on a protected branch.
+# no-commit-on: refuse a commit made straight on a protected branch.
 # events: pre-commit
 # config: hooks.protect
 #

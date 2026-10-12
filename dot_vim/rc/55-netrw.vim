@@ -1,4 +1,4 @@
-" 55-netrw.vim -- netrw, vim's built-in file browser, as a tree.
+" 55-netrw.vim: netrw, vim's built-in file browser, as a tree.
 "
 "   :Explore or -   open the browser in the current file's directory
 "   <leader>ee      toggle a tree at the left

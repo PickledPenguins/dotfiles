@@ -1,4 +1,4 @@
-# 70-conda.sh -- conda, found rather than hard-coded, silent when absent.
+# 70-conda.sh: conda, found rather than hard-coded, silent when absent.
 #
 # Sources <root>/etc/profile.d/conda.sh, which is what `conda init` would
 # paste into ~/.bashrc minus its `conda shell.bash hook`, a process that

@@ -1,4 +1,4 @@
-# 00-env.sh -- environment variables other programs read: editor, pager,
+# 00-env.sh: environment variables other programs read: editor, pager,
 # colors, XDG directories, locale.  PATH is 20-path.sh.
 #
 # Each setting has its description in the comment above it.  A setting with

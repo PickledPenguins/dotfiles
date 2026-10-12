@@ -1,4 +1,4 @@
-" 35-folding.vim -- folds exist but start open.
+" 35-folding.vim: folds exist but start open.
 "
 "   za toggle   zR open all   zM close all   zj/zk next/previous fold
 "

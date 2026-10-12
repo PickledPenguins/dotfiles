@@ -1,4 +1,4 @@
-# 50-completion.sh -- Tab completion for commands' options and arguments.
+# 50-completion.sh: Tab completion for commands' options and arguments.
 #
 # Programs that print their own completion script (`foo completion bash`)
 # are fastest when that output is saved once into

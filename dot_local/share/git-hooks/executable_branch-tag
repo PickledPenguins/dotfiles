@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# branch-tag -- start the commit message with the ticket named in the branch.
+# branch-tag: start the commit message with the ticket named in the branch.
 # events: prepare-commit-msg
 # config: hooks.tagPattern
 #

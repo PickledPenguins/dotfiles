@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pyc-clean -- delete Python's __pycache__ directories after a checkout, merge or rebase.
+# pyc-clean: delete Python's __pycache__ directories after a checkout, merge or rebase.
 # events: post-checkout post-merge post-rewrite
 #
 # Bytecode left from another branch can be loaded in place of a source

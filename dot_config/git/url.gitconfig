@@ -1,4 +1,4 @@
-# url.gitconfig -- shorthands for clone and remote URLs.
+# url.gitconfig: shorthands for clone and remote URLs.
 #
 #   git clone gh:owner/repo      ->  https://github.com/owner/repo
 #   git clone gh-ssh:owner/repo  ->  git@github.com:owner/repo

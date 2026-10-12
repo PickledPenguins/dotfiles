@@ -1,4 +1,4 @@
-# 61-prompt-simple.sh -- a plain one-line colored prompt with the git branch:
+# 61-prompt-simple.sh: a plain one-line colored prompt with the git branch:
 #
 #   user@host ~/dir (branch) $
 #

@@ -1,4 +1,4 @@
-# 80-tools.sh -- optional programs.  Every block checks that its program is
+# 80-tools.sh: optional programs.  Every block checks that its program is
 # installed first, so this file is the same on every machine and a missing
 # program costs one lookup.  A block that is on runs the set-up the
 # program's own install instructions ask for; one that is off would change
@@ -137,9 +137,9 @@ fi
 # Needs: fzf, tree
 #export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -100'"
 
-# fe [QUERY] -- pick a file with fzf and open it in $EDITOR.
-# fkill -- pick processes with fzf (Tab marks several) and kill them.
-# fbr -- pick a git branch with fzf, newest first, and switch to it.
+# fe [QUERY]: pick a file with fzf and open it in $EDITOR.
+# fkill: pick processes with fzf (Tab marks several) and kill them.
+# fbr: pick a git branch with fzf, newest first, and switch to it.
 if command -v fzf >/dev/null; then
     fe() { local f; f=$(fzf --query="${1-}" --select-1 --exit-0) && ${EDITOR:-vi} "$f"; }
     fkill() { ps -eo pid,user,etime,args | sed 1d | fzf -m --header='Tab marks; Enter kills' | awk '{print $1}' | xargs -r kill "${@:--TERM}"; }

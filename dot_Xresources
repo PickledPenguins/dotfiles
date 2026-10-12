@@ -1,4 +1,4 @@
-! ~/.Xresources -- xterm, urxvt and X font settings.  Load with
+! ~/.Xresources: xterm, urxvt and X font settings.  Load with
 ! `xrdb -merge ~/.Xresources` (display managers do it at login).  Each line
 ! starts with the program it is for.  Comments must be on their own lines.
 !

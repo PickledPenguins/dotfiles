@@ -1,4 +1,4 @@
-# ~/.config/ripgrep/config -- ripgrep defaults, read because 00-env.sh sets
+# ~/.config/ripgrep/config: ripgrep defaults, read because 00-env.sh sets
 # RIPGREP_CONFIG_PATH.  One flag per line, no quoting; a flag on the command
 # line wins, and --no-config skips this file.
 #

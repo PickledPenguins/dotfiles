@@ -1,4 +1,4 @@
-# ~/.bashrc -- loader only.  Everything lives in ~/.config/bash/rc.d/.
+# ~/.bashrc: loader only.  Everything lives in ~/.config/bash/rc.d/.
 #
 # Each NN-name.sh there has one concern and lists its settings, every one
 # described in the comment above it.  A setting with "#" directly in front

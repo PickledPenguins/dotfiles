@@ -1,4 +1,4 @@
-# attributes -- the global gitattributes (~/.config/git/attributes).
+# attributes: the global gitattributes (~/.config/git/attributes).
 #
 # Each setting has its description in the comment above it.  A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add

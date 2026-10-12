@@ -1,4 +1,4 @@
-# aliases.gitconfig -- git aliases; `git aliases` lists them.  An alias only
+# aliases.gitconfig: git aliases; `git aliases` lists them.  An alias only
 # adds a command, so they are all on.  Shell aliases (g, gs, gl) are in
 # ~/.config/bash/rc.d/30-aliases.sh.
 #

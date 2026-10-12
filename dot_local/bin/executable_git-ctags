@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# git-ctags -- a tags file for a git repository, rebuilt by a git hook.
+# git-ctags: a tags file for a git repository, rebuilt by a git hook.
 #
 #   git ctags         build tags at the worktree's root now, then install
 #                     and switch on the packaged ctags hook (git hooks)

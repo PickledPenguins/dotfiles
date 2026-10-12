@@ -255,13 +255,6 @@ here is scheduled; an item is cited by its label.  Back to the
   one shape: a sentence in the template row of `configuration.md`, or a
   template whose hooks resolve through `~/.local/share/git-hooks` (which
   `dots` cannot produce: it links every file to its source).
-- **F.2.aj  `:` instead of ` -- ` between a name and its description.**
-  From the owner's TODOs of 2026-10-12: shorter, and the owner's house
-  rule T4 says the same.  The ` -- ` form is the convention everywhere: the
-  first line of every module and hook (`# 10-options.sh -- ...`, which
-  `tests/test_docs.py` checks) and each function's `# NAME ARGS -- ...`
-  line, about 175 lines in 70 files.  One mechanical commit, with the
-  `test_docs.py` pattern and `docs/contributing.md` changed with it.
 - **F.2.ak  What is an alias, a function, or a program on PATH.**  From
   the owner's TODOs of 2026-10-12; the TODO's sentence stops at "to ensure
   we always".  The rule proposed: an alias when the words only go in front

@@ -1,4 +1,4 @@
-# 90-local.sh -- machine-local settings, never committed.
+# 90-local.sh: machine-local settings, never committed.
 #
 # ~/.bashrc.local is read last, so it can override anything above: extra
 # aliases, tool paths, secrets, path_prepend calls, a setting from this

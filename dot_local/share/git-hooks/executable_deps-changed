@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# deps-changed -- say when a checkout, merge or rebase changed a dependency file.
+# deps-changed: say when a checkout, merge or rebase changed a dependency file.
 # events: post-checkout post-merge post-rewrite
 # config: hooks.depsFiles
 #

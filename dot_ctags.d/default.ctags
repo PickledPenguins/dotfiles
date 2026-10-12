@@ -1,4 +1,4 @@
-# ~/.ctags.d/default.ctags -- universal-ctags defaults, for `ctags` in a
+# ~/.ctags.d/default.ctags: universal-ctags defaults, for `ctags` in a
 # project.  Comments must be on their own lines here.
 #
 # Each setting has its description in the comment above it.  A setting with

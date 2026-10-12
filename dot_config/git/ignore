@@ -1,4 +1,4 @@
-# ignore -- the global gitignore (~/.config/git/ignore), read by every
+# ignore: the global gitignore (~/.config/git/ignore), read by every
 # repository.  Editor, OS and coding-agent leftovers only: a project's own
 # build output belongs in its .gitignore, so everyone who clones it gets that
 # too.

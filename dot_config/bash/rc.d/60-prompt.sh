@@ -1,4 +1,4 @@
-# 60-prompt.sh -- the prompt, drawn by bash-prompt-toolkit.
+# 60-prompt.sh: the prompt, drawn by bash-prompt-toolkit.
 #
 # ~/.config/bash/prompt/toolkit/ is bash-prompt-toolkit, kept in this
 # repository as a git subtree (docs/contributing.md says how to sync it).

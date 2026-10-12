@@ -1,4 +1,4 @@
-" 60-plugins.vim -- plugins through vim-plug.  Off until wanted: drop the .off
+" 60-plugins.vim: plugins through vim-plug.  Off until wanted: drop the .off
 " suffix, turn on the plugins you want below, then run :PlugInstall.
 " vim-plug itself installs with:
 "

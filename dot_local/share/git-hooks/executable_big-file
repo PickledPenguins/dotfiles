@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# big-file -- refuse a commit that adds or changes a file over a size limit.
+# big-file: refuse a commit that adds or changes a file over a size limit.
 # events: pre-commit
 # config: hooks.maxFileSize
 #

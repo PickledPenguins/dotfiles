@@ -1,4 +1,4 @@
-# 65-title.sh -- keep the terminal window or tab title current.
+# 65-title.sh: keep the terminal window or tab title current.
 #
 # Only for terminals that understand the xterm title escape, and only when
 # the shell's output is a terminal.  Inside tmux the title is discarded:

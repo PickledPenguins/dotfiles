@@ -1,4 +1,4 @@
-# ~/.sqliterc -- run by the sqlite3 command-line shell at start (not by
+# ~/.sqliterc: run by the sqlite3 command-line shell at start (not by
 # programs that use the library).  Lines starting with # are comments.
 #
 # Each setting has its description in the comment above it.  A setting with

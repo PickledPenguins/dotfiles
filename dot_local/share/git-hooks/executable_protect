@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# protect -- refuse a push that deletes or rewrites a protected branch.
+# protect: refuse a push that deletes or rewrites a protected branch.
 # events: pre-push
 # config: hooks.protect
 #
