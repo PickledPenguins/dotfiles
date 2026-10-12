@@ -26,7 +26,7 @@ from conftest import REPO
 pytestmark = pytest.mark.long
 
 BASH_MODULES = ["env", "options", "history", "tmux-env", "path", "aliases", "functions", "dirs", "completion",
-                "prompt", "title", "conda", "python", "tools", "hpc", "local"]
+                "prompt", "title", "conda", "python", "tools", "hpc", "local", "override"]
 VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
                "35-folding", "40-files", "45-filetypes", "50-keys", "52-tags", "55-netrw"]
 
@@ -1558,7 +1558,7 @@ def test_nanorc_has_no_unknown_options(linked):
 # ── on a real terminal ────────────────────────────────────────────────────
 
 
-def pty_session(home, typed, before="", local="", seconds=3.0):
+def pty_session(home, typed, before="", local="", seconds=3.0, argv=None):
     """An interactive bash on a pseudo-terminal: wait for the first prompt,
     type each line of `typed`, and return everything the terminal received.
     Pipes would take the other branch of every is-a-terminal check (65-title
@@ -1573,7 +1573,7 @@ def pty_session(home, typed, before="", local="", seconds=3.0):
         os.chdir(str(home))
         env = {k: v for k, v in os.environ.items() if k not in ("PROMPT_COMMAND", "DOTFILES_DIR", "TMUX")}
         env.update(HOME=str(home), TERM="xterm-256color")
-        os.execvpe("bash", ["bash", "--rcfile", str(home / ".bashrc"), "-i"], env)
+        os.execvpe("bash", argv or ["bash", "--rcfile", str(home / ".bashrc"), "-i"], env)
     out, sent, deadline = b"", False, time.time() + seconds
     while time.time() < deadline:
         ready, _, _ = select.select([fd], [], [], 0.05)
@@ -1621,6 +1621,67 @@ def test_title_collapses_home_only_at_a_path_boundary(linked):
     assert ": ~/sub\x07" in screen
 
 
+# What a system file does, run from .bashrc.before ahead of every module:
+# TMOUT and LIMIT read-only and exported.  The rest marks the first shell's
+# process ID, a temporary directory to find the swap's file in, and two key
+# bindings and a trap a new bash would not have.
+OVERRIDE_BEFORE = """readonly TMOUT=60 LIMIT=1; export TMOUT LIMIT
+mkdir -p ~/tmp; TMPDIR=~/tmp; echo "start:$$"
+bind '"\\eq": "macro"'; bind -x '"\\ew": echo widget'; trap 'echo trapped' USR2
+DOTFILES_OVERRIDE=(TMOUT 'LIMIT=two words' 'HISTSIZE=777')
+"""
+
+# After the swap: the process ID, TMOUT in the shell and the environment,
+# the listed value, ENV, files left in ~/tmp, $0, then the configuration.
+OVERRIDE_TYPED = ['echo "now:$$:${TMOUT-gone}:$(env | grep -c ^TMOUT=):$HISTSIZE:${ENV-none}:$(ls ~/tmp | wc -l):$0"',
+                  "declare -p LIMIT", "type -t mkcd; alias ll; shopt -p autocd; set -o | command grep -w posix",
+                  "bind -s | command grep eq; bind -X | command grep ew; kill -USR2 $$", "false"]
+
+
+def test_override_swaps_the_shell_for_a_read_only_variable_and_keeps_the_rest(linked):
+    screen = pty_session(linked, OVERRIDE_TYPED, before=OVERRIDE_BEFORE)
+    pid = re.search(r"start:(\d+)", screen)[1]
+    assert screen.count("start:") == 1              # the new shell read no startup file
+    assert "bash:" not in screen                    # and restored everything without an error
+    assert f"now:{pid}:gone:0:777:none:0:bash\r\n" in screen
+    assert 'declare -x LIMIT="two words"' in screen
+    assert "function\r\nalias ll='ls -alFh'\r\nshopt -s autocd\r\nposix" in screen
+    assert re.search(r"posix\s+off", screen)
+    assert '"\\eq": "macro"' in screen and '"\\ew" "echo widget"' in screen
+    assert "\r\ntrapped\r\n" in screen
+    assert "✗ 1" in screen                          # the prompt still has its exit status
+
+
+def test_override_in_a_login_shell_swaps_after_the_rest_of_bash_profile(linked):
+    # The lines after ~/.bashrc in ~/.bash_profile (tmux, startx) still run
+    profile = (REPO / "dot_bash_profile").read_text()
+    sourced = "[[ -r ~/.bashrc ]] && source ~/.bashrc\n"
+    assert sourced in profile
+    (linked / ".bash_profile").unlink()
+    (linked / ".bash_profile").write_text(profile.replace(sourced, sourced + 'echo "after:${TMOUT-gone}"\n'))
+    screen = pty_session(linked, ['echo "now:$$:${TMOUT-gone}"; shopt -p login_shell'],
+                         before=OVERRIDE_BEFORE, argv=["bash", "-l"])
+    pid = re.search(r"start:(\d+)", screen)[1]
+    assert "after:60" in screen
+    assert f"now:{pid}:gone\r\nshopt -s login_shell" in screen
+
+
+def test_override_sets_and_unsets_in_place_without_read_only_names(linked):
+    proc = bash(linked, 'echo "${GONE-unset}"; declare -p KEEP', env={"GONE": "1", "KEEP": "old"},
+                before="DOTFILES_OVERRIDE=(GONE 'KEEP=new value' 'bad-name=1')\n")
+    assert proc.stdout == 'unset\ndeclare -x KEEP="new value"\n'
+    assert "DOTFILES_OVERRIDE: not a variable name: bad-name" in proc.stderr
+
+
+def test_override_leaves_a_command_shell_alone(linked):
+    # bash -ic (editors read the environment this way) would lose its
+    # command.  On a terminal, which a swap needs, and through a pipe.
+    before = "readonly TMOUT=60; GONE=1\nDOTFILES_OVERRIDE=(TMOUT GONE)\n"
+    command = 'echo "ran:$TMOUT:${GONE-unset}"'
+    screen = pty_session(linked, [], before=before, seconds=1.5,
+                         argv=["bash", "--rcfile", str(linked / ".bashrc"), "-i", "-c", command])
+    assert "ran:60:unset" in screen
+    assert bash(linked, command, before=before).stdout == "ran:60:unset\n"
 def test_ssh_agent_module_starts_one_agent_and_later_shells_reuse_it(linked):
     off = linked / ".config/bash/rc.d/25-ssh-agent.sh.off"
     os.symlink(os.readlink(off), linked / ".config/bash/rc.d/25-ssh-agent.sh")

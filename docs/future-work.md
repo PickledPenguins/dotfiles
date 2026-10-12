@@ -265,36 +265,6 @@ here is scheduled; an item is cited by its label.  Back to the
   startup time.  Then a pass over `30-aliases.sh` and `40-functions.sh`
   sorting each name by it.
 
-- **F.2.ap  Read-only variables a system file sets.**  From the owner's
-  TODOs of 2026-10-12, with `TIMEOUT` as the example, most likely `TMOUT`:
-  clusters set it read-only, so the shell logs out when idle.  Bash cannot
-  unset or change a read-only variable in the shell that has it, but the
-  attribute lives only in that process: the environment carries
-  `NAME=value`, so a new bash gets a plain variable or none.  The way out
-  is to replace the shell, keeping everything but the unwanted names.  The
-  environment alone is not enough: aliases, functions, shell options,
-  `PS1`, history settings, completion and traps are not exported, so a
-  bash started on the environment and no startup file has none of the
-  configuration.  Copying the whole shell state works, checked in a
-  prototype on 2026-10-12: at the end of `~/.bashrc`, when a name in a knob
-  `DOTFILES_UNSET_READONLY="TMOUT ..."` is read-only, write `declare -p`
-  (less bash's own variables and those names), `declare -f`, `alias -p`,
-  `shopt -p`, `set +o`, `trap -p`, `complete -p` and `bind -X` to a file
-  (mode 600), then `exec env -u NAME... ENV=FILE bash --posix -i`.  In
-  POSIX mode an interactive bash reads only `$ENV`, never
-  `/etc/bash.bashrc` or `~/.bashrc` (checked: `--rcfile` still reads
-  `/etc/bash.bashrc`, so a name set there comes back), and the file ends
-  with `set +o posix` and deletes itself.  `exec` keeps the process ID, so
-  state named after `$$` (the pane history files) stays valid; the working
-  directory, umask, limits and open files carry over too.  The prototype
-  kept aliases, functions, `PS1`, shell options and unexported variables,
-  and `TMOUT` was gone.  What goes: the history list in memory is read
-  again from `HISTFILE`, the swap costs one more bash start and a dump of
-  every function on those machines only (tens of ms with bash-completion
-  loaded), the list of bash's own variables to leave out differs between
-  bash versions, and a site that sets `TMOUT` as policy may object.  About
-  20 lines at the end of `dot_bashrc`, a knob row, a test with a read-only
-  variable.
 ## F.3 tests
 
 - **F.3.a  mutmut or cosmic-ray** instead of the hand-written mutant list,

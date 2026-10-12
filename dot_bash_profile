@@ -40,3 +40,7 @@ unset _p
 # A login on the first virtual console starts the graphical session
 # (startx), for machines without a display manager.
 #[[ -z "${DISPLAY-}" && "${XDG_VTNR-}" == 1 ]] && command -v startx >/dev/null && exec startx
+
+# Replace the shell when ~/.bashrc found a read-only variable listed in
+# DOTFILES_OVERRIDE (rc.d/95-override.sh): here, after everything above.
+[[ -n "${_override_readonly-}" ]] && _override_swap

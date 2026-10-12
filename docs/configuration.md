@@ -118,6 +118,7 @@ Identity, hostnames and secrets go in these files, never in the repository.
 | `DOTFILES_VENV_DIR` | python | `.venv` | directory `venv` creates and activates |
 | `DOTFILES_FZF_OPTS` | tools | `--height 40% --layout=reverse --border` | `FZF_DEFAULT_OPTS` |
 | `DOTFILES_HPC_WATCH` | hpc | `10` | seconds between refreshes for `qw`/`sw` |
+| `DOTFILES_OVERRIDE` | override | none | an array: `NAME` to unset, `NAME=VALUE` to set, after every module, read-only names too: `(TMOUT 'HISTSIZE=5000')` |
 
 Read-only variables the loader sets for modules and for you:
 
@@ -164,6 +165,7 @@ Read-only variables the loader sets for modules and for you:
 | `80-tools.sh` | each only if installed: Homebrew, Nix, mise, asdf, pyenv, nvm (lazy), fnm, rbenv, SDKMAN!, ghcup, cargo env, lesspipe, bat and `cat`→bat, `fd`, eza for `ll lt`, fzf with `fe fkill fbr`, zoxide, direnv, docker/kubectl/aws/terraform/gh/lazygit shortcuts and completion, tmux `ta tn tl tat`, yazi `y`, `lfcd`.  Off: eza as ls/tree, vivid, fzf previews, `zoxide --cmd cd`, starship, atuin, thefuck, fortune, fastfetch |
 | `85-hpc.sh` | PBS (`qs qsa qw qi qd qn qh qtail`), Slurm (`sq sqa sw si sc sn sacct-today sstart srun-i`), modules (`ml mla mll mlp mls`) -- each only if present.  Off: `qint`, `sint`, `SQUEUE_FORMAT`/`SACCT_FORMAT`, `LMOD_REDIRECT`, `LMOD_PAGER`, one thread per program, `TMPDIR` on scratch |
 | `90-local.sh` | sources `~/.bashrc.local` |
+| `95-override.sh` | sets and unsets the variables in `DOTFILES_OVERRIDE`; when one is read-only (a system file's `TMOUT`), replaces the shell with a bash that reads no startup file and takes over the rest of its state, at the end of `~/.bash_profile` in a login shell; `bash -c` and scripts keep read-only values |
 
 ## Vim modules (`~/.vim/rc/`)
 
@@ -214,7 +216,7 @@ Read-only variables the loader sets for modules and for you:
 | Target | Purpose |
 |--------|---------|
 | `~/.profile` | POSIX login: PATH and `LANG` for non-bash shells and display managers.  Off: `EDITOR` for desktop programs, session `umask`, nothing in a batch or CI job |
-| `~/.bash_profile` | `.profile`, then `profile.d/*.sh`, then `.bashrc`.  Off: nothing in a batch or CI job (PBS, Slurm, GitLab, GitHub), tmux on ssh login, `startx` on tty1 |
+| `~/.bash_profile` | `.profile`, then `profile.d/*.sh`, then `.bashrc`, then the `95-override.sh` swap when it waits for a login shell.  Off: nothing in a batch or CI job (PBS, Slurm, GitLab, GitHub), tmux on ssh login, `startx` on tty1 |
 | `~/.bash_logout` | `clear_console` on a top-level logout.  Off: nothing in a batch or CI job, `clear` |
 | `~/.inputrc` | readline: case-insensitive completion, single-Tab listing, colored stats, history search on Up/Down, Ctrl-arrows by word, Ctrl-Delete, Alt-S sudo.  Off: vi mode with mode strings and cursor shapes, `keyseq-timeout`, hidden files, horizontal lists, menu completion, `mark-modified-lines`, `expand-tilde`, Ctrl-P/N prefix search, `search-ignore-case`, Ctrl-W by path, Ctrl-Backspace, Alt-L, vi `jj`/`gg`/`G` |
 | `~/.editorconfig` | 2-space default (python too), 4 for rust/c/java/sh, tabs for make/go.  Off: `max_line_length`, CRLF for batch files |
