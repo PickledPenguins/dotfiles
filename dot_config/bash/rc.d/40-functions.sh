@@ -43,6 +43,8 @@ cdf() { cd -- "$(dirname -- "${1:?cdf FILE}")" || return; }
 
 # extract ARCHIVE... -- unpack each archive, choosing the tool by extension.
 # One that is missing or of an unknown kind is skipped; the status is then 1.
+# tar: x extract, j bzip2, z gzip, J xz, f FILE.  bunzip2, gunzip, unxz: -k
+# keep the archive.  unzip: -q quiet.  7z, unrar: x with paths.  ar: x members.
 extract() {
     local f rc=0
     for f in "$@"; do
@@ -68,6 +70,7 @@ extract() {
 
 # targz DIR -- pack DIR into DIR.tar.gz, leaving out version control and
 # editor swap files.
+# tar: -c create, -z gzip, -f FILE.  ls: -l long, -h human sizes.
 targz() { tar --exclude-vcs --exclude='*.swp' -czf "${1%/}.tar.gz" "${1%/}" && ls -lh "${1%/}.tar.gz"; }
 
 # ff PATTERN [FIND-ARGS...] -- find what has PATTERN in its name, any case.
@@ -77,6 +80,7 @@ ff() { find "${@:2}" -iname "*${1:?ff PATTERN [FIND-ARGS...]}*"; }
 
 # rgv PATTERN [PATH...] -- ripgrep, then open every match in vim's quickfix
 # list (:cn, :cp to step through).  Only where rg is installed.
+# rg: --vimgrep FILE:LINE:COLUMN:TEXT.  vim: -q FILE read as the quickfix list.
 if type -P rg >/dev/null; then
     rgv() { vim -q <(rg --vimgrep "$@"); }
 fi
@@ -95,22 +99,29 @@ swapname() {
 
 # bigfiles [DIR] [N] -- the N largest files under DIR, not crossing into
 # other file systems (default: here, 20).
+# find: -xdev this file system only, -printf size and path.  sort: -rn
+# largest first.  numfmt: --to=iec sizes in K, M, G.
 bigfiles() { find "${1:-.}" -xdev -type f -printf '%s\t%p\n' 2>/dev/null | sort -rn | head -n "${2:-20}" | numfmt --field=1 --to=iec; }
 
 # count [DIR] -- how many files under DIR have each extension.
+# sed: -n with p prints only the extension.  uniq: -c count each.  sort: -rn most first.
 count() { find "${1:-.}" -type f | sed -n 's/.*\.\([^./]*\)$/\1/p' | sort | uniq -c | sort -rn; }
 
 # sha FILE -- the sha256 of a file, hash only.
+# cut: -d' ' -f1 the first space-separated field.
 sha() { sha256sum -- "$1" | cut -d' ' -f1; }
 
 # mkscript NAME -- a new executable bash script with a strict-mode header,
 # opened in $EDITOR.  Refuses to overwrite.
+# set: -e stop at a failure, -u at an unset variable, -o pipefail at a
+# failure anywhere in a pipe.
 mkscript() {
     [[ -e "${1:?mkscript NAME}" ]] && { echo "mkscript: $1 exists" >&2; return 1; }
     printf '#!/usr/bin/env bash\nset -euo pipefail\n\n' > "$1" && chmod +x "$1" && ${EDITOR:-vi} "$1"
 }
 
 # note [TEXT] -- append TEXT, with the date, to ~/notes.md; alone, show the notes.
+# date: %F YYYY-MM-DD, %R HH:MM.
 note() {
     if (( $# )); then printf -- '- %s  %s\n' "$(date '+%F %R')" "$*" >> ~/notes.md
     else cat ~/notes.md; fi
@@ -149,6 +160,8 @@ timit() {
 }
 
 # histstat [N] -- the N commands you run most often (default 20).
+# fc: -l list, -n without numbers, 1 from the first.  uniq: -c count each.
+# sort: -rn most first.
 histstat() { fc -ln 1 | awk '{print $1}' | sort | uniq -c | sort -rn | head -n "${1:-20}"; }
 
 # man PAGE -- man, falling back to `PAGE --help` when there is no page:
@@ -165,9 +178,11 @@ reload() { exec "$BASH" -l; }
 # ── Text and numbers ──────────────────────────────────────────────────────
 
 # calc EXPR -- arithmetic with decimals: calc '2^10', calc '22/7'.
+# bc: -l math library and 20 decimals.
 calc() { bc -l <<<"$*"; }
 
 # genpass [LENGTH] -- a random password of letters and digits (default 20).
+# tr: -d delete, -c all but the set named.  head: -c LENGTH bytes.
 genpass() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "${1:-20}"; echo; }
 
 # urlencode TEXT / urldecode TEXT -- percent-encoding, as in URLs.
@@ -181,22 +196,28 @@ fromepoch() { date -d "@${1:?fromepoch SECONDS}"; }
 
 # title TEXT -- set the terminal window title (65-title.sh resets it at the
 # next prompt unless that module is off).
+# \e]0;TEXT\a is the xterm escape that sets the window and icon title.
 title() { printf '\e]0;%s\a' "$*"; }
 
 # hr [CHAR] -- a line across the terminal, to find a spot in scrollback.
+# printf: %*s pads to $COLUMNS spaces, each then replaced by CHAR.
 hr() { local line; printf -v line '%*s' "${COLUMNS:-80}" ''; echo "${line// /${1:-─}}"; }
 
 # envg PATTERN -- environment variables matching PATTERN, any case, sorted.
 envg() { env | grep -i -- "${1:?envg PATTERN}" | sort; }
 
 # port N -- what is listening on port N (ss).
+# ss: -t TCP, -u UDP, -l listening, -n port numbers, -p program.  awk keeps
+# the header and the lines whose local address ends in :N.
 port() { ss -tulnp | awk -v p=":${1:?port N}\$" 'NR == 1 || $5 ~ p'; }
 
 # ── Online (each contacts the named service) ──────────────────────────────
 
 # cheat TOPIC -- a cheat sheet from cht.sh: cheat tar, cheat python/lambda.
+# curl: -s silent, no progress meter.
 cheat() { curl -s "https://cht.sh/${1:?cheat TOPIC}"; }
 
 # weather [PLACE] -- a three-day forecast from wttr.in (default: where your
 # IP address says you are).
+# curl: -s silent, no progress meter.
 weather() { curl -s "https://wttr.in/${1:-}"; }

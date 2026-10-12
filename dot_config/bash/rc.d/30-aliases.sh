@@ -24,21 +24,26 @@ else
 fi
 
 # ll: long listing of everything, with type markers (/ * @) and sizes in K, M, G.
+# ls: -a all, -l long, -F type markers, -h human sizes.
 alias ll='ls -alFh'
 
 # la: every entry except . and ..; l: compact columns with type markers.
+# ls: -A all but . and .., -C columns, -F type markers.
 alias la='ls -A'
 alias l='ls -CF'
 
 # lt / ltr: long listing newest first / newest last, so the newest end up
 # just above the prompt.
+# ls: -l long, -t newest first, -r reversed, -h human sizes.
 alias lt='ls -lth'
 alias ltr='ls -ltrh'
 
 # lS: long listing, largest first.
+# ls: -l long, -S largest first, -h human sizes.
 alias lS='ls -lSh'
 
 # lsd: directories only.  Hides the lsd program (a modern ls) if installed.
+# ls: -d the directories */ names, not what is in them.
 alias lsd='ls -d */'
 
 # ── grep, diff, ip ────────────────────────────────────────────────────────
@@ -75,6 +80,7 @@ alias cd..='cd ..'
 alias -- -='cd -'
 
 # d: the pushd directory stack, numbered; 1 to 9 go there (45-dirs.sh).
+# dirs: -v one per line, numbered.
 alias d='dirs -v'
 
 # cdg: go to the top directory of the current git repository.
@@ -85,6 +91,7 @@ alias cdg='cd "$(git rev-parse --show-toplevel)"'
 # rm asks once before removing more than three files or recursing; cp and
 # mv ask before overwriting a file.  rm -f, \rm or `yes |` skip the
 # question.  The habit then misleads on machines without these aliases.
+# rm: -I ask once.  cp, mv: -i ask each time.
 alias rm='rm -I'
 alias cp='cp -i'
 alias mv='mv -i'
@@ -116,21 +123,27 @@ alias du='du -h'
 alias free='free -h'
 
 # dus: the size of everything in this directory, smallest first.
+# du: -s one total each, -h human sizes.  sort: -h by human sizes.
 alias dus='du -sh * 2>/dev/null | sort -h'
 
 # psg NAME: processes whose command line contains NAME, case-insensitive.
+# ps: a every user, u owner and usage columns, x without a terminal too.
+# grep: -v drop lines that match, -i any case.
 alias psg='ps aux | grep -v grep | grep -i'
 
 # top sorted by CPU use (procps top).
+# top: -o sort by field.
 alias top='top -o %CPU'
 
 # ports: listening TCP and UDP sockets and the programs holding them.
+# ss: -t TCP, -u UDP, -l listening, -n port numbers, -p program.
 alias ports='ss -tulnp'
 
 # j: jobs with their process IDs.
 alias j='jobs -l'
 
 # mnt: mounted file systems as an aligned table.
+# column: -t table.
 alias mnt='mount | column -t'
 
 # ── Shortcuts ─────────────────────────────────────────────────────────────
@@ -180,9 +193,11 @@ type -P tree >/dev/null && alias tree='tree -C'
 alias serve='python3 -m http.server'
 
 # cpv SRC DEST: copy with one overall progress line (rsync).
+# rsync: -a archive (recurse, keep modes, times, links), -h human sizes.
 alias cpv='rsync -ah --info=progress2'
 
 # myip: this machine's public IP address, as ifconfig.me sees it.
+# curl: -s silent, no progress meter.
 alias myip='curl -s https://ifconfig.me; echo'
 
 # :q quits the shell, for fingers that think they are in vim.
@@ -211,6 +226,7 @@ alias g='git'
 
 # gs status, gl graph log, gd diff, gp pull.  gs hides Ghostscript's gs and
 # gp PARI/GP's; `command gs` still reaches them.
+# git status: -s short, -b branch line.  git lg (aliases.gitconfig): -20 last 20.
 alias gs='git status -sb'
 alias gl='git lg -20'
 alias gd='git diff'
@@ -219,6 +235,7 @@ alias gp='git pull'
 # The oh-my-zsh style set: ga add, gc commit, gco checkout, gsw switch,
 # gb branch, gds staged diff, gpu push, gf fetch, gst stash, glo one-line
 # log.  gc hides Graphviz's gc.
+# git fetch: --all every remote, --prune drop branches gone there.
 #alias ga='git add' gc='git commit' gco='git checkout' gsw='git switch' gb='git branch'
 #alias gds='git diff --staged' gpu='git push' gf='git fetch --all --prune' gst='git stash' glo='git log --oneline -20'
 
@@ -226,4 +243,5 @@ alias gp='git pull'
 
 # alert: a desktop notification when a long command ends: `make; alert`.
 # The icon says whether it failed.
+# notify-send: -i icon.  The sed takes the history number and the trailing alert off.
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(HISTTIMEFORMAT= history 1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
