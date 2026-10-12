@@ -1,5 +1,6 @@
 bashrc: env
 bashrc: options
+bashrc: history
 bashrc: path
 bashrc: aliases
 bashrc: skip functions

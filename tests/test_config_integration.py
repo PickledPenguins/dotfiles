@@ -15,6 +15,8 @@ import select
 import shutil
 import subprocess
 import threading
+import time
+from pathlib import Path
 
 import pytest
 
@@ -22,7 +24,7 @@ from conftest import REPO
 
 pytestmark = pytest.mark.long
 
-BASH_MODULES = ["env", "options", "path", "aliases", "functions", "dirs", "completion",
+BASH_MODULES = ["env", "options", "history", "path", "aliases", "functions", "dirs", "completion",
                 "prompt", "title", "conda", "python", "tools", "hpc", "local"]
 VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
                "35-folding", "40-files", "45-filetypes", "50-keys", "52-tags", "55-netrw"]
@@ -38,7 +40,8 @@ def shell_env(home, env=None):
     # The runner's own session (tmux pane, display, conda or venv, ssh) would
     # otherwise show in the prompt and the modules under test.
     for var in list(environment):
-        if var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "PROMPT_COMMAND", "TMUX",
+        if var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_DATA_HOME",
+                   "XDG_CACHE_HOME", "XDG_RUNTIME_DIR", "PROMPT_COMMAND", "TMUX",
                    "TMUX_PANE", "DISPLAY", "CONDA_DEFAULT_ENV", "CONDA_PREFIX", "VIRTUAL_ENV",
                    "SHLVL") or var.startswith("SSH_"):
             environment.pop(var)
@@ -548,6 +551,232 @@ def test_profile_is_posix_sh(linked):
     assert (proc.returncode, proc.stdout, proc.stderr) == (0, "C.UTF-8\n", "")
 
 
+# ── history (12-history.sh) ───────────────────────────────────────────────
+
+HISTORY_ON = "_hist_pane_start\n_hist_log_start\n"
+
+
+class Panes:
+    """A private tmux server whose panes run the applied bash, switched on
+    by HISTORY_ON in ~/.bashrc.local.  Commands are typed with a leading
+    space, so the pane's history never records them."""
+
+    def __init__(self, home, tmp_path):
+        self.home, self.out = home, tmp_path / "out"
+        self.out.mkdir()
+        self.env = shell_env(home)
+        self.sock = str(tmp_path / "tmux.sock")
+        self.shell = f"bash --rcfile {home}/.bashrc -i"
+        (home / ".bashrc.local").write_text(HISTORY_ON)
+
+    def tmux(self, *args):
+        proc = subprocess.run(["tmux", "-S", self.sock, "-f", "/dev/null", *args], env=self.env,
+                              cwd=str(self.home), capture_output=True, text=True, timeout=10)
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout
+
+    def seed_shared(self, text):
+        """Write text to the shared history file, wherever HISTFILE puts it."""
+        proc = subprocess.run(["bash", "--rcfile", f"{self.home}/.bashrc", "-i", "-c",
+                               'printf %s "$_hist_shared"'], env=self.env, cwd=str(self.home),
+                              capture_output=True, text=True, timeout=10)
+        shared = Path(proc.stdout)
+        shared.parent.mkdir(parents=True, exist_ok=True)
+        shared.write_text(text)
+
+    def type(self, target, line):
+        self.tmux("send-keys", "-t", target, line, "Enter")
+
+    def history(self, target):
+        """What Up recalls in the pane, oldest first."""
+        mark = self.out / f"{len(list(self.out.iterdir()))}.txt"
+        self.type(target, f" fc -ln 1 >| {mark}.tmp; mv {mark}.tmp {mark}")
+        return [line.strip() for line in self.wait_for(mark).read_text().splitlines()]
+
+    def run(self, target, line):
+        """Type line and wait until the next prompt has recorded it."""
+        self.type(target, line)
+        self.history(target)
+
+    def kill(self, kind, target):
+        """kill-pane or kill-window, then wait until its shells are gone."""
+        pids = self.tmux("list-panes", "-t", target, "-F", "#{pane_pid}").split()
+        self.tmux(kind, "-t", target)
+        self.wait_for(*(Path(f"/proc/{pid}") for pid in pids), gone=True)
+
+    def wait_for(self, *paths, gone=False):
+        deadline = time.monotonic() + 10
+        while any(p.exists() == gone for p in paths):
+            assert time.monotonic() < deadline, f"timed out waiting for {paths}"
+            time.sleep(0.02)
+        return paths[0]
+
+    def close(self):
+        subprocess.run(["tmux", "-S", self.sock, "kill-server"], capture_output=True)
+
+
+@pytest.fixture
+def panes(linked, tmp_path):
+    p = Panes(linked, tmp_path)
+    yield p
+    p.close()
+
+
+def hist_files(home, session):
+    return sorted((home / ".hist").glob(f"*/{session}/*"))
+
+
+@needs("tmux")
+def test_history_split_pane_starts_from_its_source_and_stays_apart(panes):
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.run("work", "echo first")
+    panes.tmux("split-window", "-t", "work", panes.shell)
+    panes.run("work.1", "echo split")
+    panes.run("work.0", "echo first-again")
+    assert panes.history("work.1")[-2:] == ["echo first", "echo split"]
+    assert panes.history("work.0")[-2:] == ["echo first", "echo first-again"]
+
+
+@needs("tmux")
+def test_history_split_with_d_starts_from_the_active_pane(panes):
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.run("work", "echo first")
+    panes.tmux("split-window", "-d", "-t", "work", panes.shell)
+    assert panes.history("work.1")[-1] == "echo first"
+
+
+@needs("tmux")
+def test_history_new_window_takes_over_the_last_closed_pane_of_its_session(panes):
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.run("work", "echo keep")
+    panes.tmux("new-window", "-t", "work", panes.shell)
+    panes.run("work:1", "echo closed")
+    panes.kill("kill-window", "work:1")
+    panes.tmux("new-window", "-t", "work", panes.shell)
+    assert panes.history("work:1")[-2:] == ["echo keep", "echo closed"]
+    assert len(hist_files(panes.home, "work")) == 2      # taken over, not copied
+
+
+@needs("tmux")
+def test_history_session_restarted_takes_over_and_other_names_start_from_shared(panes):
+    panes.seed_shared("#100\necho shared\n")
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    assert panes.history("work")[-1] == "echo shared"
+    panes.run("work", "echo in-work")
+    panes.kill("kill-session", "work")
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.tmux("new-session", "-d", "-s", "other", panes.shell)
+    assert panes.history("work")[-1] == "echo in-work"
+    # The shared file also has every pane's commands.
+    assert panes.history("other")[-2:] == ["echo shared", "echo in-work"]
+
+
+@needs("tmux")
+def test_history_old_closed_files_and_empty_directories_go_before_a_takeover(panes):
+    panes.seed_shared("#100\necho shared\n")
+    host = panes.home / ".hist" / os.uname().nodename
+    old_file = host / "work" / "99999999.1"     # no such pid: closed
+    live_file = host / "work" / f"{os.getpid()}.1"
+    old_file.parent.mkdir(parents=True)
+    old_file.write_text("#100\necho old\n")
+    live_file.write_text("#100\necho live\n")
+    old_dir, new_dir = host / "gone", host / "just-made"
+    old_dir.mkdir()
+    new_dir.mkdir()                             # by a shell about to fill it
+    long_ago = time.time() - 91 * 86400
+    for path in (old_file, live_file, old_dir):
+        os.utime(path, (long_ago, long_ago))
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    assert panes.history("work")[-1] == "echo shared"
+    assert not old_file.exists() and not old_dir.exists()
+    assert live_file.exists() and new_dir.exists()
+
+
+@needs("tmux")
+def test_history_shell_started_in_a_pane_starts_from_that_pane(panes):
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.tmux("split-window", "-t", "work", panes.shell)
+    panes.run("work.0", "echo zero")
+    panes.run("work.1", "echo one")
+    panes.type("work.1", f" {panes.shell}")
+    nested = panes.history("work.1")
+    assert nested[-1] == "echo one" and "echo zero" not in nested
+
+
+@needs("tmux")
+def test_history_exec_bash_keeps_the_pane_file(panes):
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.run("work", "echo before")
+    time.sleep(1.1)                             # a new file would get a new name
+    panes.type("work", f" exec {panes.shell}")
+    panes.run("work", "echo after")
+    assert panes.history("work")[-2:] == ["echo before", "echo after"]
+    assert len(hist_files(panes.home, "work")) == 1
+
+
+@needs("tmux")
+def test_history_sourcing_bashrc_again_keeps_the_pane_file(panes):
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.run("work", "echo before")
+    panes.type("work", " source ~/.bashrc")
+    panes.run("work", "echo after")
+    assert panes.history("work")[-2:] == ["echo before", "echo after"]
+    assert len(hist_files(panes.home, "work")) == 1
+
+
+@needs("tmux")
+def test_history_log_lines_and_hgrep(panes):
+    panes.tmux("new-session", "-d", "-s", "work", panes.shell)
+    panes.run("work", "cd /")
+    panes.type("work", " cd /tmp")      # not recorded, but where the next one runs
+    panes.run("work", "echo hello | wc -c")
+    log = (panes.home / ".hist" / "log").read_text().splitlines()
+    assert [line.split("\t")[1:] for line in log] == [
+        [os.uname().nodename, "work", str(panes.home), "cd /"],
+        [os.uname().nodename, "work", "/tmp", "echo hello | wc -c"],
+    ]
+    out = panes.home / "hgrep.txt"
+    panes.type("work", f" hgrep wc >| {out}.tmp; mv {out}.tmp {out}")
+    assert panes.wait_for(out).read_text()[19:] == "  /tmp  echo hello | wc -c\n"
+
+
+def test_history_record_hands_on_the_exit_status_and_escapes_lines_and_tabs(linked):
+    proc = bash(linked, "set -o history; history -s $'for i in 1\\ndo :\\ndone'; history -s $'a\\tb'; "
+                        "false; _hist_record; echo $?; cut -f5- ~/.hist/log", local="_hist_log_start\n")
+    assert proc.stdout == "1\nfor i in 1\\ndo :\\ndone\na\\tb\n"
+
+
+def test_history_pane_setting_outside_tmux_changes_nothing(linked):
+    script = 'echo "$HISTFILE"; [[ $PROMPT_COMMAND == *_hist_record* ]] && echo hooked; ls -A ~/.hist 2>&1'
+    off = bash(linked, script)
+    on = bash(linked, script, local="_hist_pane_start\n")
+    assert (on.stdout, on.stderr) == (off.stdout, off.stderr)
+    assert "hooked" not in on.stdout
+
+
+def test_history_hgrep_refuses_bad_arguments_and_a_missing_log(linked):
+    proc = bash(linked, "hgrep; echo $?; hgrep x y; echo $?; hgrep x")
+    assert proc.stdout == "2\n2\n"
+    assert proc.stderr == ("usage: hgrep PATTERN [N]\nusage: hgrep PATTERN [N]\n"
+                           f"hgrep: no {linked}/.hist/log; switch the log on in 12-history.sh")
+
+
+def test_history_hgrep_takes_backslashes_as_written_and_any_case_without_capitals(linked):
+    (linked / ".hist").mkdir()
+    (linked / ".hist" / "log").write_text("".join(
+        f"2026-10-12 10:00:0{i}\th\t-\t/d\t{cmd}\n" for i, cmd in enumerate(["make a.py", "make abpy", "Make X"])))
+    proc = bash(linked, r"hgrep 'a\.py'; hgrep make; hgrep Make")
+    assert proc.stdout.replace("2026-10-12 10:00:0", "") == (
+        "0  /d  make a.py\n"
+        "0  /d  make a.py\n1  /d  make abpy\n2  /d  Make X\n"
+        "2  /d  Make X\n")
+
+
+def test_history_unset_or_null_histfile_keeps_commands_out_of_everything(linked):
+    proc = bash(linked, "set -o history; history -s secret; unset HISTFILE; _hist_record; "
+                        "HISTFILE=/dev/null; history -s secret2; _hist_record; "
+                        'grep -rsh secret ~/.hist "$_hist_shared"; echo end', local="_hist_log_start\n")
+    assert (proc.stdout, proc.stderr) == ("end\n", "")
 # ── vim ───────────────────────────────────────────────────────────────────
 
 

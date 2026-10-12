@@ -100,6 +100,8 @@ Identity, hostnames and secrets go in these files, never in the repository.
 | `DOTFILES_HISTSIZE` | options | `50000` | lines of history in memory |
 | `DOTFILES_HISTFILESIZE` | options | `100000` | lines on disk |
 | `DOTFILES_HISTIGNORE` | options | none | extra `:`-separated patterns not recorded |
+| `DOTFILES_HISTDIR` | history | `~/.hist` | per-pane history files and the command log |
+| `DOTFILES_HIST_DAYS` | history | `90` | days a closed pane's history file is kept |
 | `DOTFILES_PATH_PREPEND` | path | none | `:`-separated directories put first on PATH |
 | `DOTFILES_PATH_APPEND` | path | none | `:`-separated directories put last |
 | `DOTFILES_SSH_AGENT_ENV` | ssh-agent (off) | `~/.ssh/agent.env` | where the agent's environment is kept |
@@ -145,6 +147,7 @@ Read-only variables the loader sets for modules and for you:
 |--------|----------|
 | `00-env.sh` | `EDITOR`, `PAGER`, `LESS`, colored man pages, `GREP_COLORS`, `COLORTERM`, XDG variables, `RIPGREP_CONFIG_PATH`, `PYTHONSTARTUP`, locale fallback, `TIME_STYLE`, `PYTHONDONTWRITEBYTECODE`.  Off: less mouse/chop/centering, bat or vim as `MANPAGER`, `MANWIDTH`, `NO_COLOR`, a dozen moves of tool files out of `$HOME`, `LC_COLLATE=C`, `PYTHONPYCACHEPREFIX`, `GPG_TTY`, `BROWSER` |
 | `10-options.sh` | `globstar extglob autocd cdspell dirspell checkjobs huponexit histappend cmdhist lithist checkwinsize`, history sizes and control, history written after every command, `stty -ixon`, `umask 022`.  Off: `dotglob nocaseglob nullglob failglob nocasematch cdable_vars direxpand notify noclobber pipefail IGNOREEOF histexpand TMOUT histverify histreedit`, XDG history file, live history sharing, no mail check, `umask 077/027`, `ulimit` core and stack |
+| `12-history.sh` | `hgrep PATTERN [N]` searches the command log.  Off: one history file per tmux pane (a split starts from its source pane, a new window or session takes over the pane closed last in a session of the same name, else a copy of the shared file), the log of every command with time, host, session and directory |
 | `20-path.sh` | `path_prepend`/`path_append`/`path_remove`; `~/.local/bin`, `~/bin`, cargo/go/npm bins; `MANPATH`.  Off: deno, bun, .NET, juliaup, ghcup/cabal, pixi, CUDA, Flatpak, snap |
 | `25-ssh-agent.sh.off` | one shared ssh-agent per machine, environment in `~/.ssh/agent.env`.  Off inside: keychain or gpg-agent instead |
 | `30-aliases.sh` | ls/grep/diff/ip color, `ll la l lt ltr lS lsd`, `.. ... .... ..... cd.. - d cdg`, `rm -I cp -i mv -i`, `mkdir -pv ln -v chmox`, `df du free dus psg top ports j mnt`, `c clc h hg e v sb vb path now week timestamp epoch ping tree serve cpv myip :q`, `pbcopy`/`pbpaste`, `g gs gl gd gp`, `alert`.  Off: grep skipping VCS dirs, `rm -i`, `--preserve-root`, `sudo ` alias expansion, `vi`→vim, `vim`→nvim, `open`, the oh-my-zsh git set |
