@@ -209,10 +209,10 @@ nnoremap <leader>id "=strftime('%Y-%m-%d')<CR>p
 
 " <leader>rw starts replacing the word under the cursor everywhere in the
 " file, matching its case exactly (\C, whatever 'ignorecase' says);
-" <leader>ri in any case (\c). gdefault in 20-search.vim makes it every
-" match on a line.
-nnoremap <leader>rw :%s/\C\<<C-r><C-w>\>//<Left>
-nnoremap <leader>ri :%s/\c\<<C-r><C-w>\>//<Left>
+" <leader>ri in any case (\c). Every match on a line: with gdefault on in
+" 20-search.vim, delete the /g.
+nnoremap <leader>rw :%s/\C\<<C-r><C-w>\>//g<Left><Left>
+nnoremap <leader>ri :%s/\c\<<C-r><C-w>\>//g<Left><Left>
 
 " gV selects the text just pasted or changed.
 nnoremap gV `[v`]

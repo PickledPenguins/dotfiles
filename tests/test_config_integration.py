@@ -1073,6 +1073,11 @@ def test_vim_comma_editing_maps(linked, name, text, keys, expected):
 
 
 @needs("vim")
+def test_vim_substitute_g_flag_means_every_match(linked):
+    assert vim_edit(linked, "g.txt", "a a\na a\n", "1s/a/b/g", "2s/a/b/") == "b b\nb a\n"
+
+
+@needs("vim")
 def test_vim_comma_z_zooms_and_restores_and_comma_co_toggles_quickfix(linked):
     out = vim_edit(linked, "o.txt", "", "split", "normal ,z", "let g:z = winheight(0)", "normal ,z",
                    "normal ,co", "let g:open = len(getwininfo())", "normal ,co",

@@ -22,7 +22,7 @@ set wrapscan
 
 " :s/a/b/ replaces every match on a line, as if /g were given; /g then
 " means only the first. Surprising in commands copied from elsewhere.
-set gdefault
+"set gdefault
 
 " Show a :s substitution's result in the text while typing it (neovim
 " only; vim has no such option).

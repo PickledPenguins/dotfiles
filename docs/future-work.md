@@ -190,14 +190,8 @@ here is scheduled; an item is cited by its label. Back to the
   editorconfig | endif` in `30-indent.vim`, with `charset` and
   `end_of_line` moved out of `[*]` (or described), and the whitespace
   autocmd skipped when editorconfig set `trim_trailing_whitespace`.
-- **F.2.v  `gdefault` is on.**  `dot_vim/rc/20-search.vim:25`. vim's own
-  help warns that it breaks plugins and inverts `/g`: a pasted or
-  plugin-run `:s/a/b/g` replaces only the first match. It changes
-  existing behavior, against `CLAUDE.md`'s rule that new settings start
-  off. `50-keys.vim:214` (`<leader>rw`, `<leader>ri`) relies on it. From the
-  2026-10-08 settings creview. Future work because it changes what `:s`
-  does for the owner. Fix: `#set gdefault`, and `/g` added to
-  `<leader>rw` and `<leader>ri`.
+- **F.2.v  `gdefault` is on.**  Built 2026-10-12: `#set gdefault`, and
+  `<leader>rw` and `<leader>ri` type the `/g` themselves.
 - **F.2.y  `smartindent` sends `#` lines to column 0.**
   `dot_vim/rc/30-indent.vim:32`. Checked: in `conf` buffers (ssh config,
   tmux.conf) `o#` lands at column 0; python, sh and yaml are unaffected,
