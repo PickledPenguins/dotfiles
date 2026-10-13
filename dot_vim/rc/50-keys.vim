@@ -54,9 +54,12 @@ nnoremap <leader>qa :qall<CR>
 " Y yanks to the end of the line, as D and C work.
 nnoremap Y y$
 
-" j and k move by screen line through a wrapped line.
-nnoremap j gj
-nnoremap k gk
+" j and k move by screen line through a wrapped line. With a count they
+" move that many buffer lines, so 5j reaches the line 'relativenumber'
+" shows as 5 and covers the same lines as d5j; 5gj still counts screen
+" lines.
+nnoremap <expr> j v:count ? 'j' : 'gj'
+nnoremap <expr> k v:count ? 'k' : 'gk'
 
 " n and N keep the match in the middle of the screen, folds opened.
 nnoremap n nzzzv

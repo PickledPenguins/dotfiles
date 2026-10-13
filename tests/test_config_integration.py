@@ -1052,6 +1052,17 @@ def vim_on_a_pty(home, env, *commands):
 
 
 @needs("vim")
+def test_vim_j_and_k_move_screen_lines_but_a_count_moves_buffer_lines(linked):
+    (linked / "w.txt").write_text("a" * 300 + "\nb\nc\nd\ne\nf\ng\n")
+    probe = f"call writefile([line('.') .. ',' .. col('.')], '{linked}/out', 'a')"
+    vim_on_a_pty(linked, {"TERM": "xterm-256color"}, f"edit {linked}/w.txt",
+                 "normal j", probe, "normal k", probe, "normal 5j", probe, "normal 4k", probe)
+    lines = (linked / "out").read_text().splitlines()
+    assert lines[0].startswith("1,") and lines[0] != "1,1"
+    assert lines[1:] == ["1,1", "6,1", "2,1"]
+
+
+@needs("vim")
 def test_vim_inside_tmux_gets_the_sgr_mouse_and_focus_events_but_not_in_screen(linked):
     probe = f"call writefile([&ttymouse, &t_fe, &t_fd], '{linked}/out', 'a')"
     vim_on_a_pty(linked, {"TERM": "tmux-256color", "TMUX": None}, probe)

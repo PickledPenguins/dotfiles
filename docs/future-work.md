@@ -172,13 +172,13 @@ here is scheduled; an item is cited by its label. Back to the
   `30-indent.vim` whose description says what it adds and costs;
   `autoindent` and filetype indent cover the rest. `inoremap # X<C-h>#`
   was not taken: it fixes `#` only and maps `#` in every buffer.
-- **F.2.z  `j`/`k` as `gj`/`gk` make counts move screen lines.**
-  `dot_vim/rc/50-keys.vim:58`. With `wrap` on, `5j` moves five screen
-  lines, not five buffer lines, against the off `relativenumber`
-  (`10-ui.vim:22`), which promises `5j` and `d3k` without counting. From
-  the 2026-10-08 settings creview. Future work because it changes a
-  movement key. Fix: `nnoremap <expr> j v:count ? 'j' : 'gj'`, likewise
-  `k`.
+- **F.2.z  `j`/`k` as `gj`/`gk` made counts move screen lines.**  Built
+  2026-10-12. With `wrap` on, `5j` from a line wrapped over four screen
+  lines landed on buffer line 2, against the off `relativenumber`, which
+  promises `5j` without counting. `50-keys.vim` now maps
+  `nnoremap <expr> j v:count ? 'j' : 'gj'`, likewise `k`: plain `j`/`k`
+  still move by screen line, `5gj` still counts screen lines, and a pty
+  test checks both.
 
 - **F.2.ab  `SYSTEMD_LESS="$LESS"` dropped systemd's `-S`, `-M` and `-K`.**
   Built 2026-10-12. Setting the variable replaces systemd's default
