@@ -242,16 +242,20 @@ def test_selected_matches_exact_target_or_ancestor(dots, src, home):
     assert not dots.selected(e, [str(home / ".config" / "app" / "settings")], home)   # prefix, not parent
 
 
-def test_source_dir_prefers_env_then_home_then_script(dots, home, monkeypatch, tmp_path):
+def test_source_dir_prefers_env_then_own_tree_then_home_then_script(dots, home, monkeypatch, tmp_path):
     monkeypatch.setenv("DOTS_SOURCE", str(tmp_path / "env-src"))
     assert dots.source_dir() == (tmp_path / "env-src").resolve()   # even when absent: caller reports it
     monkeypatch.delenv("DOTS_SOURCE")
     real = tmp_path / "real"
     real.mkdir()
     os.symlink(real, home / ".dotfiles")
+    assert dots.source_dir() == Path(dots.__file__).resolve().parent   # a checkout manages itself
+    lone = tmp_path / "lone"
+    lone.mkdir()
+    monkeypatch.setattr(dots, "__file__", str(lone / "dots"))       # no .dotsignore beside it
     assert dots.source_dir() == real                                # symlink resolved
     (home / ".dotfiles").unlink()
-    assert dots.source_dir() == Path(dots.__file__).resolve().parent
+    assert dots.source_dir() == lone
 
 
 # ── the options format ────────────────────────────────────────────────────

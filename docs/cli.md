@@ -11,12 +11,16 @@ dots [-S SOURCE] COMMAND [options] [paths...]
 
 | Flag | Argument | Default | Effect |
 |------|----------|---------|--------|
-| `-S`, `--source` | directory | `$DOTS_SOURCE`, else `~/.dotfiles`, else the directory holding `dots` | the source tree |
+| `-S`, `--source` | directory | `$DOTS_SOURCE`, else the directory holding `dots` when it has a `.dotsignore`, else `~/.dotfiles`, else the directory holding `dots` | the source tree |
 | `-h`, `--help` | | | usage and the naming rules, exit 0 |
 
-The default is dynamic: `~/.dotfiles` is used only if it exists (symlinks
-resolved); the script's own directory is the last resort, which is what
-makes `./dots` work from a fresh clone anywhere.
+The default is dynamic. A `dots` inside a source tree (a `.dotsignore`
+beside it, symlinks resolved, so the installed `~/.local/bin/dots` too)
+manages that tree: `./dots apply` from a second clone or a worktree acts
+on that checkout and links `$HOME` into it, whatever `~/.dotfiles` is, and
+deleting the checkout later leaves those links dangling until `dots apply`
+from another tree or `dots prune`. A `dots` copied on its own uses
+`~/.dotfiles` if it exists (symlinks resolved), else its own directory.
 
 ## Commands
 

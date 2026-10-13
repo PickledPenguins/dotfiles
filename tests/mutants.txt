@@ -55,3 +55,4 @@ state = "off" if line.startswith(marker) else "on" ||| state = "on"
 if doc or current is None or current.state != state: ||| if doc or current is None:
 if found == "conflict": ||| if found == "stale-link":
 if found != "missing": ||| if found == "ok":
+if (own / IGNORE_FILE).is_file(): ||| if not (own / IGNORE_FILE).is_file():

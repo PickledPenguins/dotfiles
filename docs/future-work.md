@@ -52,19 +52,15 @@ here is scheduled; an item is cited by its label. Back to the
   would be about five lines in `parse_name` and `source_name` plus a
   naming rule in `docs/concepts.md`. From the 2026-10-07 ctesting audit;
   not built because no such file has turned up in a real home yet.
-- **F.1.i  A second checkout manages `~/.dotfiles`, not itself.**
-  `source_dir` (`dots:46`) tries `$DOTS_SOURCE`, then `~/.dotfiles`, and
-  only then the directory holding `dots`. So `./dots apply` from a
-  worktree or a second clone acts on `~/.dotfiles`, and on a machine where
-  `~/.dotfiles` belongs to another tool the `~/.local/bin/dots` a
-  checkout's `apply` linked manages that other tree. `docs/cli.md`
-  documents the order, so this is a trap rather than a misdescription.
-  From the 2026-10-07 creview. Future work because the fix is a design
-  call with two shapes: prefer the directory holding `dots` when it
-  contains `.dotsignore` (changes which tree a plain `dots` uses from a
-  second checkout), or have `apply` print the source tree it used
-  (changes its output). Either way `docs/cli.md`'s `--source` row and the
-  catalog cases follow.
+- **F.1.i  A second checkout managed `~/.dotfiles`, not itself.**  Built
+  2026-10-12. `source_dir` tried `~/.dotfiles` before the directory holding
+  `dots`, so `./dots apply` from a clone or worktree acted on
+  `~/.dotfiles`, and where `~/.dotfiles` belonged to another tool (a bare
+  repository, yadm) it linked `$HOME` into that tree. Now a `dots` with a
+  `.dotsignore` beside it manages its own tree; `~/.dotfiles` is the
+  fallback for a `dots` copied on its own. The cost, in `docs/cli.md`: a
+  clone's `apply` links `$HOME` into the clone, and deleting it leaves the
+  links dangling. Printing the tree used (the other shape) was not built.
 
 ## F.2 configuration
 

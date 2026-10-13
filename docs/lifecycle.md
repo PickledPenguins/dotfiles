@@ -4,9 +4,10 @@ What happens in what order. Back to the [README](../README.md).
 
 ## `dots apply`
 
-1. **Resolve the source tree**: `-S DIR`, else `$DOTS_SOURCE`, else
-   `~/.dotfiles` (symlinks resolved), else the directory holding the `dots`
-   script. A source that does not exist stops here with exit 2.
+1. **Resolve the source tree**: `-S DIR`, else `$DOTS_SOURCE`, else the
+   directory holding the `dots` script when it has a `.dotsignore`, else
+   `~/.dotfiles` (symlinks resolved), else the script's directory. A source
+   that does not exist stops here with exit 2.
 2. **Read `.dotsignore`** from the source root. Unreadable is a hard error
    (a traceback), not a silent apply of everything.
 3. **Walk the source tree**, skipping directories whose name starts with

@@ -11,7 +11,7 @@ import stat
 
 import pytest
 
-from conftest import REPO, run_subprocess
+from conftest import DOTS, REPO, run_subprocess
 
 # ── managed ───────────────────────────────────────────────────────────────
 
@@ -390,9 +390,23 @@ def test_dots_source_env_selects_the_source(home, src):
     assert proc.returncode == 0 and proc.stdout.splitlines()[0] == ".bashrc"
 
 
-def test_home_dotfiles_symlink_is_the_default_source(home, src):
+def test_a_checkout_manages_its_own_tree_even_with_a_home_dotfiles(home, src):
     os.symlink(src, home / ".dotfiles")
     proc = run_subprocess(home, src, "managed", "--show-source", env={"DOTS_SOURCE": ""})
+    assert proc.returncode == 0
+    assert proc.stdout.splitlines()[0] == str(DOTS.resolve().parent / "dot_Xresources")
+
+
+def test_a_lone_dots_uses_the_home_dotfiles_symlink(home, src, tmp_path):
+    import subprocess
+    import sys
+
+    lone = tmp_path / "lone"
+    lone.mkdir()
+    shutil.copy2(DOTS, lone / "dots")
+    os.symlink(src, home / ".dotfiles")
+    proc = subprocess.run([sys.executable, str(lone / "dots"), "managed", "--show-source"],
+                          env=dict(os.environ, HOME=str(home), DOTS_SOURCE=""), capture_output=True, text=True)
     assert proc.returncode == 0
     assert proc.stdout.splitlines()[0] == str(src / "dot_bashrc")     # resolved through the link
 

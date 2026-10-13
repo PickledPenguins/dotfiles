@@ -44,11 +44,15 @@ IGNORE_FILE = ".dotsignore"
 
 
 def source_dir():
-    """Resolve the source directory: $DOTS_SOURCE if set, else ~/.dotfiles, else beside this script."""
+    """Resolve the source directory: $DOTS_SOURCE if set, else the tree holding this script, else ~/.dotfiles"""
     if os.environ.get("DOTS_SOURCE"):
         return Path(os.environ["DOTS_SOURCE"]).resolve()
+    # a checkout's dots manages that checkout, not whatever ~/.dotfiles is
+    own = Path(__file__).resolve().parent
+    if (own / IGNORE_FILE).is_file():
+        return own
     default = Path.home() / ".dotfiles"
-    return default.resolve() if default.is_dir() else Path(__file__).resolve().parent
+    return default.resolve() if default.is_dir() else own
 
 
 def parse_name(name):
@@ -479,7 +483,7 @@ def selected(entry, paths, home):
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="dots", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-S", "--source", help="source directory (default: $DOTS_SOURCE, ~/.dotfiles)")
+    parser.add_argument("-S", "--source", help="source directory (default: $DOTS_SOURCE, this checkout, ~/.dotfiles)")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("apply", help="create or repair the symlinks")
