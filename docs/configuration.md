@@ -209,7 +209,7 @@ Read-only variables the loader sets for modules and for you:
 | `signing.gitconfig` | commit and tag signing; its include line in `~/.gitconfig` is off. Off inside: signed pushes, ssh signing, allowed signers, `showSignature` |
 | `ignore` | global excludes (editor, OS, environment, agent files). Off: `*.orig`, Jupyter checkpoints, `.envrc`, packaging, coverage, clangd, node_modules, `*.log` |
 | `attributes` | `diff=` drivers by extension, binary types, LF for scripts. Off: PDF and docx diffs, generated minified and lock files |
-| `template/` | a git template whose `hooks/` is what `git hooks install` leaves: the dispatcher on each event, every packaged hook linked switched off. Used only once `init.templateDir` in `core.gitconfig` is switched on |
+| `template/` | a git template whose `hooks/` is what `git hooks install` leaves: the dispatcher on each event, every packaged hook linked switched off. Used only once `init.templateDir` in `core.gitconfig` is switched on. Its hooks point into the checkout by absolute path, and `git init` copies them as they are: after moving the checkout, `dots apply`, then in each repository made from the template `find .git/hooks -xtype l -delete && git init` (a hook switched on there comes back off; `git hooks install` does not repair them) |
 
 ## Other dotfiles
 

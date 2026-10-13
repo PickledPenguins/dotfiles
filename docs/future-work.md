@@ -202,18 +202,19 @@ here is scheduled; an item is cited by its label. Back to the
   would guess. An action after a push stays a wrapper (`git ps && ...`).
   `git hooks -h` says so too.
 - **F.2.ae  Repositories made from the git template depend on the
-  checkout's path.**  `dots` links each file of
+  checkout's path.**  Documented 2026-10-13. `dots` links each file of
   `~/.config/git/template/hooks/` to the source tree by absolute path, and
-  `git init` copies a symlink as it is, so `.git/hooks/EVENT` in a new
-  repository points into `.../dotfiles/dot_config/git/template/`, while
-  `git hooks install` links through `~/.local/share/git-hooks`. Move the
-  checkout and every repository made from the template has dangling hooks,
-  which git skips without a word; `dots apply` repairs the home links, not
-  those. Only once `init.templateDir` in `core.gitconfig` is switched on.
-  From the 2026-10-10 creview. Future work because the fix has more than
-  one shape: a sentence in the template row of `configuration.md`, or a
-  template whose hooks resolve through `~/.local/share/git-hooks` (which
-  `dots` cannot produce: it links every file to its source).
+  `git init` copies a symlink as it is, so after moving the checkout every
+  repository made from the template has dangling hooks, which git skips
+  without a word. `git hooks install` does not repair them: it counts a
+  dangling `NAME.off` as installed. The `templateDir` description and the
+  template row of `configuration.md` now give the tested repair,
+  `find .git/hooks -xtype l -delete && git init` after `dots apply`, and
+  say a hook switched on comes back off. Only matters once
+  `init.templateDir` is switched on. Not built: a template whose hooks
+  resolve through `~/.local/share/git-hooks`, which needs a `dots`
+  attribute making a symlink with a given target (chezmoi's `symlink_`);
+  the route if `templateDir` goes on for good.
 - **F.2.ak  What is an alias, a function, or a program on PATH.**  From
   the owner's TODOs of 2026-10-12; the TODO's sentence stops at "to ensure
   we always". The rule proposed: an alias when the words only go in front
