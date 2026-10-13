@@ -172,6 +172,16 @@ def test_options_module_opinionated_options_default_off(linked):
     assert proc.stdout == "on\n"
 
 
+def test_options_module_limits_stay_inside_the_hard_limit():
+    # The ulimit settings, switched on, under hard limits a cluster might set
+    text = (REPO / "dot_config/bash/rc.d/10-options.sh").read_text()
+    no_core, all_core, stack = (line[1:] for line in text.splitlines() if line.startswith("#ulimit "))
+    proc = subprocess.run(["bash", "-c", f"ulimit -Sc 0; ulimit -Hc 100; ulimit -Ss 1024; ulimit -Hs 2048; {all_core}; {stack}; "
+                           f"ulimit -Sc; ulimit -Ss; {no_core}; ulimit -Sc hard; ulimit -Sc"],
+                          capture_output=True, text=True)
+    assert (proc.stderr, proc.stdout) == ("", "100\n2048\n100\n")
+
+
 def test_path_module_prepends_private_bins_once_and_leaves_the_repository_off(linked):
     (linked / ".local" / "bin").mkdir(parents=True, exist_ok=True)
     (linked / "bin").mkdir(exist_ok=True)

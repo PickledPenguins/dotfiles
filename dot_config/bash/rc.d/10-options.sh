@@ -186,13 +186,13 @@ umask 022
 #umask 027
 
 # No core dumps: a crashing program leaves no core file, which can be
-# gigabytes.
-#ulimit -c 0
+# gigabytes. Soft limit only, so `ulimit -Sc hard` turns them back on.
+#ulimit -Sc 0
 
 # Core dumps of any size, to debug a crash with gdb afterwards. Only as
 # far as the system's hard limit allows.
-#ulimit -c unlimited
+#ulimit -Sc hard
 
 # No stack size limit, which some Fortran and deeply recursive programs
 # need. Only as far as the system's hard limit allows.
-#ulimit -s unlimited
+#ulimit -Ss hard
