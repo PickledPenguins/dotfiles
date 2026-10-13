@@ -53,3 +53,5 @@ if not line or (number == 1 and line.startswith("#!")): ||| if not line:
 if line.startswith(marker) and (not rest or rest[0].isspace() or rest[0] == marker): ||| if line.startswith(marker) and (not rest or rest[0].isspace()):
 state = "off" if line.startswith(marker) else "on" ||| state = "on"
 if doc or current is None or current.state != state: ||| if doc or current is None:
+if found == "conflict": ||| if found == "stale-link":
+if found != "missing": ||| if found == "ok":

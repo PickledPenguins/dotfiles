@@ -89,9 +89,12 @@ has execute. Exit 0 (skips are not errors).
 
 ### `dots forget [-n] paths...`
 
-Stop managing targets. A target that is our link becomes a real copy of
-the source file; the source file is removed. `forget  target` per path;
-`skip  path: not managed` for the rest. A target reached through a
+Stop managing targets, keeping each file. A target that is our link, a
+stale link or missing becomes a real copy of the source file, and the
+source file is removed. A target that is a conflict is left alone and the
+source file moves to the backup tree (`backup  target  ->  path`).
+`forget  target` per path; `skip  path: not managed` for the rest. A
+target reached through a
 directory link into the source tree is refused (`skip  path: .vim links
 into the source; make it a real directory`): there the target is the
 source file, and removing one would remove both.

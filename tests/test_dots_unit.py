@@ -217,7 +217,7 @@ def test_backup_moves_target_keeping_home_relative_path(dots, src, home):
     e.target.parent.mkdir(parents=True)
     e.target.write_text("mine")
     root = home / ".dotfiles-backup" / "ts"
-    dest = dots.backup(e, root)
+    dest = dots.backup(e.target, e.rel, root)
     assert dest == root / ".config" / "app" / "settings.ini"
     assert dest.read_text() == "mine" and not e.target.exists()
 
@@ -226,7 +226,7 @@ def test_backup_moves_a_symlink_not_its_referent(dots, src, home):
     e = dots.Entry(src, home, "dot_bashrc")
     (home / "real").write_text("keep")
     os.symlink(home / "real", e.target)
-    dest = dots.backup(e, home / "bk")
+    dest = dots.backup(e.target, e.rel, home / "bk")
     assert dest.is_symlink() and (home / "real").read_text() == "keep"
 
 

@@ -98,9 +98,9 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
   is backed up (the link itself, not what it pointed to) rather than
   silently replaced; only links into our own source tree are relinked.
 - **Nothing is deleted outside git.**  Conflicts move to a timestamped
-  backup tree; `forget` copies a linked target before it removes the
-  source, and for a target that is not linked removes the source only, whose
-  content git still holds; `unlink` touches only links in state `ok`;
+  backup tree; `forget` puts a copy of the source at the target, or moves
+  the source to the backup tree when a conflict is there, before the source
+  leaves the tree; `unlink` touches only links in state `ok`;
   `prune` removes only symlinks that point into the source tree at a path
   that no longer exists -- nothing with content. A target reached through
   a directory link into the source is the source file, so `apply --force`

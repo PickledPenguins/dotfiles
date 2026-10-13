@@ -313,10 +313,23 @@ def test_forget_leaves_a_real_copy_and_removes_the_source(run, src, home):
     assert ".bashrc" not in run("managed")[1]
 
 
-def test_forget_unlinked_target_just_drops_the_source(run, src, home):
+def test_forget_missing_target_gets_the_copy(run, src, home):
+    code, out, _ = run("forget", str(home / ".bashrc"), str(home / ".ssh" / "config"))
+    assert (code, out) == (0, "forget    .bashrc\nforget    .ssh/config\n")
+    assert (home / ".bashrc").read_text() == "# bashrc\n"
+    assert not (src / "dot_bashrc").exists()
+    assert stat.S_IMODE((home / ".ssh").stat().st_mode) == 0o700
+    assert stat.S_IMODE((home / ".ssh" / "config").stat().st_mode) & 0o077 == 0
+
+
+def test_forget_stale_link_is_replaced_by_the_copy(run, src, home):
+    (home / ".bashrc").symlink_to(src / "dot_bashrc.old")
     code, out, _ = run("forget", str(home / ".bashrc"))
     assert (code, out) == (0, "forget    .bashrc\n")
-    assert not (home / ".bashrc").exists() and not (src / "dot_bashrc").exists()
+    assert not (home / ".bashrc").is_symlink()
+    assert (home / ".bashrc").read_text() == "# bashrc\n"
+    assert not (src / "dot_bashrc").exists()
+
 
 
 def test_forget_dry_run(run, src, home):

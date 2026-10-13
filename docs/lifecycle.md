@@ -43,10 +43,11 @@ only links whose state is `ok`.
   permission bits for others or `--private` was given, `executable_` when
   the owner can execute it) and a symlink is left behind. Order of the
   arguments is the order of the moves.
-- `forget FILE`: if the target is our link, it is replaced by a **copy** of
-  the source file; then the source file is removed. A target in any other
-  state is left alone and only the source is removed, so its content is
-  then only in git. A target reached through a directory link into the
+- `forget FILE`: if the target is our link, a stale link or missing, a
+  **copy** of the source file is put there (private directories made with
+  mode 700); then the source file is removed. A target in conflict is left
+  alone and the source file is **moved** into the backup tree, so neither
+  file is lost. A target reached through a directory link into the
   source is the source file itself and is refused. Unmanaged and refused
   paths are reported and give exit 1.
 

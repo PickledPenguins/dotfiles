@@ -168,11 +168,11 @@ def set_mode(entry):
         os.chmod(directory, 0o700)
 
 
-def backup(entry, backup_root):
-    """Move whatever sits at the target into the backup tree, keeping its home-relative path."""
-    target, dest = entry.target, backup_root / entry.rel
+def backup(path, rel, backup_root):
+    """Move path into the backup tree as the home-relative rel"""
+    dest = backup_root / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(target), str(dest))
+    shutil.move(str(path), str(dest))
     return dest
 
 
@@ -203,7 +203,7 @@ def cmd_apply(args, src, home):
         if args.dry_run:
             continue
         if current == "conflict":
-            print(f"backup    {entry.rel}  ->  {backup(entry, backup_root)}")
+            print(f"backup    {entry.rel}  ->  {backup(entry.target, entry.rel, backup_root)}")
         elif current == "stale-link":
             entry.target.unlink()
         entry.target.parent.mkdir(parents=True, exist_ok=True)
@@ -431,8 +431,10 @@ def cmd_add(args, src, home):
 
 
 def cmd_forget(args, src, home):
-    """Stop managing targets: the link becomes a real copy, the source file is removed."""
+    """Stop managing targets, keeping each file: the source becomes a real copy at
+    the target, or goes to the backup tree when something else is there."""
     wanted = {str(Path(os.path.abspath(os.path.expanduser(p)))) for p in args.paths}
+    backup_root = home / ".dotfiles-backup" / time.strftime("%Y%m%d-%H%M%S")
     refused = 0
     for entry in managed_entries(src, home):
         if str(entry.target) not in wanted:
@@ -447,9 +449,16 @@ def cmd_forget(args, src, home):
         print(f"forget    {entry.rel}")
         if args.dry_run:
             continue
-        if state(entry, src) == "ok":
+        found = state(entry, src)
+        if found == "conflict":
+            # the file at the target is not ours: leave it, keep the source aside
+            print(f"backup    {entry.rel}  ->  {backup(entry.source, entry.rel, backup_root)}")
+            continue
+        if found != "missing":
             entry.target.unlink()
-            shutil.copy2(entry.source, entry.target)
+        entry.target.parent.mkdir(parents=True, exist_ok=True)
+        set_mode(entry)
+        shutil.copy2(entry.source, entry.target)
         entry.source.unlink()
     for path in sorted(wanted):
         print(f"skip      {path}: not managed")

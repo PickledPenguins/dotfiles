@@ -33,17 +33,9 @@ here is scheduled; an item is cited by its label. Back to the
   the whole of `dots` is ~450 lines of stdlib Python and python3 is already
   there.
 - **F.1.f  `forget` of a target that is not linked keeps no copy.**
-  `dots:cmd_forget` copies the source to the target only when the target
-  is `ok`; when it is `missing` or in conflict the source file is removed
-  and its content then exists only in git, so uncommitted edits are lost
-  (`test_forget_unlinked_target_just_drops_the_source` pins this). From
-  the 2026-10-07 creview and creadme audits; the architecture decision was
-  reworded to say what the code does. Not changed silently because both
-  shapes are reasonable: for a `missing` target, copy the source there (the
-  user asked to keep the file); for a conflict, move the source into the
-  backup tree rather than delete it. Either changes `forget`'s output (a
-  `backup` line) and what is left in `$HOME`, plus `docs/cli.md`,
-  `docs/lifecycle.md` and that test.
+  Built 2026-10-12, both shapes: a missing target or a stale link gets the
+  copy, and for a conflict the source moves into the backup tree with a
+  `backup` line. `forget` no longer deletes content outside git.
 - **F.1.g  A path that selects nothing is silent.**  `dots apply ~/.vimrcx`
   prints `0 change(s)` and exits 0; `dots status ~/typo` prints `nothing
   managed`; `unlink` likewise (`dots:selected` just matches nothing). A

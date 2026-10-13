@@ -112,8 +112,10 @@ def test_unlink_never_touches_real_files_or_foreign_links(run, home):
 def test_forget_on_a_conflicting_target_keeps_the_users_file(run, src, home):
     (home / ".bashrc").write_text("mine\n")
     code, out, _ = run("forget", str(home / ".bashrc"))
-    assert (code, out) == (0, "forget    .bashrc\n")
+    [saved] = (home / ".dotfiles-backup").glob("*/.bashrc")
+    assert (code, out) == (0, f"forget    .bashrc\nbackup    .bashrc  ->  {saved}\n")
     assert (home / ".bashrc").read_text() == "mine\n"      # not overwritten by the source copy
+    assert saved.read_text() == "# bashrc\n"               # nor the source lost
     assert not (src / "dot_bashrc").exists()
 
 
