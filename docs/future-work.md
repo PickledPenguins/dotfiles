@@ -335,9 +335,14 @@ here is scheduled; an item is cited by its label. Back to the
 Things done by hand outside the repository, moved from the 2026-09-20
 handoff.
 
-- **F.4.a  Publishing.**  There is no remote. The other projects are
-  under `github.com/PickledPenguins/`; whether this one goes there is not
-  decided.
+- **F.4.a  Publishing.**  Settled: public at
+  `github.com/PickledPenguins/dotfiles` since 2026-10-10 at the latest,
+  like the other projects. Its whole history was scanned on 2026-10-13
+  for private keys and AWS, GitHub and Anthropic tokens: the only hits are
+  the `secrets` hook's test fixtures, and `private_dot_ssh/config` names
+  only commented `example.edu` hosts. Pushing stays the owner's call;
+  `CLAUDE.md`, untracked on 2026-10-11, leaves the public tip with the
+  next push of `main` and stays in its history.
 - **F.4.b  `~/.gitignore`.**  The old `~/env/.gitconfig` set
   `excludesfile = ~/.gitignore`; this set uses `~/.config/git/ignore`,
   which already holds that file's one line
