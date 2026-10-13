@@ -23,11 +23,17 @@
 # ~/.bashrc.local.
 
 # ── Custom segments ───────────────────────────────────────────────────────
+# The row functions below print the toolkit's segments straight out rather
+# than collecting them with $( ): each $( ) forks the shell, one to three
+# ms apiece, and every prompt pays it. Whether a separator is needed comes
+# from what each segment reads (SHLVL, the job table, DISPLAY, the GIT_*
+# globals ...), not from capturing its output.
 
 # user@host:directory, user@host in color; the user in red for root.
 _user_host_seg() {
     local uc="$PS_BGREEN"; [[ $EUID == 0 ]] && uc="$PS_BRED"
-    printf '%s%s%s@%s%s%s:%s' "$uc" "$USER" "$PS_R" "$PS_BCYAN" "${HOSTNAME%%.*}" "$PS_R" "$(_ps_seg_pwd)"
+    printf '%s%s%s@%s%s%s:' "$uc" "$USER" "$PS_R" "$PS_BCYAN" "${HOSTNAME%%.*}" "$PS_R"
+    _ps_seg_pwd
 }
 
 # ── Segments ──────────────────────────────────────────────────────────────
@@ -51,16 +57,15 @@ prompt_segment exit             _ps_seg_exit
 # top: shell depth and background jobs, a bar, then the root mark and
 # user@host:directory.
 _top_seg() {
-    local row=''
-    local s=$(_ps_seg_shlvl)
-    local j=$(_ps_seg_jobs)
-    local r=$(_ps_seg_root)
-    [[ -n "$s" ]] && row+="$s "
-    [[ -n "$j" ]] && row+="$j "
-    [[ -n "$row" ]] && row+="| "
-    [[ -n "$r" ]] && row+="$r"
-    row+=$(_user_host_seg)
-    echo " $row"
+    local s=0 j=0
+    (( ${SHLVL:-1} > 1 )) && s=1
+    jobs %% >/dev/null 2>&1 && j=1
+    printf ' '
+    (( s )) && { _ps_seg_shlvl; printf ' '; }
+    (( j )) && { _ps_seg_jobs; printf ' '; }
+    (( s || j )) && printf '| '
+    _ps_seg_root
+    _user_host_seg
 }
 prompt_segment top_seg _top_seg
 prompt_row top '@top_seg'
@@ -68,19 +73,17 @@ prompt_row top '@top_seg'
 # env: $DISPLAY and the tmux pane, a bar, then the conda environment and the
 # virtualenv; left out when all four are empty.
 _env_seg() {
-    local row=''
-    local tmp=''
-    local d=$(_ps_seg_display)
-    local t=$(_ps_seg_tmux)
-    local c=$(_ps_seg_conda)
-    local v=$(_ps_seg_venv)
-    [[ -n "$d" ]] && row+="$d "
-    [[ -n "$t" ]] && row+="$t "
-    [[ -n "$c" ]] && tmp+="$c "
-    [[ -n "$v" ]] && tmp+="$v "
-    [[ -n "$row" && -n "$tmp" ]] && row+="| "
-    row+="$tmp"
-    printf '%s' "${row% }"
+    local d=0 t=0 c=0 v=0 sep=''
+    [[ -n ${DISPLAY-} ]] && d=1
+    [[ -n ${TMUX-} ]] && t=1
+    [[ -n ${CONDA_DEFAULT_ENV-} && $CONDA_DEFAULT_ENV != base ]] && c=1
+    [[ -n ${VIRTUAL_ENV-} ]] && v=1
+    (( d )) && { _ps_seg_display; sep=' '; }
+    (( t )) && { printf '%s' "$sep"; _ps_seg_tmux; sep=' '; }
+    (( (d || t) && (c || v) )) && sep=' | '
+    (( c )) && { printf '%s' "$sep"; _ps_seg_conda; sep=' '; }
+    (( v )) && { printf '%s' "$sep"; _ps_seg_venv; }
+    return 0
 }
 prompt_segment env_seg _env_seg
 prompt_row env ' @env_seg'
@@ -89,23 +92,15 @@ prompt_row env ' @env_seg'
 # and its commit, ahead/behind. The commit is left out before the first one and
 # on a detached HEAD, where the branch already is the commit.
 _git_seg() {
-    local row=''
-    local b=$(_ps_seg_git_branch)
-    if [[ -n "$b" ]]; then
-        row+="⎇  "
-        local s=$(_ps_seg_git_full_state)
-        local sha=$(_ps_seg_git_sha)
-        local r=$(_ps_seg_git_remote)
-        local rsha=$(_ps_seg_git_remote_sha)
-        local ab=$(_ps_seg_git_ahead_behind)
-        [[ -n "$s" ]] && row+="$s "
-        row+="$b"
-        [[ -n "$sha" && "$sha" != "$b" ]] && row+=" ($sha)"
-        [[ -n "$r" ]] && row+=" → $r"
-        [[ -n "$rsha" ]] && row+=" ($rsha)"
-        [[ -n "$ab" ]] && row+=" ($ab)"
-    fi
-    printf '%s' "$row"
+    (( GIT_IN_REPO )) && [[ -n $GIT_BRANCH ]] || return 0
+    printf '⎇  '
+    _ps_seg_git_full_state
+    printf ' %s' "$GIT_BRANCH"
+    [[ -n $GIT_SHA && $GIT_SHA != "$GIT_BRANCH" ]] && printf ' (%s)' "$GIT_SHA"
+    [[ -n $GIT_REMOTE ]] && printf ' → %s' "$GIT_REMOTE"
+    [[ -n $GIT_REMOTE_SHA ]] && printf ' (%s)' "$GIT_REMOTE_SHA"
+    [[ -n $GIT_REMOTE ]] && { printf ' ('; _ps_seg_git_ahead_behind; printf ')'; }
+    return 0
 }
 prompt_segment git_seg _git_seg
 prompt_segment_needs _git_seg git

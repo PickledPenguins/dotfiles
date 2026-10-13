@@ -476,6 +476,23 @@ def test_prompt_git_row_leaves_out_a_missing_or_repeated_commit(linked):
     assert rows[1] == f"│ ⎇  (✓) {sha}"                # detached: the SHA once
 
 
+def test_prompt_top_row_has_a_bar_only_after_depth_or_jobs(linked):
+    user_host = f"{os.environ['USER']}@{socket.gethostname().split('.')[0]}:~"
+    assert shown_prompt(linked)[0] == f"╭ {user_host}"
+    # The braces take the "[1] PID" an interactive shell prints off stderr
+    rows = shown_prompt(linked, 'SHLVL=3; { sleep 30 >/dev/null 2>&1 & } 2>/dev/null; trap "kill %1" EXIT; ')
+    assert rows[0] == f"╭ ⬇3 ⚙1 | {user_host}"
+    assert shown_prompt(linked, "SHLVL=3; ")[0] == f"╭ ⬇3 | {user_host}"
+
+
+def test_prompt_git_row_with_an_upstream(linked):
+    git = "git -c user.name=t -c user.email=t@t"
+    rows = shown_prompt(linked, f"{git} init -q -b main u; {git} -C u commit -q --allow-empty -m x; "
+                                f"git clone -q u c 2>/dev/null; cd c; {git} commit -q --allow-empty -m y; ")
+    shas = re.findall(r"\(([0-9a-f]{7,})\)", rows[1])
+    assert len(shas) == 2 and rows[1] == f"│ ⎇  (✓) main ({shas[0]}) → origin/main ({shas[1]}) (↑1)"
+
+
 def test_simple_prompt_module_when_enabled(linked):
     (linked / ".config" / "bash" / "disabled").write_text("prompt\n")
     off = linked / ".config/bash/rc.d/61-prompt-simple.sh.off"

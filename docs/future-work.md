@@ -242,19 +242,28 @@ here is scheduled; an item is cited by its label. Back to the
   packaged `perf-push` hook runs it on each pushed commit, installed off
   by `./run-tests.sh hook` and switched on with `git hooks on perf-push`.
   The entry's 0.3 ms for `prompt_build` was the git cache alone; the
-  whole call is 40 ms (F.3.h).
-- **F.3.h  `prompt_build` takes 40 ms a prompt.**  Measured 2026-10-13
+  whole call was 40 ms, now 22 ms (F.3.h).
+- **F.3.h  `prompt_build` takes 22 ms a prompt.**  Measured 2026-10-13
   in a temporary linked home: 40 ms at the top of this repository, 32 ms
-  in `/tmp`, steady to 0.3 ms across runs. A trace puts 12 ms in
-  `_top_seg` and 6 ms in `_env_seg` (`dot_config/bash/prompt/layout.sh`),
-  each a command substitution that runs four or five more
-  (`$(_ps_seg_shlvl)`, `$(_ps_seg_jobs)` ...), and 2 ms in `tput cols`;
-  each fork of an interactive bash costs one to three ms. Every prompt
-  pays it, after every command. Fix: segments that set a variable
-  instead of printing, called without `$( )`, in `layout.sh` and where
-  the toolkit's own segments do the same, and `$COLUMNS` for
-  `tput cols`. Not built: it changes the segment interface the toolkit
-  documents, and the perf gate now catches it growing.
+  in `/tmp`. A trace put 12 ms in `_top_seg` and 6 ms in `_env_seg`
+  (`dot_config/bash/prompt/layout.sh`), each a command substitution that
+  ran four to six more (`$(_ps_seg_shlvl)`, `$(_ps_seg_jobs)` ...); each
+  fork of an interactive bash costs one to three ms, and every prompt pays
+  it, after every command. The layout half is built (2026-10-13, 39 to
+  22 ms at the top of this repository): its row functions print the
+  segments straight out, and decide where a separator goes from what each
+  segment reads (`SHLVL`, `jobs %%`, `DISPLAY`, the `GIT_*` globals),
+  with the output unchanged in 220 combinations. Still open, in the
+  toolkit: each segment is still one `$( )` in `_ps_expand_into`
+  (`prompt.sh:208`), and `_ps_seg_pwd` forks three more (`strip_ansi`,
+  `tr`, `str_width`), `_ps_seg_tmux` three, `_ps_seg_venv` one. Fix:
+  segments that set a variable instead of printing, and `$COLUMNS` for
+  `tput cols` (`prompt.sh:515`, only while `COLUMNS` is unset). Not
+  built: it changes the segment interface the toolkit documents, a
+  segment would run in the shell itself (a stray `exit` would close it, a
+  `cd` or a variable would leak), and the perf gate catches it growing.
+  A tmux whose server cannot be reached now leaves an extra space in the
+  env row, where `_ps_seg_tmux` prints nothing.
 - **F.3.d  Mutation of the shell code.**  `./run-tests.sh mutate` covers
   `dots` only. The bash modules carry branches the long suite asserts
   (`_venv_auto`, `_title_arm`, the `20-path.sh` helpers, `bd`, `swap`,
