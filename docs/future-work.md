@@ -303,11 +303,14 @@ handoff.
 - **F.4.c  `~/env/` and `~/.bash_aliases`.**  The old configuration, kept
   as a backup. `~/.bash_aliases -> env/.bash_aliases` is still in `$HOME`
   and nothing sources it. Both can go once nothing from them is missed.
-- **F.4.d  ssh hosts that relied on agent-offered keys.**
-  `IdentitiesOnly yes` in `~/.ssh/config` offers only keys named by
-  `IdentityFile`; a host that worked with any agent key needs an
-  `IdentityFile` line in `~/.ssh/config.local`. Not checked against the
-  owner's hosts.
+- **F.4.d  ssh hosts that relied on agent-offered keys.**  Checked
+  2026-10-13 and kept on. `IdentitiesOnly yes` in `~/.ssh/config` offers
+  only keys named by `IdentityFile`, or the default key files when none
+  is. On this machine the agent holds two keys, `id_ed25519` and
+  `id_rsa`, both default files, so every host still gets them. A machine
+  where a key is only in the agent (a login node reached with
+  `ForwardAgent`) can lose it; the setting's description and
+  `docs/lifecycle.md#ssh` give the fixes in `~/.ssh/config.local`.
 - **F.4.e  Agent files and generated paths in the root.**  The
   workspace layout standard puts `CLAUDE.md` in `.claude/`, `HANDOFF.md`
   and `reviews/` in `.agent/`, and the test runner under `tests/`. Here

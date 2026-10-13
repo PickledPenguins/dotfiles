@@ -110,3 +110,27 @@ per-machine overrides in the local file win. `~/.config/git/ignore` and
 `~/.ssh/config` starts with `Include ~/.ssh/config.local` and
 `Include ~/.ssh/config.d/*`, then `Host *` defaults. ssh takes the first
 value it finds for each option, so a `Host` block in the local file wins.
+
+`IdentitiesOnly yes` offers a host only the keys its `IdentityFile` lines
+name, or the default files (`~/.ssh/id_ed25519`, `~/.ssh/id_rsa` ...) when
+there are none, never any other key the agent holds. A host that worked
+with such a key fails with `Permission denied (publickey)`.
+`ssh -v HOST` lists each key offered, `ssh-add -l` what the agent holds and
+`ssh -G HOST | grep identityfile` the files ssh will try. The fixes, in
+`~/.ssh/config.local`:
+
+```
+# One host: name its key.
+Host work
+    IdentityFile ~/.ssh/id_ed25519_work
+
+# A key only in the agent (forwarded, gpg-agent, a hardware token):
+# save its public half once, then name that.
+#   ssh-add -L | grep COMMENT > ~/.ssh/agent_key.pub
+Host work
+    IdentityFile ~/.ssh/agent_key.pub
+
+# Every agent key for every host, on this machine.
+Host *
+    IdentitiesOnly no
+```
