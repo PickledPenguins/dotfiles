@@ -28,6 +28,9 @@ Paths given to `apply`, `status` and `unlink` restrict them to targets equal
 to or below those paths; `add` and `forget` require paths; `managed` and
 `prune` take none; `options` takes search words instead. Paths are made
 absolute lexically (`~` expanded, `..` collapsed, symlinks not followed).
+A path that selects no target (a typo, an unmanaged or ignored file) gets
+`skip      PATH: not managed` before the summary line, and the command
+exits 1; the paths that do match are still acted on.
 
 ### `dots apply [-n] [--force] [paths...]`
 
@@ -43,8 +46,8 @@ SRC/dot_vim`) is the source file; it stays a conflict even under
 | `-n`, `--dry-run` | print the plan, change nothing; the summary ends in `(dry run)` |
 | `--force` | back up and replace real files and foreign symlinks (see [lifecycle](lifecycle.md#dots-apply)) |
 
-Exit 0, or 1 when conflicts remain. `--force -n` shows `replace` lines
-without the `backup` lines, since no backup is made.
+Exit 0, or 1 when conflicts remain or a path selected nothing. `--force -n`
+shows `replace` lines without the `backup` lines, since no backup is made.
 
 ### `dots status [-a] [paths...]`
 
@@ -56,7 +59,7 @@ is well; `nothing managed` for an empty source.
 |------|--------|
 | `-a`, `--all` | list `ok` targets too |
 
-Exit 0 when every target is `ok`, else 1.
+Exit 0 when every target is `ok` and every path selected one, else 1.
 
 ### `dots managed [-s]`
 
@@ -166,14 +169,14 @@ command off `PATH` too (run `~/.dotfiles/dots` from then on).
 |------|--------|
 | `-n`, `--dry-run` | print the removals, change nothing |
 
-Exit 0.
+Exit 0, or 1 when a path selected nothing.
 
 ## Exit status
 
 | Code | When |
 |------|------|
 | 0 | success |
-| 1 | `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path or refused one; `options` matched nothing; an unhandled error (a traceback, e.g. an unreadable `.dotsignore`) |
+| 1 | `apply`, `status` or `unlink` named a path that selects nothing; `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path or refused one; `options` matched nothing; an unhandled error (a traceback, such as for an unreadable `.dotsignore`) |
 | 2 | usage error (argparse), or the source directory does not exist |
 
 ## Environment

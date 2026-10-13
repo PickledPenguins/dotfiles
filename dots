@@ -184,7 +184,8 @@ def backup(path, rel, backup_root):
 
 
 def cmd_apply(args, src, home):
-    entries = [e for e in managed_entries(src, home) if selected(e, args.paths, home)]
+    every = managed_entries(src, home)
+    entries = [e for e in every if selected(e, args.paths, home)]
     backup_root = home / ".dotfiles-backup" / time.strftime("%Y%m%d-%H%M%S")
     changed = conflicts = 0
     for entry in entries:
@@ -213,21 +214,24 @@ def cmd_apply(args, src, home):
         entry.target.parent.mkdir(parents=True, exist_ok=True)
         os.symlink(entry.source, entry.target)
         set_mode(entry)
+    missed = skip_unmanaged(every, args.paths, home)
     print(f"{changed} change(s){' (dry run)' if args.dry_run else ''}"
           + (f", {conflicts} conflict(s) left" if conflicts else ""))
-    return 1 if conflicts else 0
+    return 1 if conflicts or missed else 0
 
 
 def cmd_status(args, src, home):
-    entries = [e for e in managed_entries(src, home) if selected(e, args.paths, home)]
+    every = managed_entries(src, home)
+    entries = [e for e in every if selected(e, args.paths, home)]
     counts = {}
     for entry in entries:
         current = state(entry, src)
         counts[current] = counts.get(current, 0) + 1
         if current != "ok" or args.all:
             print(f"{current:<11} {entry.rel}")
+    missed = skip_unmanaged(every, args.paths, home)
     print("  ".join(f"{k}: {v}" for k, v in sorted(counts.items())) or "nothing managed")
-    return 0 if set(counts) <= {"ok"} else 1
+    return 0 if set(counts) <= {"ok"} and not missed else 1
 
 
 def cmd_managed(args, src, home):
@@ -237,7 +241,8 @@ def cmd_managed(args, src, home):
 
 
 def cmd_unlink(args, src, home):
-    entries = [e for e in managed_entries(src, home) if selected(e, args.paths, home)]
+    every = managed_entries(src, home)
+    entries = [e for e in every if selected(e, args.paths, home)]
     removed = 0
     for entry in entries:
         if state(entry, src) == "ok":
@@ -245,8 +250,9 @@ def cmd_unlink(args, src, home):
             removed += 1
             if not args.dry_run:
                 entry.target.unlink()
+    missed = skip_unmanaged(every, args.paths, home)
     print(f"{removed} link(s) removed{' (dry run)' if args.dry_run else ''}")
-    return 0
+    return 1 if missed else 0
 
 
 def cmd_prune(args, src, home):
@@ -478,6 +484,14 @@ def selected(entry, paths, home):
         if entry.target == p or p in entry.target.parents:
             return True
     return False
+
+
+def skip_unmanaged(entries, paths, home):
+    """Print a skip line for each path that selects none of entries and return how many"""
+    missed = [p for p in paths if not any(selected(e, [p], home) for e in entries)]
+    for raw in missed:
+        print(f"skip      {Path(os.path.abspath(os.path.expanduser(raw)))}: not managed")
+    return len(missed)
 
 
 def main(argv=None):

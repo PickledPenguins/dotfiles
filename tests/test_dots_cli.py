@@ -345,6 +345,25 @@ def test_forget_unmanaged_path_is_skipped_with_exit_1(run, src, home):
     assert out == f"forget    .bashrc\nskip      {home / '.nope'}: not managed\n"
 
 
+@pytest.mark.parametrize("cmd, last", [("apply", "1 change(s)"), ("status", "missing: 1"),
+                                       ("unlink", "0 link(s) removed")])
+def test_a_path_that_selects_nothing_is_skipped_with_exit_1(run, home, cmd, last):
+    code, out, _ = run(cmd, str(home / ".bashrcx"), str(home / ".bashrc"))
+    skip = f"skip      {home / '.bashrcx'}: not managed"
+    assert (code, out.splitlines()[-2:]) == (1, [skip, last])
+
+
+def test_status_of_an_ok_target_and_a_typo_exits_1(run, home):
+    run("apply")
+    code, out, _ = run("status", str(home / ".bashrcx"), str(home / ".bashrc"))
+    assert (code, out) == (1, f"skip      {home / '.bashrcx'}: not managed\nok: 1\n")
+
+
+def test_a_directory_path_that_holds_a_target_is_not_skipped(run, home):
+    code, out, _ = run("apply", "-n", str(home / ".config") + "/")
+    assert (code, "skip" in out) == (0, False)
+
+
 # ── process-level behavior ────────────────────────────────────────────────
 
 

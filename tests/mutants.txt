@@ -18,8 +18,8 @@ if through or not args.force: ||| if through:
 if through or not args.force: ||| if not args.force:
 if directory.is_symlink() and os.path.realpath(directory).startswith(str(src) + os.sep): ||| if directory.is_symlink():
 elif current == "stale-link": ||| elif current == "conflict":
-return 1 if conflicts else 0 ||| return 0
-return 0 if set(counts) <= {"ok"} else 1 ||| return 0
+return 1 if conflicts or missed else 0 ||| return 1 if missed else 0
+return 0 if set(counts) <= {"ok"} and not missed else 1 ||| return 0 if not missed else 1
 if current != "ok" or args.all: ||| if current != "ok":
 if state(entry, src) == "ok": ||| if state(entry, src) != "conflict":
 source_rel = source_name(rel, args.private or not mode & stat.S_IRWXO, ||| source_rel = source_name(rel, args.private,
@@ -56,3 +56,7 @@ if doc or current is None or current.state != state: ||| if doc or current is No
 if found == "conflict": ||| if found == "stale-link":
 if found != "missing": ||| if found == "ok":
 if (own / IGNORE_FILE).is_file(): ||| if not (own / IGNORE_FILE).is_file():
+return 1 if conflicts or missed else 0 ||| return 1 if conflicts else 0
+return 0 if set(counts) <= {"ok"} and not missed else 1 ||| return 0 if set(counts) <= {"ok"} else 1
+return 1 if missed else 0 ||| return 0
+missed = [p for p in paths if not any(selected(e, [p], home) for e in entries)] ||| missed = [p for p in paths if not all(selected(e, [p], home) for e in entries)]

@@ -36,15 +36,12 @@ here is scheduled; an item is cited by its label. Back to the
   Built 2026-10-12, both shapes: a missing target or a stale link gets the
   copy, and for a conflict the source moves into the backup tree with a
   `backup` line. `forget` no longer deletes content outside git.
-- **F.1.g  A path that selects nothing is silent.**  `dots apply ~/.vimrcx`
-  prints `0 change(s)` and exits 0; `dots status ~/typo` prints `nothing
-  managed`; `unlink` likewise (`dots:selected` just matches nothing). A
-  typo looks like success, while `forget` already says `skip ... not
-  managed` and exits 1. From the 2026-10-07 creview. Future work because
-  it adds a message and turns an exit 0 into 1 for an input that is
-  accepted today. Fix: in `apply`, `status` and `unlink`, print `skip
-  PATH: not managed` for each path argument that selected no entry and
-  exit 1, as `forget` does; new catalog case under `failures/`.
+- **F.1.g  A path that selects nothing was silent.**  Built 2026-10-12.
+  `dots apply ~/.vimrcx` printed `0 change(s)` and exited 0, `status` and
+  `unlink` likewise. Now `apply`, `status` and `unlink` print `skip PATH:
+  not managed` before the summary for each path that selects no target and
+  exit 1, as `forget` does; the paths that match are still acted on.
+  Catalog case `failures/12-apply-an-unmanaged-path`.
 - **F.1.h  Managing a name that starts with a prefix word.**  `add` now
   refuses `~/private_notes` or `~/bin/dot_env`, since stored under its own
   name such a file would be read back as an attribute. chezmoi solves it

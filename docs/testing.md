@@ -53,7 +53,7 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags, systemd (long) | fast + long |
 | `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order, failure and stdin rules; each packaged hook refusing and passing; the template matching what install leaves; `git ctags` on top | long |
 | `tests/test_runner.py` | `run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` needs none | fast |
-| `tests/test_examples.py` | the example catalog: 50 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
+| `tests/test_examples.py` | the example catalog: 51 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
 | `tests/mutants.txt`, `tests/coveragerc`, `tests/hooks/pre-push` | the gates | |
 

@@ -1,0 +1,7 @@
+link      .vimrc  ->  SRC/dot_vimrc
+skip      HOME/.vimrcx: not managed
+1 change(s)
+exit 1
+skip      HOME/.vimrcx: not managed
+nothing managed
+exit 1
