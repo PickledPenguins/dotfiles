@@ -78,11 +78,13 @@ augroup dotfiles_mkdir
 augroup END
 
 " Strip trailing whitespace on every write, except in markdown, diffs and
-" mail where it means something, and in a file edited with vim -b. In a
-" file that already had some, the diff then shows those lines changed too.
+" mail where it means something, in a file edited with vim -b, and in a
+" project whose .editorconfig says trim_trailing_whitespace = false (when
+" EditorConfig is loaded, 30-indent.vim). In a file that already had some,
+" the diff then shows those lines changed too.
 augroup dotfiles_trailing
   autocmd!
-  autocmd BufWritePre * if !&binary && &filetype !~# 'markdown\|diff\|mail' | let s:v = winsaveview() | keeppatterns %s/\s\+$//e | call winrestview(s:v) | endif
+  autocmd BufWritePre * if !&binary && &filetype !~# 'markdown\|diff\|mail' && !get(b:, 'dotfiles_keep_trailing') | let s:v = winsaveview() | keeppatterns %s/\s\+$//e | call winrestview(s:v) | endif
 augroup END
 
 " Save every changed buffer when vim loses focus (switching to another

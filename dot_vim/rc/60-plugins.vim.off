@@ -78,8 +78,10 @@ Plug 'airblade/vim-gitgutter'
 
 " ── Languages ───────────────────────────────────────────────────────────
 
-" editorconfig: vim 9.0.1799+ ships it as an optional package instead
-" (`packadd editorconfig`), which nothing here loads.
+" editorconfig: vim 9.0.1799+ ships the same plugin as an optional package,
+" which the EditorConfig setting in 30-indent.vim loads; use one or the
+" other. The charset/end_of_line and trailing-whitespace guards there apply
+" to this one too.
 Plug 'editorconfig/editorconfig-vim'
 
 " ALE: linting and fixing as you type with the linters you have installed.

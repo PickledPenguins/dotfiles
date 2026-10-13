@@ -167,19 +167,17 @@ here is scheduled; an item is cited by its label. Back to the
   tmux's `focus-events` work. GNU screen is left alone. Not caught: vim
   over ssh from tmux with `TERM=screen-256color` (no `$TMUX` on the far
   side); the comment says to set it in `~/.vimrc.local` there.
-- **F.2.u  vim does not read `.editorconfig`.**  vim 9.0.1799+ ships
-  editorconfig as an optional package, and nothing here runs `packadd`
-  (`exists(':EditorConfigReload')` is 0); `dot_vim/rc/30-indent.vim:2` now
-  says so. `~/.editorconfig` is therefore dead for vim, and the
-  strip-trailing-whitespace autocmd (`40-files.vim:68-71`) ignores a
-  project's `trim_trailing_whitespace = false`. From the 2026-10-08
-  settings creview. Future work because loading it changes how vim edits
-  every file under `$HOME`: `[*]` in `dot_editorconfig:15-16` sets `charset
-  = utf-8` and `end_of_line = lf`, so a latin-1 or CRLF file is rewritten
-  whole on its next save. Fix: `if has('patch-9.0.1799') | packadd!
-  editorconfig | endif` in `30-indent.vim`, with `charset` and
-  `end_of_line` moved out of `[*]` (or described), and the whitespace
-  autocmd skipped when editorconfig set `trim_trailing_whitespace`.
+- **F.2.u  vim does not read `.editorconfig`.**  Built 2026-10-12, off:
+  `"if has('patch-9.0.1799') | packadd! editorconfig | endif` in
+  `dot_vim/rc/30-indent.vim`, off because it changes how vim saves every
+  file under `$HOME` (`~/.editorconfig`'s `[*]`), and the
+  `g:dotfiles_indent` knob stops applying there. On: the guards that make
+  switching it on safe, for the package or the `60-plugins.vim.off`
+  plugin. `g:EditorConfig_disable_rules` drops `charset` and
+  `end_of_line`, which would rewrite latin-1 and CRLF files whole; a hook
+  makes a project's `trim_trailing_whitespace = false` stop the
+  strip-on-write in `40-files.vim`; `dot_editorconfig` gives
+  `Makefile*` and `GNUmakefile` tabs, which `[*]`'s spaces would break.
 - **F.2.v  `gdefault` is on.**  Built 2026-10-12: `#set gdefault`, and
   `<leader>rw` and `<leader>ri` type the `/g` themselves.
 - **F.2.y  `smartindent` sends `#` lines to column 0.**

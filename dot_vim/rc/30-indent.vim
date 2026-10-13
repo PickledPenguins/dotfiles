@@ -1,6 +1,6 @@
 " 30-indent.vim: indentation: spaces or tabs, and how wide, by filetype.
-" vim 9.0.1799+ ships editorconfig as an optional package that these files
-" do not load, so a project's .editorconfig is not read.
+" vim reads .editorconfig only when the editorconfig setting below is on
+" (or the plugin in 60-plugins.vim.off).
 "
 " Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
@@ -48,3 +48,38 @@ augroup END
 " Shifting a visual selection with < or > keeps it selected, for shifting again.
 xnoremap < <gv
 xnoremap > >gv
+
+" ── EditorConfig ────────────────────────────────────────────────────────
+
+" Read .editorconfig files (vim 9.0.1799+ ships the plugin as an optional
+" package): a project's own file sets indentation, final newline and
+" trailing-whitespace stripping for its files, and beats the filetype widths
+" above. Off because it changes how vim saves every file under $HOME, which
+" ~/.editorconfig covers with [*]: the g:dotfiles_indent knob no longer
+" applies there (change indent_size in ~/.editorconfig too), and a project
+" file with wrong rules wins as well. The two settings below keep it from
+" re-encoding files or changing their line endings. Not together with the
+" editorconfig plugin in 60-plugins.vim.off, which is the same plugin.
+"if has('patch-9.0.1799') | packadd! editorconfig | endif
+
+" EditorConfig, once loaded (above or by 60-plugins.vim.off), ignores
+" charset and end_of_line: with them, ~/.editorconfig's utf-8 and lf would
+" rewrite every latin-1 or CRLF file under $HOME on its next save (a
+" whole-file diff) and mark it modified as soon as it opens. vim keeps the
+" encoding and line ending it detected instead; a project's crlf or latin1
+" is not applied to new files. Other editors still read both. Does nothing
+" until EditorConfig is loaded.
+let g:EditorConfig_disable_rules = ['charset', 'end_of_line']
+
+" A project's trim_trailing_whitespace = false also stops this setup's own
+" strip-on-write (40-files.vim), which otherwise strips every file but
+" markdown, diffs and mail. Does nothing until EditorConfig is loaded.
+function! s:EditorConfigTrailing(config) abort
+  let b:dotfiles_keep_trailing = get(a:config, 'trim_trailing_whitespace', '') ==# 'false'
+  return 0
+endfunction
+augroup dotfiles_editorconfig
+  autocmd!
+  autocmd SourcePost */plugin/editorconfig.vim
+        \ call editorconfig#AddNewHook(function('s:EditorConfigTrailing'))
+augroup END

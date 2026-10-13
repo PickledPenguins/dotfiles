@@ -1,5 +1,7 @@
 # ~/.editorconfig: indentation defaults for editors that read EditorConfig
-# (vim 9+, neovim, VS Code, JetBrains). A project without its own
+# (neovim, VS Code, JetBrains; vim only when its editorconfig setting in
+# ~/.vim/rc/30-indent.vim is on, and then without charset and end_of_line).
+# The [*] rules apply to every file under $HOME. A project without its own
 # .editorconfig gets these; a project's file with root = true replaces them.
 # Comments must be on their own lines here.
 #
@@ -28,8 +30,9 @@ indent_size = 2
 # Four spaces for rust, java, C, C++ and shell.
 indent_size = 4
 
-[{Makefile,makefile,*.mk,*.go}]
-# Real tabs for make and go, which require or expect them.
+[{Makefile*,makefile*,GNUmakefile,*.mk,*.go}]
+# Real tabs for make (Makefile.am and .in too) and go, which require or
+# expect them. A makefile name not listed gets [*]'s spaces, and make fails.
 indent_style = tab
 indent_size = 8
 

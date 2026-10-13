@@ -1181,6 +1181,37 @@ def test_vim_tmp_and_secret_files_leave_the_next_files_options_alone(linked):
 
 
 @needs("vim")
+def test_vim_editorconfig_when_on_follows_the_project_but_keeps_encoding_and_line_ends(linked):
+    (linked / ".vimrc.local").write_text("packadd! editorconfig\n")
+    project = linked / "p"
+    project.mkdir()
+    (project / ".editorconfig").write_text("root = true\n[*]\nindent_size = 8\ntrim_trailing_whitespace = false\n")
+    (project / "a.c").write_text("x \n")
+    (linked / "c.txt").write_bytes(b"a\r\nb\r\n")
+    (linked / "GNUmakefile").write_text("all:\n")
+    out = vim(linked, f"edit {project}/a.c", "set shiftwidth? modified?", f"edit {linked}/c.txt",
+              "set fileformat? modified?", f"edit {linked}/GNUmakefile", "set expandtab?")
+    assert re.findall(r"shiftwidth=\d+|(?:no)?modified|fileformat=(?:dos|unix)|(?:no)?expandtab", out) == [
+        "shiftwidth=8", "nomodified", "fileformat=dos", "nomodified", "noexpandtab"]
+    # a real write, autocmds and all: the project keeps its trailing space,
+    # the CRLF file its line ends
+    for path, change in ((project / "a.c", "1s/$/ /"), (linked / "c.txt", "1s/a/A/")):
+        subprocess.run(["vim", "-es", "-u", str(linked / ".vimrc"), str(path), "-c", change, "-c", "wq"],
+                       env=dict(os.environ, HOME=str(linked), TERM="xterm-256color"), cwd=linked, timeout=30)
+    assert ((project / "a.c").read_text(), (linked / "c.txt").read_bytes()) == ("x  \n", b"A\r\nb\r\n")
+
+
+@needs("vim")
+def test_vim_strips_trailing_whitespace_on_write_when_editorconfig_is_off(linked):
+    (linked / "p").mkdir()
+    (linked / "p" / ".editorconfig").write_text("root = true\n[*]\ntrim_trailing_whitespace = false\n")
+    (linked / "p" / "a.c").write_text("x \n")
+    subprocess.run(["vim", "-es", "-u", str(linked / ".vimrc"), str(linked / "p" / "a.c"), "-c", "wq"],
+                   env=dict(os.environ, HOME=str(linked), TERM="xterm-256color"), cwd=linked, timeout=30)
+    assert (linked / "p" / "a.c").read_text() == "x\n"
+
+
+@needs("vim")
 def test_vim_filetype_module_maps_pbs_scripts_to_sh(linked):
     (linked / "job.pbs").write_text("#!/bin/bash\n")
     assert vim(linked, f"edit {linked}/job.pbs", "set filetype?").endswith("filetype=sh")
