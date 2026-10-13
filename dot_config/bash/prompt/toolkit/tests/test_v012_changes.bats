@@ -250,7 +250,9 @@ EOF
 
     run bash "$script" "$ROOT" "$fakebin" "$calllog"
     [[ "$output" == *"val=55"* ]]
-    [[ "$output" == *"age=0"* ]]
+    # age is whole seconds since the touch, 1 when the builds cross a second
+    # boundary; -1 would mean the touch was lost to the segment's subshell.
+    [[ "$output" == *"age="[01] ]]
     [ "$(wc -l < "$calllog")" -eq 1 ]   # the expensive call ran exactly once across 5 renders
     rm -rf "$fakebin" "$calllog" "$script"
 }
