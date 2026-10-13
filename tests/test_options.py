@@ -185,13 +185,14 @@ def batched(check):
 
 
 def bash_modules(home, copies):
-    """One interactive shell with the whole configuration; each copy sourced in a subshell."""
+    """One interactive shell with the whole configuration; each copy sourced in a subshell,
+    as at startup."""
     listing = home.parent / "copies.list"
     listing.write_text("".join(f"{p}\0" for p in copies))
     script = r'''
 agent=${SSH_AGENT_PID-}
 while IFS= read -r -d '' copy; do
-    err=$( { source "$copy"; eval "${PROMPT_COMMAND-}"; } 2>&1 >/dev/null
+    err=$( { unset _dotfiles_started; source "$copy"; eval "${PROMPT_COMMAND-}"; } 2>&1 >/dev/null
            [[ ${SSH_AGENT_PID-} != "$agent" ]] && kill "$SSH_AGENT_PID" 2>/dev/null )
     printf '%s\0%s\0' "$copy" "$err"
 done < "$LISTING"

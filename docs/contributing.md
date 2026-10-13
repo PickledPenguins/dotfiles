@@ -9,11 +9,37 @@ Changing the project. Back to the [README](../README.md);
 |----------------|-------|------|
 | a setting someone may want | the module or file for its tool, in the [options format](configuration.md#the-options-format): description above, off unless it only adds a name | `./run-tests.sh long -k options` switches it on and loads it |
 | a shell behavior | one module in `dot_config/bash/rc.d/`; a new concern is a new numbered file | its row and knobs in `docs/configuration.md`; an integration assertion |
+| a new command | by [the rule below](#alias-function-or-program): an alias or function in a module, or a program in linuxbin's `bin/` | a program gets its README and tests in linuxbin, not here |
 | a per-machine difference | not in the repository: a knob (for a value) or a line in a hook file | document the knob in the module header and `docs/configuration.md` |
 | a `dots` behavior | the band that owns it (`docs/architecture.md`); output and exit code in the `cmd_*` | unit/CLI test, mutant line, `docs/cli.md`, catalog case |
 | a new dotfile | `dot_<name>` or `private_dot_<name>` at the mirrored path, with the standard header lines | a loader in `tests/test_options.py`; integration test through the real program; row in `docs/configuration.md` |
 | the prompt | `dot_config/bash/prompt/layout.sh`; a toolkit change goes in `prompt/toolkit/` | [the prompt toolkit](#the-prompt-toolkit) |
 | a decision not to build something | `docs/future-work.md`, labeled, with the evidence | |
+
+### Alias, function or program
+
+A program in a directory on PATH is the default: it works from scripts,
+`xargs`, `find -exec`, vim's `:!` and other shells, costs no startup time,
+and a whole directory of them goes on or off PATH like a package. The
+first rule that fits wins.
+
+1. A **function** when it must act on the running shell: `cd`, variables,
+   history, jobs, traps, `exec`, `source`, running the shell's own
+   functions or aliases, lazy loaders, prompt hooks (`mkcd`, `up`, `cdg`,
+   `hr` reading `COLUMNS`, `man` falling back to `help`).
+2. An **alias** for a changed default (`rm -I`, `ls --color`), a typo fix
+   (`cd..`), or the `sudo ` trick.
+3. An **alias** for a plain abbreviation: one command, the arguments at
+   the end (`gs`, `ll`, `qs`).
+4. Otherwise a **program** in linuxbin's `bin/` (`bin/hpc/` for one that
+   needs a scheduler), with its own `docs/README_<name>.md`. dotfiles keeps
+   a program only when its own files run it.
+5. A set that shares state stays together in one form (`mark jump unmark
+   marks`).
+
+A package directory goes on PATH through `DOTFILES_PATH_APPEND`, after
+the system's, so a program of the same name wins; `path_clash DIR` lists
+the names it shares with something else.
 
 ## What enforces what
 

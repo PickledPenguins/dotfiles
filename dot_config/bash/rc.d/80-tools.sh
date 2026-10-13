@@ -71,9 +71,9 @@ command -v rbenv >/dev/null && eval "$(rbenv init - bash)"
 # lesspipe: less opens archives, PDFs, images and packages as text.
 command -v lesspipe >/dev/null && eval "$(SHELL=/bin/sh lesspipe)"
 
-# bat: cat with syntax colors. Debian installs it as batcat; `bat` works
-# either way. BAT_STYLE=plain leaves out line numbers and the header.
-if command -v batcat >/dev/null && ! command -v bat >/dev/null; then alias bat='batcat'; fi
+# bat: cat with syntax colors. BAT_STYLE=plain leaves out line numbers and
+# the header. Debian installs it as batcat; linuxbin's bin/bat runs it
+# under either name.
 if command -v bat >/dev/null || command -v batcat >/dev/null; then export BAT_STYLE=plain; fi
 
 # cat runs bat: colors on a terminal, the plain text into a pipe or file.
@@ -83,8 +83,7 @@ if command -v bat >/dev/null || command -v batcat >/dev/null; then export BAT_ST
 # Needs: bat
 #if command -v bat >/dev/null || command -v batcat >/dev/null; then alias cat='bat --paging=never'; fi
 
-# fd: Debian installs it as fdfind; `fd` works either way.
-command -v fdfind >/dev/null && ! command -v fd >/dev/null && alias fd='fdfind'
+
 
 # eza (a modern ls) for the long listings ll and lt: git status per file,
 # directories first.
@@ -111,8 +110,9 @@ fi
 
 # fzf: Ctrl-R fuzzy history search, Ctrl-T pastes a file path, Alt-C cds
 # into a directory. Files come from fd or ripgrep when installed, which
-# respect .gitignore. fzf runs these lists with `$SHELL -c`, where the fd
-# alias does not exist, so they name the program Debian installs.
+# respect .gitignore. fzf runs these lists with `$SHELL -c`, so they name a
+# program on PATH: fd (linuxbin's bin/fd runs fdfind), or fdfind, the name
+# Debian installs.
 if command -v fzf >/dev/null; then
     if fzf --bash >/dev/null 2>&1; then
         eval "$(fzf --bash)"                            # fzf >= 0.48
@@ -145,14 +145,7 @@ fi
 # Needs: fzf, tree
 #export FZF_ALT_C_OPTS="--preview 'tree -C {} | head -100'"
 
-# fe [QUERY]: pick a file with fzf and open it in $EDITOR.
-# fkill: pick processes with fzf (Tab marks several) and kill them.
-# fbr: pick a git branch with fzf, newest first, and switch to it.
-if command -v fzf >/dev/null; then
-    fe() { local f; f=$(fzf --query="${1-}" --select-1 --exit-0) && ${EDITOR:-vi} "$f"; }
-    fkill() { ps -eo pid,user,etime,args | sed 1d | fzf -m --header='Tab marks; Enter kills' | awk '{print $1}' | xargs -r kill "${@:--TERM}"; }
-    fbr() { local b; b=$(git branch --all --sort=-committerdate --format='%(refname:short)' | fzf) && git switch "${b#origin/}"; }
-fi
+
 
 # zoxide: `z NAME` jumps to the most-used directory matching NAME; `zi`
 # picks one with fzf.
@@ -228,12 +221,9 @@ command -v lazygit >/dev/null && alias lg='lazygit'
 
 # ── tmux ──────────────────────────────────────────────────────────────────
 
-# ta NAME attach, tn NAME new, tl list, tat attach to the session named
-# after this directory, creating it.
-if command -v tmux >/dev/null; then
-    alias ta='tmux attach -t' tn='tmux new -s' tl='tmux ls'
-    tat() { local s="${PWD##*/}"; s="${s//./_}"; tmux new-session -A -s "${1:-$s}"; }
-fi
+# ta NAME attach, tn NAME new, tl list. linuxbin's bin/tat attaches to the
+# session named after this directory.
+command -v tmux >/dev/null && alias ta='tmux attach -t' tn='tmux new -s' tl='tmux ls'
 
 # ── File managers: leave in the directory you browsed to ──────────────────
 

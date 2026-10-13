@@ -1,4 +1,8 @@
-# 40-functions.sh: small shell functions. Each has its usage in the
+# 40-functions.sh: small shell functions, each one a command that must act
+# on this shell itself: change its directory, read its history, run one of
+# its functions or aliases, or replace it. Every other helper is a script
+# in linuxbin's bin/, a directory to put on PATH (DOTFILES_PATH_APPEND);
+# docs/contributing.md has the rule. Each function has its usage in the
 # comment above it; `type NAME` prints the body. A function only adds a
 # command, so they are all on: an unused one costs nothing.
 #
@@ -39,101 +43,9 @@ bd() {
 # cdf FILE: go to the directory that holds FILE.
 cdf() { cd -- "$(dirname -- "${1:?cdf FILE}")" || return; }
 
-# ── Files ─────────────────────────────────────────────────────────────────
-
-# extract ARCHIVE...: unpack each archive, choosing the tool by extension.
-# One that is missing or of an unknown kind is skipped; the status is then 1.
-# tar: x extract, j bzip2, z gzip, J xz, f FILE. bunzip2, gunzip, unxz: -k
-# keep the archive. unzip: -q quiet. 7z, unrar: x with paths. ar: x members.
-extract() {
-    local f rc=0
-    for f in "$@"; do
-        [[ -f "$f" ]] || { echo "extract: '$f' is not a file" >&2; rc=1; continue; }
-        case "$f" in
-            *.tar.bz2|*.tbz2) tar xjf "$f" ;;
-            *.tar.gz|*.tgz)   tar xzf "$f" ;;
-            *.tar.xz|*.txz)   tar xJf "$f" ;;
-            *.tar.zst)        tar --zstd -xf "$f" ;;
-            *.tar)            tar xf "$f" ;;
-            *.bz2)            bunzip2 -k "$f" ;;
-            *.gz)             gunzip -k "$f" ;;
-            *.xz)             unxz -k "$f" ;;
-            *.zip|*.jar)      unzip -q "$f" ;;
-            *.7z)             7z x "$f" ;;
-            *.rar)            unrar x "$f" ;;
-            *.deb)            ar x "$f" ;;
-            *)                echo "extract: don't know how to extract '$f'" >&2; rc=1 ;;
-        esac
-    done
-    return "$rc"
-}
-
-# targz DIR: pack DIR into DIR.tar.gz, leaving out version control and
-# editor swap files.
-# tar: -c create, -z gzip, -f FILE. ls: -l long, -h human sizes.
-targz() { tar --exclude-vcs --exclude='*.swp' -czf "${1%/}.tar.gz" "${1%/}" && ls -lh "${1%/}.tar.gz"; }
-
-# ff PATTERN [FIND-ARGS...]: find what has PATTERN in its name, any case.
-# FIND-ARGS go to find as written: where to look (default .), then tests,
-# as in `ff x src -type d` or `ff x -maxdepth 2`.
-ff() { find "${@:2}" -iname "*${1:?ff PATTERN [FIND-ARGS...]}*"; }
-
-# rgv PATTERN [PATH...]: ripgrep, then open every match in vim's quickfix
-# list (:cn, :cp to step through). Only where rg is installed.
-# rg: --vimgrep FILE:LINE:COLUMN:TEXT. vim: -q FILE read as the quickfix list.
-if type -P rg >/dev/null; then
-    rgv() { vim -q <(rg --vimgrep "$@"); }
-fi
-
-# bak FILE: copy FILE to FILE.YYYYmmdd-HHMMSS.bak, keeping its mode and times.
-bak() { command cp -a -- "$1" "$1.$(date +%Y%m%d-%H%M%S).bak"; }
-
-# swapname A B: exchange the names of two files. When B cannot be moved, A
-# gets its name back rather than staying under the temporary one.
-swapname() {
-    local tmp; tmp=$(mktemp -d -- "${1%/}.XXXXXX") || return
-    command mv -- "$1" "$tmp/x" || { command rmdir -- "$tmp"; return 1; }
-    command mv -- "$2" "$1" || { command mv -- "$tmp/x" "$1"; command rmdir -- "$tmp"; return 1; }
-    command mv -- "$tmp/x" "$2" && command rmdir -- "$tmp"
-}
-
-# bigfiles [DIR] [N]: the N largest files under DIR, not crossing into
-# other file systems (default: here, 20).
-# find: -xdev this file system only, -printf size and path. sort: -rn
-# largest first. numfmt: --to=iec sizes in K, M, G.
-bigfiles() { find "${1:-.}" -xdev -type f -printf '%s\t%p\n' 2>/dev/null | sort -rn | head -n "${2:-20}" | numfmt --field=1 --to=iec; }
-
-# count [DIR]: how many files under DIR have each extension.
-# sed: -n with p prints only the extension. uniq: -c count each. sort: -rn most first.
-count() { find "${1:-.}" -type f | sed -n 's/.*\.\([^./]*\)$/\1/p' | sort | uniq -c | sort -rn; }
-
-# sha FILE: the sha256 of a file, hash only.
-# cut: -d' ' -f1 the first space-separated field.
-sha() { sha256sum -- "$1" | cut -d' ' -f1; }
-
-# mkscript NAME: a new executable bash script with a strict-mode header,
-# opened in $EDITOR. Refuses to overwrite.
-# set: -e stop at a failure, -u at an unset variable, -o pipefail at a
-# failure anywhere in a pipe.
-mkscript() {
-    [[ -e "${1:?mkscript NAME}" ]] && { echo "mkscript: $1 exists" >&2; return 1; }
-    printf '#!/usr/bin/env bash\nset -euo pipefail\n\n' > "$1" && chmod +x "$1" && ${EDITOR:-vi} "$1"
-}
-
-# note [TEXT]: append TEXT, with the date, to ~/notes.md; alone, show the notes.
-# date: %F YYYY-MM-DD, %R HH:MM.
-note() {
-    if (( $# )); then printf -- '- %s  %s\n' "$(date '+%F %R')" "$*" >> ~/notes.md
-    else cat ~/notes.md; fi
-}
-
-# tree fallback, only where the real tree is missing: an indented listing
-# that skips .git. type -P, so a second `source ~/.bashrc` does not take
-# this function for the program; `function tree`, because bash expands the
-# alias 30-aliases.sh sets in `tree()` while it reads this block, taken or not.
-if ! type -P tree >/dev/null; then
-    function tree { find "${1:-.}" -not -path '*/.git/*' | sed -e 's/[^-][^\/]*\//  |/g' -e 's/|\([^ ]\)/|-\1/'; }
-fi
+# cdg [SUBDIR]: go to the top directory of the current git repository, or
+# to SUBDIR below it.
+cdg() { local top; top=$(git rev-parse --show-toplevel) && cd -- "$top${1:+/$1}" || return; }
 
 # ── Running commands ──────────────────────────────────────────────────────
 
@@ -175,49 +87,8 @@ man() {
 # dotfile again (aliases and functions removed from the files disappear).
 reload() { exec "$BASH" -l; }
 
-# ── Text and numbers ──────────────────────────────────────────────────────
-
-# calc EXPR: arithmetic with decimals: calc '2^10', calc '22/7'.
-# bc: -l math library and 20 decimals.
-calc() { bc -l <<<"$*"; }
-
-# genpass [LENGTH]: a random password of letters and digits (default 20).
-# tr: -d delete, -c all but the set named. head: -c LENGTH bytes.
-genpass() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "${1:-20}"; echo; }
-
-# urlencode TEXT / urldecode TEXT: percent-encoding, as in URLs.
-urlencode() { python3 -c 'import sys, urllib.parse as u; print(u.quote(sys.argv[1], safe=""))' "$*"; }
-urldecode() { python3 -c 'import sys, urllib.parse as u; print(u.unquote(sys.argv[1]))' "$*"; }
-
-# fromepoch SECONDS: a Unix timestamp as a date (GNU date).
-fromepoch() { date -d "@${1:?fromepoch SECONDS}"; }
-
 # ── Terminal ──────────────────────────────────────────────────────────────
-
-# title TEXT: set the terminal window title (65-title.sh resets it at the
-# next prompt unless that module is off).
-# \e]0;TEXT\a is the xterm escape that sets the window and icon title.
-title() { printf '\e]0;%s\a' "$*"; }
 
 # hr [CHAR]: a line across the terminal, to find a spot in scrollback.
 # printf: %*s pads to $COLUMNS spaces, each then replaced by CHAR.
 hr() { local line; printf -v line '%*s' "${COLUMNS:-80}" ''; echo "${line// /${1:-─}}"; }
-
-# envg PATTERN: environment variables matching PATTERN, any case, sorted.
-envg() { env | grep -i -- "${1:?envg PATTERN}" | sort; }
-
-# port N: what is listening on port N (ss).
-# ss: -t TCP, -u UDP, -l listening, -n port numbers, -p program. awk keeps
-# the header and the lines whose local address ends in :N.
-port() { ss -tulnp | awk -v p=":${1:?port N}\$" 'NR == 1 || $5 ~ p'; }
-
-# ── Online (each contacts the named service) ──────────────────────────────
-
-# cheat TOPIC: a cheat sheet from cht.sh: cheat tar, cheat python/lambda.
-# curl: -s silent, no progress meter.
-cheat() { curl -s "https://cht.sh/${1:?cheat TOPIC}"; }
-
-# weather [PLACE]: a three-day forecast from wttr.in (default: where your
-# IP address says you are).
-# curl: -s silent, no progress meter.
-weather() { curl -s "https://wttr.in/${1:-}"; }

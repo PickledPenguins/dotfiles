@@ -37,12 +37,16 @@ dot_local/share/git-hooks/executable_dispatch |||     pre-push | post-rewrite) |
 dot_config/bash/rc.d/20-path.sh ||| PATH="${PATH//:"$1":/:}" ||| PATH="${PATH//:$1:/:}" ||| path
 dot_config/bash/rc.d/20-path.sh ||| path_prepend() { [[ -d "$1" ]] || return 0; ||| path_prepend() { ||| path
 dot_config/bash/rc.d/20-path.sh ||| return 0; path_remove "$1"; PATH="$1${PATH:+:$PATH}"; ||| return 0; PATH="$1${PATH:+:$PATH}"; ||| path
+dot_config/bash/rc.d/20-path.sh ||| declare -F -- "$name" >/dev/null && hits+=(function) ||| false && hits+=(function) ||| path_clash
+dot_config/bash/rc.d/20-path.sh ||| [[ $h == */* && $e -ef $h ]] && continue 2 ||| false && continue 2 ||| path_clash
+dot_config/bash/rc.d/20-path.sh ||| [[ -f $f && -x $f && -z ${seen[$name]-} ]] || continue ||| [[ -f $f && -x $f ]] || continue ||| path_clash
+dot_config/bash/rc.d/20-path.sh ||| [[ -n ${_dotfiles_started-} ]] || return 0 ||| : ||| warn_of_a_clash
+dot_bashrc ||| unset _dotfiles_started ||| : ||| warn_of_a_clash
 
 # 40-functions.sh
 dot_config/bash/rc.d/40-functions.sh ||| while (( n-- > 0 )); do path+="../"; done ||| while (( --n > 0 )); do path+="../"; done ||| functions
 dot_config/bash/rc.d/40-functions.sh ||| == "${1:?bd NAME}"* ]] ||| == "${1:?bd NAME}" ]] ||| functions
-dot_config/bash/rc.d/40-functions.sh ||| is not a file" >&2; rc=1; continue; } ||| is not a file" >&2; continue; } ||| functions
-dot_config/bash/rc.d/40-functions.sh ||| command mv -- "$2" "$1" || { command mv -- "$tmp/x" "$1"; ||| command mv -- "$2" "$1" || { ||| functions
+dot_config/bash/rc.d/40-functions.sh ||| cd -- "$top${1:+/$1}" ||| cd -- "$top" ||| cdg
 dot_config/bash/rc.d/40-functions.sh ||| (( i < n )) && sleep 1 ||| sleep 1 ||| functions
 
 # 65-title.sh: a DEBUG trap already set is kept

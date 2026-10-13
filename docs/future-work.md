@@ -215,15 +215,21 @@ here is scheduled; an item is cited by its label. Back to the
   resolve through `~/.local/share/git-hooks`, which needs a `dots`
   attribute making a symlink with a given target (chezmoi's `symlink_`);
   the route if `templateDir` goes on for good.
-- **F.2.ak  What is an alias, a function, or a program on PATH.**  From
-  the owner's TODOs of 2026-10-12; the TODO's sentence stops at "to ensure
-  we always". The rule proposed: an alias when the words only go in front
-  of the arguments; a function when the arguments land in the middle, or
-  it must change the shell itself (cd, variables, history, traps); a
-  script in `~/.local/bin` otherwise, since a script also works from
-  `xargs`, `find -exec`, vim's `:!`, cron and other shells, and costs no
-  startup time. Then a pass over `30-aliases.sh` and `40-functions.sh`
-  sorting each name by it.
+- **F.2.ak  What is an alias, a function, or a program on PATH.**  Built
+  2026-10-13. The rule is in [contributing.md](contributing.md#where-a-change-goes).
+  Every alias and function in `rc.d/` was sorted by it: 44 became scripts
+  in the `linuxbin` repository's `bin/` (`bin/hpc/` for `qtail` and
+  `srun-i`), each with its own `docs/README_<name>.md` and tests there;
+  none is used by dotfiles itself, so dotfiles has no bin directory of its
+  own for them. A package directory goes on PATH through
+  `DOTFILES_PATH_APPEND`, appended so a system program of the same name
+  wins; `path_clash` (`20-path.sh`) lists the names that clash, and
+  `path_prepend`/`path_append` typed at the prompt print them. Bugs fixed
+  on the way, in the linuxbin commit: `targz .` wrote `..tar.gz`;
+  `genpass` and `bigfiles` returned 141 under `pipefail`; `psg` printed
+  its header with no match; `port` printed a header with no match. Still
+  open: linuxbin's older scripts at its root could move into `bin/` too,
+  and linuxbin has no `README.md` index of its tools.
 
 ## F.3 tests
 

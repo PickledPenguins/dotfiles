@@ -36,7 +36,9 @@ _dotfiles_disabled() {
 }
 
 # Every rc.d/*.sh in number order; .sh.off files are not matched. With
-# DOTFILES_DEBUG set, each one's name and load time goes to stderr.
+# DOTFILES_DEBUG set, each one's name and load time goes to stderr. A
+# second load (reload) is startup again: no clash warnings until the end.
+unset _dotfiles_started
 for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
     [[ -r "$_rc" ]] || continue
     _name="${_rc##*/}"; _name="${_name%.sh}"; _name="${_name#[0-9][0-9]-}"
@@ -50,3 +52,7 @@ for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
 done
 unset _rc _name _t0
 unset -f _dotfiles_disabled
+
+# Startup is over: from here path_prepend and path_append warn about name
+# clashes (20-path.sh).
+_dotfiles_started=1

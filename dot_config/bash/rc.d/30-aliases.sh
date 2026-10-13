@@ -1,8 +1,11 @@
 # 30-aliases.sh: short names for longer commands, and safer or more
 # readable defaults for a few common ones. Aliases apply only at the
-# prompt, never inside scripts. Anything longer than a line is a function
-# in 40-functions.sh; aliases for tools that may be missing live with the
-# tool (75-python, 80-tools, 85-hpc).
+# prompt, never inside scripts. An alias here is a changed default, a typo
+# fix, or a plain abbreviation (one command, arguments at the end). A
+# command that must act on this shell is a function in 40-functions.sh,
+# and anything else is a script in linuxbin's bin/ (docs/contributing.md
+# has the rule). Aliases for tools that may be missing live with the tool
+# (75-python, 80-tools, 85-hpc).
 #
 # Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
@@ -42,9 +45,7 @@ alias ltr='ls -ltrh'
 # ls: -l long, -S largest first, -h human sizes.
 alias lS='ls -lSh'
 
-# lsd: directories only. Hides the lsd program (a modern ls) if installed.
-# ls: -d the directories */ names, not what is in them.
-alias lsd='ls -d */'
+
 
 # ── grep, diff, ip ────────────────────────────────────────────────────────
 
@@ -83,8 +84,7 @@ alias -- -='cd -'
 # dirs: -v one per line, numbered.
 alias d='dirs -v'
 
-# cdg: go to the top directory of the current git repository.
-alias cdg='cd "$(git rev-parse --show-toplevel)"'
+
 
 # ── Safety ────────────────────────────────────────────────────────────────
 
@@ -122,14 +122,7 @@ alias df='df -h'
 alias du='du -h'
 alias free='free -h'
 
-# dus: the size of everything in this directory, smallest first.
-# du: -s one total each, -h human sizes. sort: -h by human sizes.
-alias dus='du -sh * 2>/dev/null | sort -h'
 
-# psg NAME: processes whose command line contains NAME, case-insensitive.
-# ps: a every user, u owner and usage columns, x without a terminal too.
-# grep: -v drop lines that match, -i any case.
-alias psg='ps aux | grep -v grep | grep -i'
 
 # top sorted by CPU use (procps top).
 # top: -o sort by field.
@@ -142,9 +135,7 @@ alias ports='ss -tulnp'
 # j: jobs with their process IDs.
 alias j='jobs -l'
 
-# mnt: mounted file systems as an aligned table.
-# column: -t table.
-alias mnt='mount | column -t'
+
 
 # ── Shortcuts ─────────────────────────────────────────────────────────────
 
@@ -171,21 +162,14 @@ alias vi='vim'
 alias sb='source ~/.bashrc'
 alias vb='$EDITOR ~/.bashrc.local'
 
-# path: $PATH one directory per line.
-alias path='tr ":" "\n" <<<"$PATH"'
 
-# now: date and time; week: ISO week number; timestamp and epoch: for file
-# names and scripts (20260920-150405, seconds since 1970).
-alias now='date +"%Y-%m-%d %H:%M:%S"'
-alias week='date +%V'
-alias timestamp='date +%Y%m%d-%H%M%S'
-alias epoch='date +%s'
 
 # ping stops after 5 packets instead of running until Ctrl-C; a -c given
 # on the command line wins.
 alias ping='ping -c 5'
 
-# tree in color (40-functions.sh defines a plain one when tree is missing).
+# tree in color. Where tree is missing, linuxbin's bin/tree stands in and
+# ignores -C.
 type -P tree >/dev/null && alias tree='tree -C'
 
 # serve: share this directory over HTTP on port 8000 until Ctrl-C. Anyone
@@ -196,24 +180,12 @@ alias serve='python3 -m http.server'
 # rsync: -a archive (recurse, keep modes, times, links), -h human sizes.
 alias cpv='rsync -ah --info=progress2'
 
-# myip: this machine's public IP address, as ifconfig.me sees it.
-# curl: -s silent, no progress meter.
-alias myip='curl -s https://ifconfig.me; echo'
+
 
 # :q quits the shell, for fingers that think they are in vim.
 alias :q='exit'
 
-# ── Clipboard ─────────────────────────────────────────────────────────────
-
-# pbcopy / pbpaste, the macOS names, on Linux: `cmd | pbcopy` copies,
-# `pbpaste` prints the clipboard. Wayland's wl-copy, else xclip or xsel.
-if command -v wl-copy >/dev/null; then
-    alias pbcopy='wl-copy' pbpaste='wl-paste'
-elif command -v xclip >/dev/null; then
-    alias pbcopy='xclip -selection clipboard' pbpaste='xclip -selection clipboard -o'
-elif command -v xsel >/dev/null; then
-    alias pbcopy='xsel --clipboard --input' pbpaste='xsel --clipboard --output'
-fi
+# ── Desktop ───────────────────────────────────────────────────────────────
 
 # open FILE: the desktop's default application for FILE, as on macOS.
 # Hides Linux's `open` (openvt) at the prompt.

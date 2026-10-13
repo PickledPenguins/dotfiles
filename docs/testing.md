@@ -47,9 +47,9 @@ temporary `HOME` through the `home` fixture.
   branches, every exit code, the `add` attribute inference, path
   selection, and the options parser and filters. A new branch in `dots`
   needs a line there.
-- shell mutation: 43 mutants, 43 caught, 0 survivors, 0 stale: the git
-  hooks and the dispatcher, `git hooks`, the `20-path.sh` helpers, `up`,
-  `bd`, `extract`, `swap`, `retry`, `_title_arm`, `_venv_auto`, the
+- shell mutation: 47 mutants, 47 caught, 0 survivors, 0 stale: the git
+  hooks and the dispatcher, `git hooks`, the `20-path.sh` helpers and
+  `path_clash`, `up`, `bd`, `cdg`, `retry`, `_title_arm`, `_venv_auto`, the
   prompt rows in `layout.sh`, and the toolkit's git cache and collector
   touch. The first runs had 5 survivors; four tests were added and one
   equivalent mutant dropped (the list says which). ~6 min.

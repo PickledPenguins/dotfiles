@@ -229,6 +229,31 @@ def test_path_module_adds_the_man_directory_once_in_a_nested_shell(linked):
     assert proc.stdout == f"{linked}/.local/share/man:\n"
 
 
+def test_path_clash_names_what_runs_first_and_what_it_hides(linked, tmp_path):
+    fake = stubs(tmp_path, ls="", echo="", mk="", only="")
+    (tmp_path / "early").mkdir()
+    (tmp_path / "early" / "only").write_text("#!/bin/sh\n")
+    (tmp_path / "early" / "only").chmod(0o755)
+    (tmp_path / "again").symlink_to(fake)
+    proc = bash(linked, f"mk() {{ :; }}; PATH={tmp_path}/early:/usr/bin:/bin; path_clash {fake}; echo $?; "
+                        f"path_clash {tmp_path}/early; echo $?; PATH+=:{fake}:{tmp_path}/again; "
+                        f"path_clash {fake} | grep -c again; path_clash {fake} {tmp_path}/again | grep -c '^ls:'")
+    ls = shutil.which("ls", path="/usr/bin:/bin")
+    assert proc.stdout == (f"echo: builtin hides {shutil.which('echo', path='/usr/bin:/bin')}, {fake}/echo\n"
+                           f"ls: {ls} hides {fake}/ls\nmk: function hides {fake}/mk\n"
+                           f"only: {tmp_path}/early/only hides {fake}/only\n1\n0\n0\n1\n")
+
+
+def test_path_helpers_warn_of_a_clash_only_after_startup(linked, tmp_path):
+    fake = stubs(tmp_path, ls="")
+    ls = shutil.which("ls", path="/usr/bin:/bin")
+    # .bashrc.local adds it at startup, and again at the second load.
+    proc = bash(linked, f"source ~/.bashrc; path_remove {fake}; path_append {fake}; path_prepend {fake}; echo $?",
+                local=f"path_append {fake}\n")
+    assert proc.stdout == "0\n"
+    assert proc.stderr == f"path_append: ls: {ls} hides {fake}/ls\npath_prepend: ls: {fake}/ls hides {ls}"
+
+
 def test_path_knobs(linked):
     (linked / "k1").mkdir()
     (linked / "k2").mkdir()
@@ -247,57 +272,21 @@ def test_aliases_safe_rm_switched_off_per_machine(linked):
     assert "not found" in proc.stdout
 
 
-def test_functions_module_mkcd_up_extract_bak(linked):
-    proc = bash(linked, "mkcd a/b/c && pwd && up 2 && pwd && echo x > f && bak f && ls f.*.bak | wc -l && "
-                        "tar czf t.tgz f && command mkdir o && cd o && extract ../t.tgz && cat f")
-    assert proc.stdout == f"{linked}/a/b/c\n{linked}/a\n1\nx\n"
+def test_functions_module_mkcd_and_up(linked):
+    proc = bash(linked, "mkcd a/b/c && pwd && up 2 && pwd")
+    assert proc.stdout == f"{linked}/a/b/c\n{linked}/a\n"
+
+
+def test_functions_cdg_goes_to_the_repository_top_or_below_it(linked):
+    proc = bash(linked, "git init -q r && command mkdir -p r/s/t && cd r/s/t && cdg && pwd && cdg s && pwd; "
+                        "cd /; cdg; echo $?; pwd")
+    assert proc.stdout == f"{linked}/r\n{linked}/r/s\n128\n/\n"
+    assert "not a git repository" in proc.stderr
 
 
 def test_functions_use_command_to_bypass_verbose_aliases(linked):
     proc = bash(linked, "mkcd q >/dev/null; echo done")
     assert proc.stdout == "done\n"          # no 'mkdir: created directory' from the -pv alias
-
-
-def test_functions_swapname_exchanges_names_and_restores_on_failure(linked):
-    proc = bash(linked, "echo A > a; echo B > b; swapname a b; cat a b; swapname a missing; echo $?; ls")
-    assert proc.stdout == "B\nA\n1\na\nb\n"
-    assert "missing" in proc.stderr
-
-
-def test_functions_mkscript_refuses_an_existing_file(linked):
-    proc = bash(linked, "echo keep > s; mkscript s; echo $?; cat s; EDITOR=true mkscript t; head -1 t; test -x t && echo x")
-    assert (proc.stdout, proc.stderr) == ("1\nkeep\n#!/usr/bin/env bash\nx\n", "mkscript: s exists")
-
-
-def test_functions_mkscript_opens_a_multi_word_editor(linked):
-    proc = bash(linked, 'EDITOR="true -x" mkscript t; echo $?')
-    assert (proc.stdout, proc.stderr) == ("0\n", "")
-
-
-def test_functions_targz_archives_a_directory(linked):
-    proc = bash(linked, "command mkdir -p d/.git; echo f > d/f; echo s > d/f.swp; targz d/ >/dev/null; "
-                        "tar tzf d.tar.gz | sort")
-    assert proc.stdout == "d/\nd/f\n"
-
-
-def test_functions_ff_hands_its_other_arguments_to_find(linked):
-    proc = bash(linked, "command mkdir -p src/aXy/deep/xy; touch src/xY.txt top-xy; ff xy | sort; echo --; "
-                        "ff xy src -type d | sort; echo --; ff xy src -maxdepth 1 | sort; ff")
-    assert proc.stdout == ("./src/aXy\n./src/aXy/deep/xy\n./src/xY.txt\n./top-xy\n--\n"
-                           "src/aXy\nsrc/aXy/deep/xy\n--\nsrc/aXy\nsrc/xY.txt\n")
-    assert "ff PATTERN [FIND-ARGS...]" in proc.stderr
-
-
-def test_functions_rgv_only_where_rg_is_installed(linked, tmp_path):
-    only_bash, with_rg = tmp_path / "only-bash", tmp_path / "with-rg"
-    for fake in only_bash, with_rg:
-        fake.mkdir()
-        (fake / "bash").symlink_to(shutil.which("bash"))
-    (with_rg / "rg").write_text("#!/bin/sh\n")
-    (with_rg / "rg").chmod(0o755)
-    found = bash(linked, "type -t rgv", env={"PATH": str(with_rg)})
-    missing = bash(linked, "type -t rgv || echo none", env={"PATH": str(only_bash)})
-    assert (found.stdout, missing.stdout) == ("function\n", "none\n")
 
 
 def test_functions_bd_and_cdf_change_directory(linked):
@@ -319,32 +308,9 @@ def test_functions_retry_sleeps_between_attempts_not_after_the_last(linked):
     assert proc.stdout == "sleep 1\nsleep 1\n1\n"
 
 
-def test_functions_extract_unknown_extension(linked):
-    proc = bash(linked, "touch f.xyz; extract f.xyz; echo $?")
-    assert proc.stderr == "extract: don't know how to extract 'f.xyz'" and proc.stdout == "1\n"
-
-
-def test_functions_extract_goes_on_past_a_bad_argument_and_fails_at_the_end(linked):
-    proc = bash(linked, "echo x > f && tar czf t.tgz f && rm f && touch f.xyz; "
-                        "extract f.xyz nope t.tgz; echo $?; cat f; extract nope t.tgz; echo $?; extract t.tgz; echo $?")
-    assert proc.stdout == "1\nx\n1\n0\n"
-    assert proc.stderr == ("extract: don't know how to extract 'f.xyz'\nextract: 'nope' is not a file\n"
-                           "extract: 'nope' is not a file")
-
-
 def test_functions_hr_fills_the_terminal_width(linked):
     proc = bash(linked, "COLUMNS=5 hr; COLUMNS=3 hr =; unset COLUMNS; hr x | wc -c")
     assert proc.stdout == "─────\n===\n81\n"
-
-
-def test_functions_urlencode_and_urldecode(linked):
-    proc = bash(linked, "urlencode 'a b/c&d=é'; urldecode 'a%20b%2Fc%26d%3D%C3%A9'; urldecode \"$(urlencode x y)\"")
-    assert proc.stdout == "a%20b%2Fc%26d%3D%C3%A9\na b/c&d=é\nx y\n"
-
-
-def test_functions_genpass_length_and_alphabet(linked):
-    proc = bash(linked, "genpass | grep -cx '[A-Za-z0-9]\\{20\\}'; genpass 8 | grep -cx '[A-Za-z0-9]\\{8\\}'")
-    assert proc.stdout == "1\n1\n"
 
 
 def test_functions_man_falls_back_to_help_for_one_program_without_a_page(linked, tmp_path):
@@ -354,20 +320,6 @@ def test_functions_man_falls_back_to_help_for_one_program_without_a_page(linked,
                 env={"PATH": f"{fake}:{os.environ['PATH']}", "PAGER": "cat"})
     assert proc.stdout == "usage: mytool --help\n0\n1\n"
     assert proc.stderr == "No manual entry for mytool\nNo manual entry for mytool other"
-
-
-def test_functions_port_matches_the_local_address_column_only(linked, tmp_path):
-    fake = stubs(tmp_path, ss="cat <<'EOF'\n"
-                 "Netid State  Recv-Q Send-Q Local Address:Port Peer Address:Port Process\n"
-                 "tcp   LISTEN 0      128    0.0.0.0:22         0.0.0.0:*\n"
-                 "tcp   LISTEN 0      128    127.0.0.1:2222     0.0.0.0:*\n"
-                 "tcp   ESTAB  0      0      10.0.0.1:5000      10.0.0.2:22\n"
-                 "tcp   LISTEN 0      128    [::]:22            [::]:*\n"
-                 "EOF\n")
-    proc = bash(linked, "port 22", env={"PATH": f"{fake}:{os.environ['PATH']}"})
-    lines = proc.stdout.splitlines()
-    assert lines[0].startswith("Netid State")
-    assert [line.split()[4] for line in lines[1:]] == ["0.0.0.0:22", "[::]:22"]
 
 
 def test_dirs_module_marks(linked):
@@ -582,33 +534,14 @@ def test_tools_module_loads_kubectl_and_gh_completion_on_the_first_tab(linked, t
                            f"{fake}/kubectl\n{fake}/gh\n")
 
 
-def test_tools_module_tat_names_the_session_after_the_directory(linked, tmp_path):
-    fake = stubs(tmp_path, tmux='echo "tmux $*"\n')
-    proc = bash(linked, "command mkdir my.proj && cd my.proj && tat && tat other",
-                env={"PATH": f"{fake}:{os.environ['PATH']}"})
-    assert proc.stdout == "tmux new-session -A -s my_proj\ntmux new-session -A -s other\n"
-
-
 @pytest.mark.skipif(shutil.which("fd", path="/usr/bin:/bin") is not None, reason="a real fd is installed")
-def test_tools_module_fzf_lists_with_fdfind_where_fd_is_only_an_alias(linked, tmp_path):
-    # fzf runs these with `$SHELL -c`, where the fd alias does not exist.
+def test_tools_module_fzf_lists_with_fdfind_where_there_is_no_fd(linked, tmp_path):
+    # fzf runs these with `$SHELL -c`: they name a program on PATH.
     fake = stubs(tmp_path, fzf="", fdfind='echo "fdfind $*"\n')
     proc = bash(linked, 'for v in FZF_DEFAULT_COMMAND FZF_CTRL_T_COMMAND FZF_ALT_C_COMMAND; do '
                         'sh -c "${!v}"; done', env={"PATH": f"{fake}:/usr/bin:/bin"})
     assert proc.stdout == ("fdfind --type f --hidden --exclude .git\n" * 2
                            + "fdfind --type d --hidden --exclude .git\n")
-
-
-def test_tools_module_fbr_switches_to_a_remote_branch_by_its_local_name(linked, tmp_path):
-    fake = stubs(tmp_path, fzf="grep -x origin/feat\n")
-    proc = bash(linked, "git init -q --bare -b main o.git && git clone -q o.git c 2>/dev/null && cd c && "
-                        "git commit -q --allow-empty -m one && git push -q -u origin main && "
-                        "git switch -q -c feat && git push -q origin feat 2>/dev/null && git switch -q main && "
-                        "git branch -q -D feat && fbr >/dev/null 2>&1; git branch --show-current",
-                env={"PATH": f"{fake}:{os.environ['PATH']}", "GIT_AUTHOR_NAME": "T",
-                     "GIT_AUTHOR_EMAIL": "t@example.com", "GIT_COMMITTER_NAME": "T",
-                     "GIT_COMMITTER_EMAIL": "t@example.com"})
-    assert proc.stdout == "feat\n"
 
 
 def test_hpc_module_defines_nothing_without_a_scheduler(linked):
@@ -624,31 +557,20 @@ def test_hpc_module_leaves_lmods_own_ml_function(linked):
 def test_hpc_module_with_fake_schedulers(linked, tmp_path):
     fake = stubs(tmp_path, qstat="echo $0 $*\n", squeue="echo $0 $*\n")
     (tmp_path / "pbs.conf").write_text("PBS_SERVER=head\n")
-    proc = bash(linked, "alias qs sq | cut -d= -f2-; qs; type -t qtail",
+    proc = bash(linked, "alias qs sq | cut -d= -f2-; qs",
                 env={"PATH": f"{fake}:/usr/bin:/bin", "PBS_CONF_FILE": str(tmp_path / "pbs.conf")})
     lines = proc.stdout.splitlines()
     assert lines[0] == "'qstat -u \"$USER\"'"
     assert lines[1].startswith("'squeue -u \"$USER\"")
-    assert lines[2] == f"{fake}/qstat -u {os.environ.get('USER', '')}".rstrip()
-    assert lines[3] == "function"
+    assert lines[2:] == [f"{fake}/qstat -u {os.environ.get('USER', '')}".rstrip()]
 
 
 def test_hpc_module_takes_slurms_qstat_wrapper_for_no_pbs(linked, tmp_path):
     # Slurm's Torque wrappers install a qstat: without pbs.conf it is not PBS
     fake = stubs(tmp_path, qstat="echo $0 $*\n", squeue="echo $0 $*\n")
-    proc = bash(linked, "alias qs 2>&1; type -t qtail; alias sq >/dev/null && echo slurm",
+    proc = bash(linked, "alias qs 2>&1; alias sq >/dev/null && echo slurm",
                 env={"PATH": f"{fake}:/usr/bin:/bin", "PBS_CONF_FILE": str(tmp_path / "absent")})
     assert proc.stdout == "bash: alias: qs: not found\nslurm\n"
-
-
-def test_hpc_module_qtail_follows_an_output_path_qstat_wrapped(linked, tmp_path):
-    (tmp_path / "pbs.conf").write_text("PBS_SERVER=head\n")
-    fake = stubs(tmp_path, tail='echo "tail $*"\n', qstat="printf '%s\\n' 'Job Id: 7.server' "
-                 "'    Job_Name = run' '    Output_Path = node01:/scratch/someone/a/rather/long/project/dir"
-                 "ectory/name' '\tthat/wraps/run.o7' '    Priority = 0'\n")
-    proc = bash(linked, "qtail 7", env={"PATH": f"{fake}:/usr/bin:/bin", "PBS_CONF_FILE": str(tmp_path / "pbs.conf")})
-    assert (proc.stdout, proc.stderr) == (
-        "tail -f /scratch/someone/a/rather/long/project/directory/namethat/wraps/run.o7\n", "")
 
 
 def test_profile_and_bash_profile_chain(linked):

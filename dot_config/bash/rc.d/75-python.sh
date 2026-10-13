@@ -19,11 +19,7 @@ command -v python3 >/dev/null || return 0
 alias py='python3'
 alias pyv='python3 --version'
 
-# pipup: upgrade every outdated package in the active environment.
-alias pipup='python3 -m pip list --outdated --format=freeze | cut -d= -f1 | xargs -r -n1 python3 -m pip install -U'
 
-# pyclean: delete __pycache__ directories and .pyc files below here.
-alias pyclean='find . -type d -name __pycache__ -prune -exec rm -rf {} + ; find . -name "*.pyc" -delete'
 
 # json: pretty-print JSON from stdin or a file:  curl -s URL | json
 alias json='python3 -m json.tool'
