@@ -119,16 +119,11 @@ here is scheduled; an item is cited by its label. Back to the
   `${_z:$((_CMD_TIMER_START=EPOCHSECONDS,0)):0}` with `_z` set (an unset
   `_z` skips the arithmetic), keeping the DEBUG trap only for older bash;
   `15-tmux-env.sh` also appends to `PS0`. A toolkit commit, sent upstream.
-- **F.2.q  `cat` runs bat when bat is installed.**  `rc.d/80-tools.sh:76`
-  aliases `cat='bat --paging=never'`, against the module's own header
-  (lines 3-5: a block that would change a familiar command is off).
-  `cat -v`, `cat -e` and `cat -b` mean something else in bat, or do not
-  exist, and on a terminal bat refuses binary files. Reasoned from bat's
-  option list; bat is not installed here. From the 2026-10-08 creview.
-  Future work because it changes what `cat` does for the owner. Fix:
-  comment the alias out with `Needs: bat`, keeping the `bat`/`batcat`
-  alias, and move `cat`→bat to the off list of the `80-tools.sh` row in
-  `docs/configuration.md`.
+- **F.2.q  `cat` ran bat when bat was installed.**  Built 2026-10-12:
+  the alias in `rc.d/80-tools.sh` is an off setting (`Needs: bat`), as the
+  module's header asks of a block that changes a familiar command; its
+  description names the cat flags bat lacks and the refused binary files.
+  The `bat`/`batcat` alias and `BAT_STYLE` stay on.
 - **F.2.r  Completion scripts generated at every shell start.**
   `source <(kubectl completion bash)` (`rc.d/80-tools.sh:191`), `eval
   "$(gh completion -s bash)"` (199) and `eval "$(uv

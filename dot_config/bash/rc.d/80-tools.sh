@@ -76,9 +76,12 @@ command -v lesspipe >/dev/null && eval "$(SHELL=/bin/sh lesspipe)"
 if command -v batcat >/dev/null && ! command -v bat >/dev/null; then alias bat='batcat'; fi
 if command -v bat >/dev/null || command -v batcat >/dev/null; then export BAT_STYLE=plain; fi
 
-# cat runs bat when bat is installed: colors on a terminal, the plain text
-# into a pipe or file. \cat reaches the real cat.
-if command -v bat >/dev/null || command -v batcat >/dev/null; then alias cat='bat --paging=never'; fi
+# cat runs bat: colors on a terminal, the plain text into a pipe or file.
+# \cat reaches the real cat. Off because it changes a familiar command: cat
+# flags bat does not have (-v, -e, -E, -T, -b; -s before bat 0.24) fail,
+# and on a terminal bat refuses binary files.
+# Needs: bat
+#if command -v bat >/dev/null || command -v batcat >/dev/null; then alias cat='bat --paging=never'; fi
 
 # fd: Debian installs it as fdfind; `fd` works either way.
 command -v fdfind >/dev/null && ! command -v fd >/dev/null && alias fd='fdfind'

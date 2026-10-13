@@ -522,6 +522,12 @@ def test_tools_module_follows_the_moved_version_manager_homes(linked, tmp_path):
     proc = bash(linked, 'tr : "\\n" <<<"$PATH" | command grep -x "$PYENV_ROOT/bin"',
                 env={"PYENV_ROOT": str(pyenv), "SDKMAN_DIR": str(sdkman)})
     assert proc.stdout == f"nix\nsdkman\n{pyenv}/bin\n"
+def test_tools_module_leaves_cat_alone_when_bat_is_installed(linked, tmp_path):
+    fake = stubs(tmp_path, bat='echo "bat $*"\n')
+    proc = bash(linked, "type -t cat", env={"PATH": f"{fake}:{os.environ['PATH']}"})
+    assert proc.stdout == "file\n"
+
+
 def test_tools_module_tat_names_the_session_after_the_directory(linked, tmp_path):
     fake = stubs(tmp_path, tmux='echo "tmux $*"\n')
     proc = bash(linked, "command mkdir my.proj && cd my.proj && tat && tat other",
