@@ -481,7 +481,7 @@ cache.
 | `segments/system.sh` | Load, disk, GPU and their collectors |
 | `segments/hpc.sh` | Environment modules, PBS and Slurm jobs |
 | `prompt_example.sh` | Working configuration — segments registered, rows defined, one active layout |
-| `tests/` | Bats test suite — 9 `.bats` files plus `test_helper.bash` (see [Testing](#testing)) |
+| `tests/` | Bats test suite — 10 `.bats` files plus `test_helper.bash` (see [Testing](#testing)) |
 | `install.sh` | Copies the toolkit to a target directory and prints the `.bashrc` lines to add — see [Installation](#installation) |
 
 ## Testing
@@ -491,19 +491,20 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**168 tests across 9 files**, all passing against v0.1.12:
+**164 tests across 10 files**, all passing against v0.1.12:
 
 | File | Tests | Covers |
 |---|---|---|
-| `collectors.bats` | 28 | collector planning by layout, TTLs, run order, argument checks, `DEBUG` trap claimed only when needed, `install.sh` copying `segments/` |
+| `cache.bats` | 5 | stale and fresh keys, TTL elapsing, `cache_age`, a clock set back |
+| `cmd_timer.bats` | 8 | elapsed and arm, `DEBUG` trap claimed only when `@cmd_time` is shown, the skip variables, a second install |
+| `collectors.bats` | 27 | collector planning by layout, built-in segments under other names, declared needs, TTLs, run order, argument checks, collected data reaching the parent shell, `install.sh` copying `segments/` |
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
-| `git_info.bats` | 26 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add |
+| `git_info.bats` | 28 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
-| `prompt_box.bats` | 26 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
-| `prompt_segments.bats` | 21 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df` |
+| `prompt_box.bats` | 27 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
+| `prompt_segments.bats` | 30 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df`, PBS node count; registration, `_ps_expand` token scanning, `PS_DEBUG_SEGMENTS` |
 | `security.bats` | 8 | segment text shown as typed (`$(...)`, backticks, `\w`, `@fill`, `$` for root), `promptvars` left on for `PS0`, `CDPATH` |
-| `term_utils.bats` | 10 | ANSI stripping, width (with no UTF-8 locale), repeat |
-| `test_v012_changes.bats` | 31 | everything added or fixed in v0.1.2 – v0.1.4 |
+| `term_utils.bats` | 13 | ANSI stripping, width (with no UTF-8 locale), repeat (multi-byte, `&`, count 0 or below), no `sed` or `awk` forked |
 
 `tests/test_helper.bash` provides `$DOTFILES_ROOT`, `load_prompt_lib`,
 `make_git_repo`, and `plain`, and sets `CMD_TIMER_SKIP_TRAP=1` so the
@@ -779,7 +780,7 @@ holds it.
 ### v0.1.3
 
 **Fixed — all found during a production-readiness review, each with a
-permanent regression test in `tests/test_v012_changes.bats`:**
+permanent regression test in `tests/`:**
 
 - **[CRITICAL] The `@gpu` segment's TTL cache never worked — verified
   via a mocked `nvidia-smi`, every render re-forked it regardless of
@@ -897,7 +898,7 @@ permanent regression test in `tests/test_v012_changes.bats`:**
   the original template that never revisits already-emitted segment
   output, which closes the whole bug class rather than the one instance
   found. Covered by a permanent regression test that reproduces it
-  directly (`tests/test_v012_changes.bats`).
+  directly (`tests/prompt_segments.bats`).
 - `term_utils.sh`'s `strip_ansi` and `str_repeat` no longer fork
   `sed`/`awk` — rewritten as pure bash (a builtin regex loop, and
   parameter-expansion substitution on a `printf`-padded string).

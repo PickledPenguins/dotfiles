@@ -94,6 +94,21 @@ setup() {
     git_info_cache_valid
 }
 
+@test "git_info.sh sourced on its own: fresh after a refresh, stale once the TTL elapses" {
+    # A bare bash, not load_prompt_lib: git_info.sh must load cache.sh itself.
+    echo x > f.txt && git add f.txt && git commit -qm init
+    run bash -c '
+        source "$1/lib/git_info.sh"
+        git_info_refresh
+        echo "in_repo=$GIT_IN_REPO"
+        git_info_cache_valid && echo fresh
+        git_info_cache_ttl 1
+        sleep 1.2   # real elapsed time: cache.sh prefers EPOCHSECONDS on bash 5+
+        git_info_cache_valid || echo stale
+    ' _ "$DOTFILES_ROOT"
+    [ "$output" = $'in_repo=1\nfresh\nstale' ]
+}
+
 @test "stash count is reflected in GIT_STASH" {
     echo x > f.txt && git add f.txt && git commit -qm init
     echo y >> f.txt

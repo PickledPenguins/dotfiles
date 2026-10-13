@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
-# Tests for v0.1.5: the collector registry (prompt_collector,
-# prompt_segment_needs, layout-driven planning, TTLs), the segments/ split,
-# cmd_timer_install, and install.sh copying segments/.
+# The collector registry: prompt_collector, prompt_segment_needs,
+# layout-driven planning, TTLs, collected data reaching the parent shell,
+# the segments/ split, and install.sh copying segments/.
 
 load test_helper
 bats_require_minimum_version 1.5.0   # run -N
@@ -249,59 +249,77 @@ _counting_collector() {
     [[ "$output" =~ gpu\ +ttl=10\ +active=no ]]
 }
 
-# ── cmd_timer_install: the DEBUG trap is claimed only when needed ────────
-# Each runs in its own bash: bats owns the DEBUG trap of the test process.
-
-_trap_after() {   # $1: layout row template  $2...: env assignments
-    local row="$1"; shift
-    env -u CMD_TIMER_SKIP_TRAP "$@" bash -c '
-        source "$1/prompt.sh"
-        prompt_segment cmd_time _ps_seg_cmd_time
-        prompt_segment pwd _ps_seg_pwd
-        printf "after-source=[%s]\n" "$(trap -p DEBUG)"
-        prompt_row r "$2"
-        prompt_layout r
-        prompt_build
-        printf "after-build=[%s]\n" "$(trap -p DEBUG)"
-    ' _ "$ROOT" "$row"
+@test "collector gating: a built-in segment registered under a CUSTOM alias still arms its collector" {
+    source "$ROOT/prompt.sh"
+    prompt_segment gpu_util   _ps_seg_gpu          # not named "gpu"
+    prompt_segment branchname _ps_seg_git_branch   # not prefixed "git_"
+    prompt_segment freespace  _ps_seg_disk         # not named "disk"
+    prompt_segment busy       _ps_seg_load         # not named "load"
+    prompt_row r '@gpu_util @branchname @freespace @busy'
+    prompt_layout r
+    _ps_plan_collectors
+    [ "${_PS_ACTIVE_COLLECTORS[*]}" = "git load disk gpu" ]
 }
 
-@test "cmd_timer: sourcing prompt.sh claims no DEBUG trap" {
-    run _trap_after '@cmd_time'
-    [[ "$output" == *"after-source=[]"* ]]
+@test "prompt_segment_needs: a custom segment can declare its own data dependency" {
+    source "$ROOT/prompt.sh"
+    _my_custom_branch() { printf '%s' "$GIT_BRANCH"; }
+    prompt_segment_needs _my_custom_branch git
+    prompt_segment mine _my_custom_branch
+    prompt_row r '@mine'
+    prompt_layout r
+    _ps_plan_collectors
+    [ "${_PS_ACTIVE_COLLECTORS[*]}" = "git" ]
 }
 
-@test "cmd_timer: the first prompt showing @cmd_time claims the DEBUG trap" {
-    run _trap_after '@cmd_time'
-    [[ "$output" == *"after-build=[trap -- '_cmd_timer_preexec' DEBUG]"* ]]
+@test "prompt_segment_needs: rejects an unknown collector name" {
+    source "$ROOT/prompt.sh"
+    _x() { :; }
+    run prompt_segment_needs _x notathing
+    [ "$status" -ne 0 ]
+    [[ "$output" == *'unknown collector "notathing"'* ]]
 }
 
-@test "cmd_timer: a layout without @cmd_time never claims the DEBUG trap" {
-    run _trap_after '@pwd'
-    [[ "$output" == *"after-build=[]"* ]]
+@test "a shown segment with no needs arms no collector" {
+    source "$ROOT/prompt.sh"
+    _plain() { printf 'hi'; }
+    prompt_segment plain _plain
+    prompt_row r '@plain'
+    prompt_layout r
+    _ps_plan_collectors
+    [ "${#_PS_ACTIVE_COLLECTORS[@]}" -eq 0 ]
 }
 
-@test "cmd_timer: CMD_TIMER_SKIP_TRAP keeps the DEBUG trap unclaimed" {
-    run _trap_after '@cmd_time' CMD_TIMER_SKIP_TRAP=1
-    [[ "$output" == *"after-build=[]"* ]]
-}
+@test "gpu/disk/load: data collection survives into the parent shell (not lost to the segment's subshell)" {
+    fakebin="$(mktemp -d)"
+    cat > "$fakebin/nvidia-smi" <<'EOF'
+#!/usr/bin/env bash
+echo "$$" >> "$NVIDIA_SMI_CALL_LOG"
+echo "55"
+EOF
+    chmod +x "$fakebin/nvidia-smi"
+    calllog="$(mktemp)"
+    script="$(mktemp)"
+    cat > "$script" <<'EOF'
+root="$1"; fakebin="$2"; calllog="$3"
+export PATH="$fakebin:$PATH" NVIDIA_SMI_CALL_LOG="$calllog"
+export TMUX="" COLUMNS=100
+source "$root/prompt.sh"
+prompt_segment gpu _ps_seg_gpu
+prompt_row r '@gpu'
+prompt_layout r      # prompt_build returns immediately with no rows configured
+for i in 1 2 3 4 5; do prompt_build; done
+echo "val=$_PS_GPU_CACHE_VAL age=$(cache_age collector:gpu)"
+EOF
 
-@test "cmd_timer: PS_SKIP_DEBUG_TRAP is still an alias for CMD_TIMER_SKIP_TRAP" {
-    run _trap_after '@cmd_time' PS_SKIP_DEBUG_TRAP=1
-    [[ "$output" == *"after-build=[]"* ]]
+    run bash "$script" "$ROOT" "$fakebin" "$calllog"
+    [[ "$output" == *"val=55"* ]]
+    # age is whole seconds since the touch, 1 when the builds cross a second
+    # boundary; -1 would mean the touch was lost to the segment's subshell.
+    [[ "$output" == *"age="[01] ]]
+    [ "$(wc -l < "$calllog")" -eq 1 ]   # the expensive call ran exactly once across 5 renders
+    rm -rf "$fakebin" "$calllog" "$script"
 }
-
-@test "cmd_timer_install: a second call leaves a later trap alone" {
-    run env -u CMD_TIMER_SKIP_TRAP bash -c '
-        source "$1/lib/cmd_timer.sh"
-        cmd_timer_install
-        trap ":" DEBUG
-        cmd_timer_install
-        trap -p DEBUG
-    ' _ "$ROOT"
-    [ "$output" = "trap -- ':' DEBUG" ]
-}
-
 # ── install.sh ───────────────────────────────────────────────────────────
 
 @test "install.sh: the installed copy includes segments/ and renders a prompt" {
