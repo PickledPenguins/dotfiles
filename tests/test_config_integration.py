@@ -501,6 +501,17 @@ def test_python_module_venv_auto_entering_a_project_keeps_a_venv_activated_by_ha
     assert (proc.stdout, proc.stderr) == (f"{linked}/venvs/x\n", "")
 
 
+def test_tools_module_follows_the_moved_version_manager_homes(linked, tmp_path):
+    pyenv, sdkman = tmp_path / "pyenv", tmp_path / "sdkman"
+    (pyenv / "bin").mkdir(parents=True)
+    (sdkman / "bin").mkdir(parents=True)
+    (sdkman / "bin/sdkman-init.sh").write_text("echo sdkman\n")
+    nix = linked / ".local/state/nix/profile/etc/profile.d"
+    nix.mkdir(parents=True)
+    (nix / "nix.sh").write_text("echo nix\n")
+    proc = bash(linked, 'tr : "\\n" <<<"$PATH" | command grep -x "$PYENV_ROOT/bin"',
+                env={"PYENV_ROOT": str(pyenv), "SDKMAN_DIR": str(sdkman)})
+    assert proc.stdout == f"nix\nsdkman\n{pyenv}/bin\n"
 def test_tools_module_tat_names_the_session_after_the_directory(linked, tmp_path):
     fake = stubs(tmp_path, tmux='echo "tmux $*"\n')
     proc = bash(linked, "command mkdir my.proj && cd my.proj && tat && tat other",

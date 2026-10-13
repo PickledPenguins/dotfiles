@@ -20,8 +20,13 @@ for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbr
 done
 unset _brew
 
-# Nix: the per-user profile's PATH and settings.
-[[ -r "$HOME/.nix-profile/etc/profile.d/nix.sh" ]] && source "$HOME/.nix-profile/etc/profile.d/nix.sh"
+# Nix: the per-user profile's PATH and settings, from ~/.nix-profile, or
+# from ~/.local/state/nix/profile with `use-xdg-base-directories = true` in
+# nix.conf.
+for _nix in "$HOME/.nix-profile" "${XDG_STATE_HOME:-$HOME/.local/state}/nix/profile"; do
+    [[ -r "$_nix/etc/profile.d/nix.sh" ]] && { source "$_nix/etc/profile.d/nix.sh"; break; }
+done
+unset _nix
 
 # mise (formerly rtx): per-directory versions of node, python, go ...
 command -v mise >/dev/null && eval "$(mise activate bash)"
@@ -30,8 +35,8 @@ command -v mise >/dev/null && eval "$(mise activate bash)"
 [[ -d "${ASDF_DATA_DIR:-$HOME/.asdf}/shims" ]] && path_prepend "${ASDF_DATA_DIR:-$HOME/.asdf}/shims"
 
 # pyenv: python versions per directory.
-if [[ -d "$HOME/.pyenv" ]]; then
-    export PYENV_ROOT="$HOME/.pyenv"
+if [[ -d "${PYENV_ROOT:-$HOME/.pyenv}" ]]; then
+    export PYENV_ROOT="${PYENV_ROOT:-$HOME/.pyenv}"
     path_prepend "$PYENV_ROOT/bin"
     command -v pyenv >/dev/null && eval "$(pyenv init - bash)"
 fi
@@ -53,7 +58,7 @@ command -v fnm >/dev/null && eval "$(fnm env --use-on-cd --shell bash)"
 command -v rbenv >/dev/null && eval "$(rbenv init - bash)"
 
 # SDKMAN!: Java, Gradle, Kotlin ... versions.  Its start-up is slow (~100 ms).
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+[[ -s "${SDKMAN_DIR:-$HOME/.sdkman}/bin/sdkman-init.sh" ]] && source "${SDKMAN_DIR:-$HOME/.sdkman}/bin/sdkman-init.sh"
 
 # ghcup: the Haskell toolchain's environment.
 [[ -r "$HOME/.ghcup/env" ]] && source "$HOME/.ghcup/env"

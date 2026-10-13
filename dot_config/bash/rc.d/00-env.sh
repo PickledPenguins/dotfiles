@@ -182,6 +182,31 @@ export INPUTRC="$HOME/.inputrc"
 # the bin directory.
 #export PIXI_HOME="$XDG_DATA_HOME/pixi"
 
+# pyenv: ~/.pyenv -> ~/.local/share/pyenv.  80-tools.sh follows
+# PYENV_ROOT.  After the move `pyenv rehash` rewrites the shims, which hold
+# the old path.  pyenv-virtualenv environments hold it too and need making
+# again.
+#export PYENV_ROOT="$XDG_DATA_HOME/pyenv"
+
+# nvm: ~/.nvm -> ~/.local/share/nvm.  80-tools.sh follows NVM_DIR.
+# Without it nvm's installer picks ~/.config/nvm, since XDG_CONFIG_HOME is
+# set above, and 80-tools.sh does not look there.
+#export NVM_DIR="$XDG_DATA_HOME/nvm"
+
+# asdf 0.16+: ~/.asdf -> ~/.local/share/asdf.  80-tools.sh follows
+# ASDF_DATA_DIR.  After the move `asdf reshim` rewrites the shims.
+#export ASDF_DATA_DIR="$XDG_DATA_HOME/asdf"
+
+# rbenv: ~/.rbenv -> ~/.local/share/rbenv.  `rbenv init` in 80-tools.sh
+# follows RBENV_ROOT.  After the move `rbenv rehash` rewrites the shims,
+# which hold the old path.
+#export RBENV_ROOT="$XDG_DATA_HOME/rbenv"
+
+# SDKMAN!: ~/.sdkman -> ~/.local/share/sdkman.  80-tools.sh follows
+# SDKMAN_DIR.  Its `current` links hold the old path, so install it afresh
+# with this set (the installer follows it) rather than move it.
+#export SDKMAN_DIR="$XDG_DATA_HOME/sdkman"
+
 # ── Locale ────────────────────────────────────────────────────────────────
 
 # A UTF-8 locale for sessions that arrive without one: ssh from a machine
