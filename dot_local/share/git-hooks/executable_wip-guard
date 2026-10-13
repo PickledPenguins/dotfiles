@@ -6,8 +6,10 @@
 # A commit whose subject matches hooks.wipPattern, an extended regular
 # expression (default ^(wip|WIP|fixup!|squash!|amend!)), may not reach a
 # branch in hooks.protect (default "main master"). The commits checked are
-# the ones the remote does not have yet. Squash them first (git rebase -i
-# --autosquash), or push with --no-verify.
+# the ones the remote does not have yet. A push to a URL checks every commit
+# in the branch's history: the remotes git knows by name say nothing about a
+# URL. Squash them first (git rebase -i --autosquash), or push with
+# --no-verify.
 set -euo pipefail
 
 read -ra protected <<<"$(git config hooks.protect || echo main master)"

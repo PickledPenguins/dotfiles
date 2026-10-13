@@ -302,6 +302,17 @@ def test_wip_guard_refuses_wip_commits_to_a_protected_branch(linked):
                            "error: failed to push some refs to '../origin.git'\n")
 
 
+def test_wip_guard_checks_every_commit_pushed_to_a_url(linked):
+    # The wip commit is on origin, but the push names a URL, not origin
+    proc = hooks(linked, with_origin("git commit -q --allow-empty -m wip && git push -q && "
+                                     "git commit -q --allow-empty -m two && use wip-guard && "
+                                     "git init -q --bare ../new.git && git push -q ../new.git HEAD:main 2>&1 | "
+                                     "sed 's/^wip-guard: [0-9a-f]* /wip-guard: SHA /'"))
+    assert proc.stdout == ("wip-guard: SHA wip\n"
+                           "wip-guard: not pushing these to main; squash them, or push with --no-verify\n"
+                           "error: failed to push some refs to '../new.git'\n")
+
+
 def test_published_refuses_to_rebase_pushed_commits(linked):
     proc = hooks(linked, with_origin("use published && git commit -q --allow-empty -m two && git push -q && "
                                      "git commit -q --allow-empty -m three && git rebase -q -f HEAD~2 2>&1; "

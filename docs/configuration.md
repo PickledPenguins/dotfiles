@@ -315,7 +315,7 @@ setting not made, or a hook and its `.off` both present.
 | `test-merge` | pre-merge-commit | runs `hooks.test` on the merged tree before git commits a merge (not a fast-forward, a conflicted merge or `--no-commit`) | `hooks.test` (required) |
 | `test-push` | pre-push | runs `hooks.test` in a clean temporary worktree of each pushed branch tip | `hooks.test` (required) |
 | `protect` | pre-push | refuses deleting or force-pushing a protected branch | `hooks.protect` (`main master`) |
-| `wip-guard` | pre-push | refuses commits whose subject matches `hooks.wipPattern` going to a protected branch | `hooks.protect`, `hooks.wipPattern` (`^(wip\|WIP\|fixup!\|squash!\|amend!)`) |
+| `wip-guard` | pre-push | refuses commits whose subject matches `hooks.wipPattern` going to a protected branch, of the ones the remote lacks (every one, pushing to a URL) | `hooks.protect`, `hooks.wipPattern` (`^(wip\|WIP\|fixup!\|squash!\|amend!)`) |
 | `published` | pre-rebase | refuses to rebase commits a remote-tracking branch holds | |
 | `deps-changed` | post-checkout, post-merge, post-rewrite | names the dependency files (requirements, lock files, `pyproject.toml`, `package.json`, ...) that changed | `hooks.depsFiles` |
 | `pyc-clean` | post-checkout, post-merge, post-rewrite | deletes `__pycache__` outside hidden directories and `node_modules` | |

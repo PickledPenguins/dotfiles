@@ -276,14 +276,16 @@ here is scheduled; an item is cited by its label. Back to the
   `git hooks install test-push`, which installs it switched off, after
   removing any link to the old copy. `git hooks on test-push` switches it
   on. Every git hook stays in this repository, in the git-hooks catalog.
-- **F.3.g  Push hooks are tested only against a named remote.**
-  `protect`, `wip-guard` and `test-push` take the remote from `$1`, which
-  is the URL when a push names one. `wip-guard` then builds
-  `--remotes=URL`, which matches no ref, so a new branch has every commit
-  in its history checked, not only the unpushed ones. No test pushes to a
-  URL. From the 2026-10-10 ctesting audit. Future work because the test
-  would fail today on what may be a defect: whether a URL push should fall
-  back to every remote-tracking branch (`--remotes`) is a design call.
+- **F.3.g  Push hooks were tested only against a named remote.**  Built
+  2026-10-13. Git gives a hook the URL in place of the remote's name when a
+  push names one. `test-push` does not read it and `protect` only prints
+  it; `wip-guard` then checks every commit in a new branch's history,
+  since no remote-tracking ref says what a URL has. That is kept as the
+  cautious reading of "the commits the remote does not have yet", the same
+  as a named remote with nothing fetched; falling back to every remote's
+  branches would let a commit through that another remote has but this one
+  lacks. The header and `configuration.md` say so, and a test pushes to a
+  URL.
 
 ## F.4 housekeeping
 
