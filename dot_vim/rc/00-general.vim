@@ -87,8 +87,28 @@ set nostartofline
 set mouse=a
 
 " Mouse clicks beyond column 223 in wide terminals that vim does not
-" recognize (xterm protocol).
+" recognize (xterm protocol). Inside tmux the setting below does this already.
 "set ttymouse=sgr
+
+" Mouse and focus events inside tmux, as vim has them in xterm. vim does not
+" recognize TERM=tmux-256color (or screen-256color, tmux's fallback): it picks
+" the old xterm mouse protocol, so mouse=a cannot drag to select or resize
+" splits and clicks past column 223 are lost, and it never asks for focus
+" events, so tmux's focus-events setting does nothing and the FocusGained
+" reload above never fires. This sets the SGR mouse protocol and the focus
+" event codes. It is on although new settings start off: it adds no behavior,
+" it makes mouse=a and focus-events work in tmux as described. It runs when
+" TERM starts with tmux or $TMUX is set, so not in GNU screen, which has
+" neither protocol; vim run over ssh from tmux with TERM=screen-256color is
+" not caught (no $TMUX there): set the same in ~/.vimrc.local on that host.
+" Needs: tmux 1.9 or later.
+if &term =~# '^tmux' || exists('$TMUX')
+  set ttymouse=sgr
+  let &t_fe = "\<Esc>[?1004h"
+  let &t_fd = "\<Esc>[?1004l"
+  execute "set <FocusGained>=\<Esc>[I"
+  execute "set <FocusLost>=\<Esc>[O"
+endif
 
 " Yank and put use the system clipboard (both X11 selections) when vim has
 " clipboard support; "+y and "+p are not needed.

@@ -171,7 +171,7 @@ Read-only variables the loader sets for modules and for you:
 
 | Module | Provides |
 |--------|----------|
-| `00-general.vim` | encoding, `hidden`, `autoread` on focus, `ttimeoutlen`, `updatetime`, `nomodeline`, `mouse=a`, system clipboard, `filetype plugin indent on`. Off: `autowrite`, `confirm`, `exrc secure`, `viminfofile`, `timeoutlen`, `ttymouse=sgr` |
+| `00-general.vim` | encoding, `hidden`, `autoread` on focus, `ttimeoutlen`, `updatetime`, `nomodeline`, `mouse=a`, SGR mouse and focus events inside tmux, system clipboard, `filetype plugin indent on`. Off: `autowrite`, `confirm`, `exrc secure`, `viminfofile`, `timeoutlen`, `ttymouse=sgr` |
 | `10-ui.vim` | numbers, `cursorline` in the active window, `scrolloff`, `listchars`, splits below/right, `wrap`+`breakindent`, search count, true color, colorscheme, gray `colorcolumn` marks, yank flash (`hlyank`), cursor shape. Off: `relativenumber`, `cmdheight`, `cursorcolumn`, `colorcolumn`, `eol:¬`, `fillchars`, `nowrap`, `title`, light background |
 | `15-statusline.vim` | status line with buffer, path, flags, filetype, encoding, git branch, position. Off: spelling language |
 | `20-search.vim` | `hlsearch incsearch ignorecase smartcase wrapscan`, `inccommand`, `:grep` recursive (`rg`, else `grep -r`), quickfix auto-open, visual `*`/`#`. Off: `nowrapscan`, `gdefault`, very magic search, Esc clears highlight |

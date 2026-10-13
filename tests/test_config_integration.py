@@ -1001,6 +1001,32 @@ def test_vim_status_line_reads_the_branch_without_turning_terminal_echo_on(linke
     assert ((linked / "echo").read_text(), b"git:main" in out) == (" -echo \n", True)
 
 
+def vim_on_a_pty(home, env, *commands):
+    """Run vim on a pty with ENV over the environment (None drops a variable)"""
+    pid, fd = pty.fork()
+    if pid == 0:                                     # pragma: no cover (the child)
+        full = {k: v for k, v in dict(os.environ, HOME=str(home), **env).items() if v is not None}
+        args = [a for c in (*commands, "qall!") for a in ("-c", c)]
+        os.execvpe("vim", ["vim", "-u", str(home / ".vimrc"), *args], full)
+    while select.select([fd], [], [], 5)[0]:
+        try:
+            os.read(fd, 65536)
+        except OSError:                              # EIO: vim has exited
+            break
+    os.waitpid(pid, 0)
+    os.close(fd)
+
+
+@needs("vim")
+def test_vim_inside_tmux_gets_the_sgr_mouse_and_focus_events_but_not_in_screen(linked):
+    probe = f"call writefile([&ttymouse, &t_fe, &t_fd], '{linked}/out', 'a')"
+    vim_on_a_pty(linked, {"TERM": "tmux-256color", "TMUX": None}, probe)
+    vim_on_a_pty(linked, {"TERM": "screen-256color", "TMUX": "/tmp/tmux-1/default,1,0"}, probe)
+    vim_on_a_pty(linked, {"TERM": "screen-256color", "TMUX": None}, probe)
+    assert (linked / "out").read_text().splitlines() == [
+        "sgr", "\x1b[?1004h", "\x1b[?1004l", "sgr", "\x1b[?1004h", "\x1b[?1004l", "xterm", "", ""]
+
+
 @needs("vim")
 def test_vim_comma_q_closes_the_window_and_deletes_its_buffer(linked):
     out = vim(linked, "edit a.txt | split b.txt | execute 'normal ,qq'"

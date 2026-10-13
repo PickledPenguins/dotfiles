@@ -157,18 +157,16 @@ here is scheduled; an item is cited by its label. Back to the
   and undo stay off per buffer, and only a secret switches viminfo off for
   the session, as the comment says. `$TMPDIR` paths are in vim's default
   `backupskip` but not in the swap/undo autocmd.
-- **F.2.t  vim inside tmux gets no drag, wide clicks or focus events.**
-  `dot_config/tmux/conf.d/00-options.conf:12` sets `default-terminal
-  tmux-256color`; under that TERM vim 9.1 picks `ttymouse=xterm` (it picks
-  `sgr` under `xterm-256color`) and leaves `t_fe` empty. Checked in vim
-  under that TERM. So `mouse=a` drag and split resizing fail, clicks past
-  column 223 are lost, tmux's `focus-events on` (line 30) does nothing for
-  vim, and `FocusGained` checktime (`dot_vim/rc/00-general.vim:30`) and the
-  statusline refresh (`15-statusline.vim:25`) never fire. From the
-  2026-10-08 settings creview. Future work because it adds settings: when
-  `&term =~ '^\(tmux\|screen\)'`, set `ttymouse=sgr`, `t_fe`/`t_fd` and the
-  `<FocusGained>`/`<FocusLost>` key codes in `00-general.vim`. vim in tmux
-  then behaves as it does in xterm.
+- **F.2.t  vim inside tmux got no drag, wide clicks or focus events.**
+  Built 2026-10-12. Under `TERM=tmux-256color` vim 9.1 picked
+  `ttymouse=xterm` and left `t_fe` empty, so `mouse=a` could not drag,
+  clicks past column 223 were lost and `FocusGained` never fired.
+  `dot_vim/rc/00-general.vim` now sets `ttymouse=sgr`, `t_fe`/`t_fd` and
+  the focus key codes when `TERM` starts with `tmux` or `$TMUX` is set; on
+  although new settings start off, because it only makes `mouse=a` and
+  tmux's `focus-events` work. GNU screen is left alone. Not caught: vim
+  over ssh from tmux with `TERM=screen-256color` (no `$TMUX` on the far
+  side); the comment says to set it in `~/.vimrc.local` there.
 - **F.2.u  vim does not read `.editorconfig`.**  vim 9.0.1799+ ships
   editorconfig as an optional package, and nothing here runs `packadd`
   (`exists(':EditorConfigReload')` is 0); `dot_vim/rc/30-indent.vim:2` now
