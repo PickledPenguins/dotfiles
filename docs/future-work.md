@@ -185,15 +185,15 @@ here is scheduled; an item is cited by its label. Back to the
   `FRSXMK` rather than adding to it, so journalctl wrapped long lines and
   ignored Ctrl-C. `00-env.sh` now sets `SYSTEMD_LESS="$LESS -SMK"`, with
   the description saying why, and a test checks the value.
-- **F.2.ac  The toolkit's `prompt_build` guard misses `;prompt_build`.**
-  `dot_config/bash/prompt/toolkit/prompt.sh:455` skips the prepend only
-  when `PROMPT_COMMAND` starts with `prompt_build` or holds `;
-  prompt_build`; a hook added in front with `;` and no space hides it, and
-  a second `prompt_layout` adds `prompt_build` again. `65-title.sh` was
-  the one such hook here and now joins with `; ` (the 2026-10-08 settings
-  creview's first finding, fixed with a guard on each prepend). Fix: also
-  match `*';prompt_build'*`, with a bats test, in its own commit sent
-  upstream.
+- **F.2.ac  The toolkit's `prompt_build` guard missed `;prompt_build`.**
+  Built 2026-10-12, not yet sent upstream. A hook prepended with a bare
+  `;` hid `prompt_build` from `prompt_layout`'s guard, so re-sourcing
+  `~/.bashrc` built the prompt twice per display, and the prefix test took
+  `prompt_buildx` for `prompt_build`. The toolkit's guard now compares
+  whole commands, with newlines and blanks normalized, in its own commit
+  with a bats test. The off `_venv_auto` line in `75-python.sh`, the last
+  bare-`;` prepend after `60-prompt.sh`, now joins with `; ` behind a
+  guard of its own like the other modules.
 - **F.2.ad  No post-push hook.**  git has no event after a push completes:
   a push fires only `pre-push` and, on the local side, the
   `reference-transaction` hook for the remote-tracking refs. That hook

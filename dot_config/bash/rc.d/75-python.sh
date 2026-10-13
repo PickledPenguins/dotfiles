@@ -58,7 +58,7 @@ _venv_auto() {
 
 # Activate a project's .venv on entering it and deactivate on leaving,
 # checked at every prompt (one file test each).
-#PROMPT_COMMAND="_venv_auto${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+#[[ "${PROMPT_COMMAND-}" == *_venv_auto* ]] || PROMPT_COMMAND="_venv_auto${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 # pip refuses to install anything outside a virtual environment, so
 # nothing lands in the system or user site by mistake. A conda environment

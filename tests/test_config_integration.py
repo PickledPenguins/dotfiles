@@ -534,6 +534,14 @@ def test_tools_module_follows_the_moved_version_manager_homes(linked, tmp_path):
     proc = bash(linked, 'tr : "\\n" <<<"$PATH" | command grep -x "$PYENV_ROOT/bin"',
                 env={"PYENV_ROOT": str(pyenv), "SDKMAN_DIR": str(sdkman)})
     assert proc.stdout == f"nix\nsdkman\n{pyenv}/bin\n"
+def test_python_module_venv_auto_and_the_prompt_go_in_once_when_bashrc_is_read_again(linked):
+    text = (REPO / "dot_config/bash/rc.d/75-python.sh").read_text()
+    local = next(l[1:] for l in text.splitlines() if l.startswith("#") and "PROMPT_COMMAND=\"_venv_auto" in l)
+    proc = bash(linked, 'source ~/.bashrc; echo "$PROMPT_COMMAND"', local=local + "\n")
+    commands = proc.stdout.replace(";", " ").split()
+    assert (commands.count("_venv_auto"), commands.count("prompt_build")) == (1, 1)
+
+
 def test_tools_module_leaves_cat_alone_when_bat_is_installed(linked, tmp_path):
     fake = stubs(tmp_path, bat='echo "bat $*"\n')
     proc = bash(linked, "type -t cat", env={"PATH": f"{fake}:{os.environ['PATH']}"})
