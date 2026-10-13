@@ -36,6 +36,17 @@ def packaged():
 # ── git hooks ─────────────────────────────────────────────────────────────
 
 
+@pytest.mark.parametrize("before", ["", "use protect && "], ids=["alone", "beside-a-dispatcher"])
+def test_run_tests_hook_installs_test_push_off_and_drops_the_old_copy(linked, before):
+    proc = hooks(linked, f"cp {REPO}/run-tests.sh . && git config hooks.protect main && "
+                         "ln -s ../../tests/hooks/pre-push .git/hooks/pre-push.off && "
+                         f"{before}./run-tests.sh hook && git config hooks.test && "
+                         "git hooks on test-push && ls .git/hooks/pre-push.d && ls .git/hooks | grep -v sample")
+    assert (proc.stdout, proc.stderr) == (
+        "test-push installed, off\nswitch it on with: git hooks on test-push\n./run-tests.sh fast\n"
+        "test-push on\n" + ("protect\n" if before else "") + "test-push\npre-push\npre-push.d\n", "")
+
+
 def test_install_moves_the_existing_hook_aside_lists_switches_and_remove_puts_it_back(linked):
     proc = hooks(linked, "mkdir -p tests && printf '#!/bin/sh\\necho project\\n' >tests/pre-push && "
                          "chmod +x tests/pre-push && ln -s ../../tests/pre-push .git/hooks/pre-push.off && "
@@ -255,6 +266,14 @@ def test_test_push_tests_the_pushed_commit_not_the_work_tree(linked):
                                      "echo $?; git rm -q bad && git commit -qm fixed && touch bad && "
                                      "git push -q 2>/dev/null && echo pushed && git worktree list | wc -l"))
     assert proc.stdout == "1\npushed\n1\n"
+
+
+def test_test_push_tests_every_branch_pushed_though_the_tests_read_stdin(linked):
+    # The hook's stdin, the pushed refs, must not be the tests' stdin
+    proc = hooks(linked, with_origin('git config hooks.test "cat >/dev/null; echo run >>$PWD/../runs" && '
+                                     "use test-push && git commit -q --allow-empty -m two && "
+                                     "git branch a && git branch b && git push -q origin a b 2>/dev/null && cat ../runs"))
+    assert proc.stdout == "run\nrun\n"
 
 
 def test_test_push_message(linked):

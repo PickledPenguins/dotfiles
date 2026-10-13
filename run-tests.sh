@@ -6,7 +6,7 @@
 #   ./run-tests.sh all        both
 #   ./run-tests.sh cov        fast with coverage of dots; fails below the floor in tests/coveragerc
 #   ./run-tests.sh mutate     every mutant in tests/mutants.txt must make the fast suite fail
-#   ./run-tests.sh hook       install tests/hooks/pre-push into .git/hooks, switched off
+#   ./run-tests.sh hook       install the packaged test-push hook running the fast suite, switched off
 #
 # Anything after the name is passed to pytest. Generated files go to .build/.
 set -e
@@ -60,8 +60,16 @@ case "$command" in
         [ "$failed" -eq 0 ]
         ;;
     hook)
-        ln -sf ../../tests/hooks/pre-push .git/hooks/pre-push.off
-        echo "installed .git/hooks/pre-push.off -> tests/hooks/pre-push, switched off (git hooks on pre-push)"
+        # The pre-push gate is the packaged test-push hook (git hooks, from
+        # ~/.local/share/git-hooks) running the fast suite. A link to the
+        # repository's former copy, tests/hooks/pre-push, goes first.
+        hooks=$(git rev-parse --git-path hooks)
+        for old in "$hooks/pre-push" "$hooks/pre-push.off" "$hooks/pre-push.d/pre-push" "$hooks/pre-push.d/pre-push.off"; do
+            case $(readlink "$old" || :) in */tests/hooks/pre-push) rm -f "$old" ;; esac
+        done
+        git config hooks.test "./run-tests.sh fast"
+        git hooks install test-push
+        echo "switch it on with: git hooks on test-push"
         ;;
     *)
         echo "usage: $0 [fast|long|all|cov|mutate|hook] [pytest arguments]" >&2

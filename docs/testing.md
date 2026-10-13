@@ -6,7 +6,7 @@ Back to the [README](../README.md).
 
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
-| `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (`.git/hooks/pre-push`, installed switched off by `./run-tests.sh hook`; `git hooks on pre-push` switches it on) | ~2 s |
+| `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (the packaged `test-push` hook, installed switched off by `./run-tests.sh hook`; `git hooks on test-push` switches it on) | ~2 s |
 | `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~130 s |
 | `./run-tests.sh all` | both | | ~130 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
@@ -55,7 +55,7 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_runner.py` | `run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` needs none | fast |
 | `tests/test_examples.py` | the example catalog: 51 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
-| `tests/mutants.txt`, `tests/coveragerc`, `tests/hooks/pre-push` | the gates | |
+| `tests/mutants.txt`, `tests/coveragerc` | the gates | |
 
 Integration tests for programs not installed skip by name
 (`needs("tmux")`), so a missing program is visible in the report rather

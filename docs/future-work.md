@@ -270,21 +270,12 @@ here is scheduled; an item is cited by its label. Back to the
   to, and moving a test that sources one library into a file whose
   `setup` loads them all changes what it isolates. A toolkit-only commit
   either way, with the README's test table updated.
-- **F.3.f  `tests/hooks/pre-push` is a second copy of the packaged
-  `test-push` hook.**  Both unset the git variables, check out each pushed
-  tip in a temporary worktree, run the tests there and stop the push on a
-  failure; the repository's copy also skips a commit that lacks the file.
-  A fix to one has to be made in the other. And `./run-tests.sh hook`
-  (`run-tests.sh:63`) links `.git/hooks/pre-push.off` beside whatever is
-  at `.git/hooks/pre-push`: once `git hooks install` has put the
-  dispatcher there, the `git hooks on pre-push` it advises stops with
-  `git hooks: both .../pre-push and .../pre-push.off exist; remove one`.
-  From the 2026-10-10 creview. Future work because either fix changes a
-  runner command and a documented path, and which hook to run is the
-  owner's call. Fix: drop `tests/hooks/pre-push` and `hook`, and document
-  `git config hooks.test "./run-tests.sh fast"` with
-  `git hooks install test-push`; or keep `hook` and link into
-  `pre-push.d/pre-push.off` when the dispatcher owns the event.
+- **F.3.f  `tests/hooks/pre-push` was a second copy of the packaged
+  `test-push` hook.**  Built 2026-10-13. The repository's copy is gone;
+  `./run-tests.sh hook` sets `hooks.test` to `./run-tests.sh fast` and runs
+  `git hooks install test-push`, which installs it switched off, after
+  removing any link to the old copy. `git hooks on test-push` switches it
+  on. Every git hook stays in this repository, in the git-hooks catalog.
 - **F.3.g  Push hooks are tested only against a named remote.**
   `protect`, `wip-guard` and `test-push` take the remote from `$1`, which
   is the URL when a push names one. `wip-guard` then builds
