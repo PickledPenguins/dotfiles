@@ -73,13 +73,13 @@ prompt_row top '@top_seg'
 # env: $DISPLAY and the tmux pane, a bar, then the conda environment and the
 # virtualenv; left out when all four are empty.
 _env_seg() {
-    local d=0 t=0 c=0 v=0 sep=''
+    local d=0 t=0 c=0 v=0 sep='' tm
     [[ -n ${DISPLAY-} ]] && d=1
-    [[ -n ${TMUX-} ]] && t=1
+    _ps_tmux_into tm && t=1        # set but unreachable: no pane, no space
     [[ -n ${CONDA_DEFAULT_ENV-} && $CONDA_DEFAULT_ENV != base ]] && c=1
     [[ -n ${VIRTUAL_ENV-} ]] && v=1
     (( d )) && { _ps_seg_display; sep=' '; }
-    (( t )) && { printf '%s' "$sep"; _ps_seg_tmux; sep=' '; }
+    (( t )) && { printf '%s%s' "$sep" "$tm"; sep=' '; }
     (( (d || t) && (c || v) )) && sep=' | '
     (( c )) && { printf '%s' "$sep"; _ps_seg_conda; sep=' '; }
     (( v )) && { printf '%s' "$sep"; _ps_seg_venv; }

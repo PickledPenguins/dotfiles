@@ -419,6 +419,21 @@ def test_prompt_rows_outside_a_repository(linked):
     assert shown_prompt(linked, env={"CONDA_DEFAULT_ENV": "e"})[1] == "│ (e)"   # no bar alone
 
 
+def test_prompt_env_row_spaces_the_tmux_pane_only_when_tmux_answers(linked, tmp_path):
+    # TMUX is set after startup, so no module sees it but the prompt
+    (tmp_path / "up").mkdir()
+    (tmp_path / "down").mkdir()
+    up = stubs(tmp_path / "up", tmux="echo 's:1.0'\n")
+    down = stubs(tmp_path / "down", tmux="exit 1\n")
+    def env_row(fake, display):
+        return shown_prompt(linked, f"TMUX=/tmp/t,1,0; PATH={fake}:$PATH; ",
+                            env={"DISPLAY": display, "CONDA_DEFAULT_ENV": "e"})[1]
+    assert env_row(up, ":9") == "│ :9 ⧉ s:1.0 | (e)"
+    assert env_row(up, "") == "│ ⧉ s:1.0 | (e)"
+    assert env_row(down, ":9") == "│ :9 | (e)"
+    assert env_row(down, "") == "│ (e)"
+
+
 def test_prompt_git_row_leaves_out_a_missing_or_repeated_commit(linked):
     git = "git -c user.name=t -c user.email=t@t"
     rows = shown_prompt(linked, f"{git} init -q -b main r; cd r; ")

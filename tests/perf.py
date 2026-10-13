@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """The startup-time gate: ./run-tests.sh perf
 
-Applies this checkout into a temporary HOME and times two things a user
-waits for: an interactive bash start (`bash -i -c exit`, every new terminal
-and tmux pane) and a warm `prompt_build` at the top of this checkout (every
-prompt, in a git repository). Each median is compared with this machine's
+Applies this checkout into a temporary HOME and times what a user waits
+for: an interactive bash start (`bash -i -c exit`, every new terminal and
+tmux pane) and a warm `prompt_build` at the top of this checkout (every
+prompt, in a git repository), once outside tmux and once inside it with a
+stub `tmux` that answers at once, so the toolkit's side of the tmux segment
+is timed and not the server. Each median is compared with this machine's
 baseline, and the gate fails when one is more than SLACK over it.
 
 The baselines are kept per host name in perf-baseline.json in the git
 directory shared by every worktree, so the packaged perf-push hook, which
 runs this in a temporary worktree of each pushed commit, finds them. The
-first run on a host, or --rebaseline, records them instead of comparing.
+first run on a host, or --rebaseline, records them instead of comparing. A
+measure the host's baseline does not have yet is recorded on its own.
 """
 
 from __future__ import annotations
@@ -50,8 +53,9 @@ def startup_ms(env: dict[str, str]) -> float:
     return (time.perf_counter() - start) * 1000
 
 
-def prompt_ms(env: dict[str, str]) -> float:
-    out = subprocess.run(["bash", "-i", "-c", PROMPT_LOOP], env=env, cwd=ROOT,
+def prompt_ms(env: dict[str, str], before: str = "") -> float:
+    """Milliseconds per warm prompt_build; `before` runs first, after startup"""
+    out = subprocess.run(["bash", "-i", "-c", before + PROMPT_LOOP], env=env, cwd=ROOT,
                          stdin=subprocess.DEVNULL, capture_output=True, text=True,
                          check=True).stdout.split()
     return (float(out[-1]) - float(out[-2])) * 1000 / PROMPT_CALLS
@@ -61,8 +65,16 @@ def measure(runs: int) -> dict[str, float]:
     with tempfile.TemporaryDirectory(prefix="dotfiles-perf.") as home:
         env = environment(Path(home))
         subprocess.run([str(ROOT / "dots"), "apply"], env=env, capture_output=True, check=True)
+        stub = Path(home) / "stub"
+        stub.mkdir()
+        (stub / "tmux").write_text("#!/bin/sh\necho 's:1.0'\n")
+        (stub / "tmux").chmod(0o755)
+        # Set after startup, as the integration tests do, so only the prompt sees tmux
+        in_tmux = f"TMUX=/tmp/perf,1,0; PATH={stub}:$PATH; "
+        prompts = max(runs // 3, 1)
         return {"startup": statistics.median(startup_ms(env) for _ in range(runs)),
-                "prompt": statistics.median(prompt_ms(env) for _ in range(max(runs // 3, 1)))}
+                "prompt": statistics.median(prompt_ms(env) for _ in range(prompts)),
+                "prompt_tmux": statistics.median(prompt_ms(env, in_tmux) for _ in range(prompts))}
 
 
 def baseline_file(root: Path = ROOT) -> Path:
@@ -103,7 +115,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"perf: baseline for {host} recorded in {path}: "
               + ", ".join(f"{name} {ms:.1f} ms" for name, ms in now.items()))
         return 0
-    lines, over = judge(now, stored[host])
+    new = {name: round(ms, 2) for name, ms in now.items() if name not in stored[host]}
+    if new:
+        stored[host].update(new)
+        path.write_text(json.dumps(stored, indent=2, sort_keys=True) + "\n")
+        print(f"perf: new baseline for {host} recorded in {path}: "
+              + ", ".join(f"{name} {ms:.1f} ms" for name, ms in new.items()))
+    lines, over = judge({name: ms for name, ms in now.items() if name not in new}, stored[host])
     print("\n".join(lines))
     if over:
         print(f"perf: more than {SLACK:.0%} over the baseline; DOTFILES_DEBUG=1 bash -i -c true "

@@ -12,13 +12,14 @@ Back to the [README](../README.md).
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
 | `./run-tests.sh mutate-shell` | every mutant in `tests/shell-mutants.txt` applied to a copy of the checkout under `.build/mutate-shell` with `breaks-it`, each checked by its own long-test subset or toolkit bats file; **fails if any survives, or if its line is no longer in the file (stale)**; exits 2 first if a TESTS fails with no mutant applied (a `-k` selecting nothing, bats missing), which would read as every mutant caught | on a change to a hook, a bash module, `layout.sh` or the toolkit's git cache | ~6 min |
-| `./run-tests.sh perf` | `tests/perf.py`: the median of 15 interactive bash starts and of a warm `prompt_build` at the top of the checkout, in a temporary linked home; **fails more than 25% over this machine's baseline**. Needs no pytest | on a module or prompt change; before each push once the packaged `perf-push` hook is switched on (`./run-tests.sh hook` installs it off; `git hooks on perf-push`) | ~6 s |
+| `./run-tests.sh perf` | `tests/perf.py`: the median of 15 interactive bash starts and of a warm `prompt_build` at the top of the checkout, outside tmux and inside it with a stub `tmux`, in a temporary linked home; **fails more than 25% over this machine's baseline**. Needs no pytest | on a module or prompt change; before each push once the packaged `perf-push` hook is switched on (`./run-tests.sh hook` installs it off; `git hooks on perf-push`) | ~6 s |
 
 `./run-tests.sh perf` keeps one baseline per host name in
 `perf-baseline.json` in the git directory (`.git/`, shared by every
 worktree, so the hook's temporary checkout finds it). The first run on a
 host records it, as does `./run-tests.sh perf --rebaseline` after a
-slowdown that is accepted; `--runs N` and `--baseline FILE` change the
+slowdown that is accepted, and a measure the host's baseline lacks is
+recorded on its own; `--runs N` and `--baseline FILE` change the
 count and the file. A failure names the measure over its limit;
 `DOTFILES_DEBUG=1 bash -i -c true` then times each module.
 
@@ -54,8 +55,9 @@ temporary `HOME` through the `home` fixture.
   touch. The first runs had 5 survivors; four tests were added and one
   equivalent mutant dropped (the list says which). ~6 min.
 - performance (2026-10-13, 4 cores, load 0.5): an interactive start 70 ms
-  median (68 to 74 over 15), a warm `prompt_build` 40 ms in this
-  repository and 32 ms outside git; `perf` takes ~6 s. `dots apply` on
+  median (68 to 74 over 15), a warm `prompt_build` 13.5 ms in this
+  repository, 16 ms with a stub `tmux`, 12 ms outside git; `perf` takes
+  ~6 s. `dots apply` on
   this repository (76 targets) is ~60 ms, not gated.
 
 ## Layout

@@ -52,6 +52,22 @@ def test_within_the_slack_passes_and_over_it_fails_naming_the_slow_one(timed, ca
                    "module, ./run-tests.sh perf --rebaseline accepts the new times\n")
 
 
+def test_a_measure_the_baseline_lacks_is_recorded_and_the_rest_judged(timed, capsys):
+    now, baseline, main = timed
+    main()
+    now["prompt_tmux"] = 45.0
+    now["startup"] = 90.0
+    assert main() == 1
+    assert json.loads(baseline.read_text())["h"] == {"prompt": 40.0, "prompt_tmux": 45.0, "startup": 70.0}
+    assert capsys.readouterr().out.splitlines()[1:] == [
+        f"perf: new baseline for h recorded in {baseline}: prompt_tmux 45.0 ms",
+        "perf: startup 90.0 ms, baseline 70.0, limit 87.5  SLOWER",
+        "perf: prompt 40.0 ms, baseline 40.0, limit 50.0"]
+    now["startup"] = 70.0
+    assert main() == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "perf: prompt_tmux 45.0 ms, baseline 45.0, limit 56.2"
+
+
 def test_rebaseline_replaces_the_hosts_times(timed, capsys):
     now, baseline, main = timed
     main()
@@ -62,11 +78,11 @@ def test_rebaseline_replaces_the_hosts_times(timed, capsys):
 
 
 @pytest.mark.long
-def test_a_real_run_records_both_times(tmp_path):
+def test_a_real_run_records_every_time(tmp_path):
     baseline = tmp_path / "b.json"
     assert perf.main(["--runs", "1", "--baseline", str(baseline)]) == 0
     times = next(iter(json.loads(baseline.read_text()).values()))
-    assert sorted(times) == ["prompt", "startup"]
+    assert sorted(times) == ["prompt", "prompt_tmux", "startup"]
     assert all(0 < ms < 5000 for ms in times.values())
 
 
