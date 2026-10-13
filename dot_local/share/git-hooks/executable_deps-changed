@@ -4,12 +4,12 @@
 # config: hooks.depsFiles
 #
 # Prints which dependency files differ, so the environment can be updated
-# (pip install -e ., npm install, ...).  hooks.depsFiles is the list of file
+# (pip install -e ., npm install, ...). hooks.depsFiles is the list of file
 # names, separated by spaces, matched in any directory; the default covers
 # Python, JavaScript, Rust, Go and Ruby: requirements*.txt pyproject.toml
 # setup.py setup.cfg Pipfile.lock poetry.lock uv.lock environment.yml
 # package.json package-lock.json yarn.lock pnpm-lock.yaml Cargo.lock go.sum
-# Gemfile.lock.  A file checkout, an amend and the steps inside a rebase are
+# Gemfile.lock. A file checkout, an amend and the steps inside a rebase are
 # not checked; the rebase as a whole is.
 set -euo pipefail
 

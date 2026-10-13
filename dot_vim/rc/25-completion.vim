@@ -1,14 +1,14 @@
 " 25-completion.vim: completion on the command line and in insert mode.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 
 " ── Command line ────────────────────────────────────────────────────────
 
 " Tab completes the longest common part first and shows a menu; Tab again
-" steps through it.  Case is ignored.
+" steps through it. Case is ignored.
 set wildmenu
 set wildmode=longest:full,full
 set wildignorecase

@@ -9,7 +9,7 @@
 #     git config hooks.lint "ruff check"
 # hooks.lintFiles narrows the paths, as git pathspecs separated by spaces
 # (git config hooks.lintFiles "*.py *.pyi"); the default is every path.
-# Nothing staged that matches means nothing runs.  The linter reads the
+# Nothing staged that matches means nothing runs. The linter reads the
 # files as the work tree has them, so a file staged in part is linted whole.
 set -euo pipefail
 

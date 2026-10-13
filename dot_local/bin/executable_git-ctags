@@ -9,8 +9,8 @@
 # The hook rebuilds after post-checkout (switch, checkout, worktree add,
 # clone), post-merge (pull, merge), post-rewrite (rebase, amend) and
 # post-commit, in the background; git never waits for it or fails because
-# of it.  The hooks directory is shared by every worktree, so a new
-# worktree gets its tags on its first checkout.  The file is written beside
+# of it. The hooks directory is shared by every worktree, so a new
+# worktree gets its tags on its first checkout. The file is written beside
 # the real one and renamed, so an editor never reads half of it; a rebuild
 # that finds HEAD moved meanwhile is dropped, as the next hook's run is
 # newer.

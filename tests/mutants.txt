@@ -1,6 +1,6 @@
 # Mutation gate for dots: each line is  FIND ||| WITH  applied to the script
 # by run-tests.sh mutate through bin/breaks-it; the fast suite must FAIL for
-# every one.  A mutant the suite tolerates is a missing assertion.  Lines
+# every one. A mutant the suite tolerates is a missing assertion. Lines
 # starting with # are comments.
 private, name = True, name[len("private_"):] ||| private, name = False, name[len("private_"):]
 executable, name = True, name[len("executable_"):] ||| executable, name = False, name[len("executable_"):]

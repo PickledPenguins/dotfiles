@@ -1,11 +1,11 @@
 # ~/.editorconfig: indentation defaults for editors that read EditorConfig
-# (vim 9+, neovim, VS Code, JetBrains).  A project without its own
+# (vim 9+, neovim, VS Code, JetBrains). A project without its own
 # .editorconfig gets these; a project's file with root = true replaces them.
 # Comments must be on their own lines here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # The search for .editorconfig files stops here.
 root = true

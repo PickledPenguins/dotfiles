@@ -8,4 +8,4 @@ When a link points at another path inside the source tree (the file was renamed 
 
 ## Expected
 
-`relink` line, and the link now points at the new source name.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+`relink` line, and the link now points at the new source name. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

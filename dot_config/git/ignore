@@ -1,11 +1,11 @@
 # ignore: the global gitignore (~/.config/git/ignore), read by every
-# repository.  Editor, OS and coding-agent leftovers only: a project's own
+# repository. Editor, OS and coding-agent leftovers only: a project's own
 # build output belongs in its .gitignore, so everyone who clones it gets that
 # too.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # A pattern here hides matching files in every repository, including files
 # a project meant to commit.
 
@@ -44,7 +44,7 @@ __pycache__/
 
 # Coding agents' instruction and handoff files, at a repository's root only,
 # so a project whose product is agent config (skills/agent-config/) can still
-# commit its own.  They never belong in a repository.
+# commit its own. They never belong in a repository.
 /CLAUDE.md
 /AGENTS.md
 /GEMINI.md

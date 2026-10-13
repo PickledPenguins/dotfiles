@@ -4,7 +4,7 @@
 
 ## What it shows
 
-Names that would map to the home directory itself (`dot_`, `private_`), a nested `private_` directory, file names with spaces and quotes, an empty file, a dotfile below the root, a `.dotsignore` with comments and globs, plus a real file in the way -- applied with `--force`.  The home directory must survive, the warnings must name the culprits, and every legitimate file must link with the right mode.
+Names that would map to the home directory itself (`dot_`, `private_`), a nested `private_` directory, file names with spaces and quotes, an empty file, a dotfile below the root, a `.dotsignore` with comments and globs, plus a real file in the way -- applied with `--force`. The home directory must survive, the warnings must name the culprits, and every legitimate file must link with the right mode.
 
 ## Why the combination matters
 
@@ -12,4 +12,4 @@ Names that would map to the home directory itself (`dot_`, `private_`), a nested
 
 ## Expected
 
-Two `dots: ignoring` warnings on stderr, exit 0, `precious` still in HOME, `.ssh` 700, the odd names linked, the ignored path absent.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Two `dots: ignoring` warnings on stderr, exit 0, `precious` still in HOME, `.ssh` 700, the odd names linked, the ignored path absent. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

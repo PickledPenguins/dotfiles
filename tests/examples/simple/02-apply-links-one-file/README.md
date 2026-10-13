@@ -8,4 +8,4 @@
 
 ## Expected
 
-One `link` line, `1 change(s)`, and `readlink` shows the source path.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+One `link` line, `1 change(s)`, and `readlink` shows the source path. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

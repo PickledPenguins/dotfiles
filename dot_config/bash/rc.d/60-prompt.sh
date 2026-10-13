@@ -6,12 +6,12 @@
 # which rows, in which box -- every piece is listed there with a
 # description.
 #
-# Too slow on a busy login node?  Turn this module off
+# Too slow on a busy login node? Turn this module off
 # (echo prompt >> ~/.config/bash/disabled) and 61-prompt-simple on.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # The toolkit, then the layout that says what it draws.
 source "$DOTFILES_BASH_DIR/prompt/toolkit/prompt.sh"

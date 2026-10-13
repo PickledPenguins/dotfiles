@@ -1,19 +1,19 @@
 # 30-aliases.sh: short names for longer commands, and safer or more
-# readable defaults for a few common ones.  Aliases apply only at the
-# prompt, never inside scripts.  Anything longer than a line is a function
+# readable defaults for a few common ones. Aliases apply only at the
+# prompt, never inside scripts. Anything longer than a line is a function
 # in 40-functions.sh; aliases for tools that may be missing live with the
 # tool (75-python, 80-tools, 85-hpc).
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead, or undo an
-# alias there with `unalias NAME`.  `\ls` or `command ls` skips an alias once.
+# alias there with `unalias NAME`. `\ls` or `command ls` skips an alias once.
 
 # ── ls ────────────────────────────────────────────────────────────────────
 
 # GNU ls in color by file type (colors from ~/.dircolors), directories
-# listed before files.  BSD and macOS ls get color from CLICOLOR instead.
+# listed before files. BSD and macOS ls get color from CLICOLOR instead.
 if ls --color=auto >/dev/null 2>&1; then
     alias ls='ls --color=auto --group-directories-first'
     if command -v dircolors >/dev/null; then
@@ -42,13 +42,13 @@ alias ltr='ls -ltrh'
 # ls: -l long, -S largest first, -h human sizes.
 alias lS='ls -lSh'
 
-# lsd: directories only.  Hides the lsd program (a modern ls) if installed.
+# lsd: directories only. Hides the lsd program (a modern ls) if installed.
 # ls: -d the directories */ names, not what is in them.
 alias lsd='ls -d */'
 
 # ── grep, diff, ip ────────────────────────────────────────────────────────
 
-# grep in color.  fgrep and egrep become grep -F and grep -E, which newer
+# grep in color. fgrep and egrep become grep -F and grep -E, which newer
 # GNU grep wants instead (the old names print a warning).
 alias grep='grep --color=auto'
 alias fgrep='grep -F --color=auto'
@@ -58,7 +58,7 @@ alias egrep='grep -E --color=auto'
 # recurses (grep -r).
 #alias grep='grep --color=auto --exclude-dir={.git,.svn,.hg,node_modules,.venv,__pycache__}'
 
-# diff in color and in unified format, the one patches and git use.  Plain
+# diff in color and in unified format, the one patches and git use. Plain
 # `diff a b` output then looks different from what tutorials show.
 alias diff='diff --color=auto -u'
 
@@ -89,9 +89,9 @@ alias cdg='cd "$(git rev-parse --show-toplevel)"'
 # ── Safety ────────────────────────────────────────────────────────────────
 
 # rm asks once before removing more than three files or recursing; cp and
-# mv ask before overwriting a file.  rm -f, \rm or `yes |` skip the
-# question.  The habit then misleads on machines without these aliases.
-# rm: -I ask once.  cp, mv: -i ask each time.
+# mv ask before overwriting a file. rm -f, \rm or `yes |` skip the
+# question. The habit then misleads on machines without these aliases.
+# rm: -I ask once. cp, mv: -i ask each time.
 alias rm='rm -I'
 alias cp='cp -i'
 alias mv='mv -i'
@@ -111,7 +111,7 @@ alias ln='ln -v'
 # chmox: chmod +x, a common typo put to use.
 alias chmox='chmod +x'
 
-# sudo followed by an alias works: `sudo ll`.  The trailing space makes bash
+# sudo followed by an alias works: `sudo ll`. The trailing space makes bash
 # expand the word after sudo as an alias too.
 #alias sudo='sudo '
 
@@ -123,7 +123,7 @@ alias du='du -h'
 alias free='free -h'
 
 # dus: the size of everything in this directory, smallest first.
-# du: -s one total each, -h human sizes.  sort: -h by human sizes.
+# du: -s one total each, -h human sizes. sort: -h by human sizes.
 alias dus='du -sh * 2>/dev/null | sort -h'
 
 # psg NAME: processes whose command line contains NAME, case-insensitive.
@@ -152,7 +152,7 @@ alias mnt='mount | column -t'
 alias c='clear'
 alias clc='clear'
 
-# h: history; hg PATTERN: search it.  hg hides Mercurial's hg command.
+# h: history; hg PATTERN: search it. hg hides Mercurial's hg command.
 alias h='history'
 alias hg='history | grep'
 
@@ -188,7 +188,7 @@ alias ping='ping -c 5'
 # tree in color (40-functions.sh defines a plain one when tree is missing).
 type -P tree >/dev/null && alias tree='tree -C'
 
-# serve: share this directory over HTTP on port 8000 until Ctrl-C.  Anyone
+# serve: share this directory over HTTP on port 8000 until Ctrl-C. Anyone
 # who can reach the port can read every file below it.
 alias serve='python3 -m http.server'
 
@@ -206,7 +206,7 @@ alias :q='exit'
 # ── Clipboard ─────────────────────────────────────────────────────────────
 
 # pbcopy / pbpaste, the macOS names, on Linux: `cmd | pbcopy` copies,
-# `pbpaste` prints the clipboard.  Wayland's wl-copy, else xclip or xsel.
+# `pbpaste` prints the clipboard. Wayland's wl-copy, else xclip or xsel.
 if command -v wl-copy >/dev/null; then
     alias pbcopy='wl-copy' pbpaste='wl-paste'
 elif command -v xclip >/dev/null; then
@@ -224,9 +224,9 @@ fi
 # g: git, with git's Tab completion (50-completion.sh).
 alias g='git'
 
-# gs status, gl graph log, gd diff, gp pull.  gs hides Ghostscript's gs and
+# gs status, gl graph log, gd diff, gp pull. gs hides Ghostscript's gs and
 # gp PARI/GP's; `command gs` still reaches them.
-# git status: -s short, -b branch line.  git lg (aliases.gitconfig): -20 last 20.
+# git status: -s short, -b branch line. git lg (aliases.gitconfig): -20 last 20.
 alias gs='git status -sb'
 alias gl='git lg -20'
 alias gd='git diff'
@@ -234,7 +234,7 @@ alias gp='git pull'
 
 # The oh-my-zsh style set: ga add, gc commit, gco checkout, gsw switch,
 # gb branch, gds staged diff, gpu push, gf fetch, gst stash, glo one-line
-# log.  gc hides Graphviz's gc.
+# log. gc hides Graphviz's gc.
 # git fetch: --all every remote, --prune drop branches gone there.
 #alias ga='git add' gc='git commit' gco='git checkout' gsw='git switch' gb='git branch'
 #alias gds='git diff --staged' gpu='git push' gf='git fetch --all --prune' gst='git stash' glo='git log --oneline -20'
@@ -243,5 +243,5 @@ alias gp='git pull'
 
 # alert: a desktop notification when a long command ends: `make; alert`.
 # The icon says whether it failed.
-# notify-send: -i icon.  The sed takes the history number and the trailing alert off.
+# notify-send: -i icon. The sed takes the history number and the trailing alert off.
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(HISTTIMEFORMAT= history 1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'

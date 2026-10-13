@@ -1,10 +1,10 @@
 " 45-filetypes.vim: per-filetype behavior beyond indentation
 " (30-indent.vim), and file names vim does not recognize by itself.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 
 augroup dotfiles_filetypes
   autocmd!
@@ -47,7 +47,7 @@ augroup END
 " Shell scripts are highlighted as bash, not POSIX sh (bash's [[ ]], arrays).
 let g:is_bash = 1
 
-" Code blocks in markdown are highlighted in their language.  Opening a
+" Code blocks in markdown are highlighted in their language. Opening a
 " markdown file then loads those syntax files too.
 "let g:markdown_fenced_languages = ['bash=sh', 'python', 'json', 'yaml', 'vim', 'c', 'diff']
 

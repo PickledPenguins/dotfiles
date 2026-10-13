@@ -12,4 +12,4 @@ Starting from an empty source tree and a lived-in home directory: `add` a mix of
 
 ## Expected
 
-Source names carry the right prefixes, git commits eight files, `forget` leaves a regular `.netrc` and a git deletion, final status `ok: 7`.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Source names carry the right prefixes, git commits eight files, `forget` leaves a regular `.netrc` and a git deletion, final status `ok: 7`. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

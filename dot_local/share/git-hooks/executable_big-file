@@ -4,8 +4,8 @@
 # config: hooks.maxFileSize
 #
 # The limit is hooks.maxFileSize in bytes, with git's k, m and g suffixes
-# (git config hooks.maxFileSize 20m); the default is 5m.  The size is that
-# of the staged content.  A large file stays in the history for good once it
+# (git config hooks.maxFileSize 20m); the default is 5m. The size is that
+# of the staged content. A large file stays in the history for good once it
 # is pushed, even after a later commit deletes it.
 set -euo pipefail
 

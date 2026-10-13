@@ -8,4 +8,4 @@
 
 ## Expected
 
-2 links removed under `.config`, status mixed, apply relinks 2.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+2 links removed under `.config`, status mixed, apply relinks 2. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

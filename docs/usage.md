@@ -1,7 +1,7 @@
 # Usage
 
-Workflows past the quick start.  Every sequence here is a case in
-`tests/examples/` and runs in the long suite.  Back to the
+Workflows past the quick start. Every sequence here is a case in
+`tests/examples/` and runs in the long suite. Back to the
 [README](../README.md).
 
 ## A machine that already has dotfiles
@@ -34,8 +34,8 @@ dots forget ~/.netrc                    # second thoughts: back to a plain file
 ```
 
 `add` takes files, not directories; for a whole tree:
-`find ~/.config/app -type f | xargs dots add`.  Modes decide the prefixes:
-600 files become `private_`, executables `executable_`.  Check with
+`find ~/.config/app -type f | xargs dots add`. Modes decide the prefixes:
+600 files become `private_`, executables `executable_`. Check with
 `dots managed --show-source` before committing.
 
 ## Trying one tool's configuration first
@@ -52,7 +52,7 @@ dots unlink ~/.config/tmux ~/.tmux.conf # and back
 
 Every setting is in a file with its description above it, and one that is
 off has its comment character directly in front
-([the options format](configuration.md#the-options-format)).  Find it,
+([the options format](configuration.md#the-options-format)). Find it,
 then add or delete that one character:
 
 ```sh
@@ -79,8 +79,8 @@ echo conda >> ~/.config/bash/disabled                          # this machine on
 printf 'unalias rm cp mv\n' >> ~/.bashrc.local                 # one setting, this machine
 ```
 
-Vim: rename `~/.vim/rc/NN-name.vim` to `.vim.off`.  tmux: rename
-`NN-name.conf` to `.conf.off`.  git: put `#` in front of the `path =` line
+Vim: rename `~/.vim/rc/NN-name.vim` to `.vim.off`. tmux: rename
+`NN-name.conf` to `.conf.off`. git: put `#` in front of the `path =` line
 in `~/.gitconfig`.
 
 ## Per-machine settings, all at once
@@ -106,19 +106,19 @@ None of these files is managed or committed.
 DOTFILES_DEBUG=1 bash -i -c true
 ```
 
-prints each module with its load time.  `conda` used to cost 1.2 s per
+prints each module with its load time. `conda` used to cost 1.2 s per
 shell through `conda shell.bash hook`; the module sources `conda.sh`
-directly (8 ms).  `completion` at ~40 ms is bash-completion itself.
+directly (8 ms). `completion` at ~40 ms is bash-completion itself.
 
 ## Reorganizing the source tree
 
 `tests/examples/complex/03-reorganize-the-source-tree`
 
 Renaming a file to change an attribute (`git mv dot_bashrc private_dot_bashrc`)
-keeps the target; `apply` reports `relink` and tightens the mode.  Moving a
+keeps the target; `apply` reports `relink` and tightens the mode. Moving a
 directory or deleting a file changes or removes targets: `apply` links the
 new ones, and the old links in `$HOME` are left dangling because they are
-no longer targets.  `dots prune -n` lists them, `dots prune` removes them;
+no longer targets. `dots prune -n` lists them, `dots prune` removes them;
 only broken links into the source tree qualify.
 
 ## In scripts

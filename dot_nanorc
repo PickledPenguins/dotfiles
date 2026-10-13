@@ -1,9 +1,9 @@
-# ~/.nanorc: for the times nano is what is there.  Comments must be on
+# ~/.nanorc: for the times nano is what is there. Comments must be on
 # their own lines here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # ── Editing ───────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ unset casesensitive
 set linenumbers
 set constantshow
 
-# A scroll indicator at the right edge.  Older nano stops at every start
+# A scroll indicator at the right edge. Older nano stops at every start
 # with an unknown-option message.
 # Needs: nano 5.0+
 set indicator
@@ -71,7 +71,7 @@ set mouse
 # ── Keys like other editors ───────────────────────────────────────────────
 
 # Ctrl-S save, Ctrl-Q quit, Ctrl-Z undo, Ctrl-Y redo, Ctrl-F find, Ctrl-C
-# copy, Ctrl-X cut, Ctrl-V paste.  Replaces nano's own meanings of those keys.
+# copy, Ctrl-X cut, Ctrl-V paste. Replaces nano's own meanings of those keys.
 #bind ^S savefile main
 #bind ^Q exit all
 #bind ^Z undo main

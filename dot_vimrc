@@ -1,10 +1,10 @@
-" ~/.vimrc: loader only.  Settings live in ~/.vim/rc/NN-name.vim, one
+" ~/.vimrc: loader only. Settings live in ~/.vim/rc/NN-name.vim, one
 " concern per file.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  Ways to change things, most to least permanent:
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. Ways to change things, most to least permanent:
 "
 "   1. edit the module (committed, every machine)
 "   2. turn a whole module off: rename NN-name.vim to NN-name.vim.off

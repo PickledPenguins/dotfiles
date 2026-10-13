@@ -1,11 +1,11 @@
 " 40-files.vim: swap, backup and undo files, and what happens on read
-" and write.  All three kinds live under ~/.vim/tmp/, so a working tree never
+" and write. All three kinds live under ~/.vim/tmp/, so a working tree never
 " collects .swp or ~ files.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 
 " ── Swap, backup, undo ──────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ augroup dotfiles_mkdir
 augroup END
 
 " Strip trailing whitespace on every write, except in markdown, diffs and
-" mail where it means something, and in a file edited with vim -b.  In a
+" mail where it means something, and in a file edited with vim -b. In a
 " file that already had some, the diff then shows those lines changed too.
 augroup dotfiles_trailing
   autocmd!

@@ -8,4 +8,4 @@
 
 ## Expected
 
-No output and `exit 1`, then the argparse message and `exit 2`.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as a copy of this repository.
+No output and `exit 1`, then the argparse message and `exit 2`. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as a copy of this repository.

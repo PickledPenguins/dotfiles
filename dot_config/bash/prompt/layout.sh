@@ -10,15 +10,15 @@
 #
 # A segment prints nothing when it does not apply (no git repository, no
 # job running), so an unused one costs a function call per prompt and no
-# space.  Turn a segment's line off to skip even the call.
+# space. Turn a segment's line off to skip even the call.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 #
 # The rows below build each line from the toolkit's segments
 # (prompt/toolkit/README.md, "Segment reference"); to show something else,
-# call another _ps_seg_* function in a row's function.  For a different
+# call another _ps_seg_* function in a row's function. For a different
 # prompt on one machine, call prompt_row and prompt_layout again in
 # ~/.bashrc.local.
 
@@ -94,7 +94,7 @@ prompt_segment env_seg _env_seg
 prompt_row env ' @env_seg'
 
 # git: ⎇, the working tree's state, the branch and its commit, the upstream
-# and its commit, ahead/behind.  The commit is left out before the first one and
+# and its commit, ahead/behind. The commit is left out before the first one and
 # on a detached HEAD, where the branch already is the commit.
 _git_seg() {
     local row=''
@@ -126,8 +126,8 @@ prompt_row cmd      ' @exit @cmd_time\$ '
 prompt_layout --sides l top git env cmd
 
 # A blank line above each prompt, so one command's output stands apart from
-# the next.  prompt_build rewrites PS1 at every prompt, so the line is added
-# right after it.  After Ctrl-L the screen starts with that blank line.
+# the next. prompt_build rewrites PS1 at every prompt, so the line is added
+# right after it. After Ctrl-L the screen starts with that blank line.
 _prompt_gap() { PS1="\n$PS1"; }
 [[ "$PROMPT_COMMAND" == *_prompt_gap* ]] || PROMPT_COMMAND="${PROMPT_COMMAND/prompt_build/prompt_build; _prompt_gap}"
 

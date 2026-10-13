@@ -8,4 +8,4 @@ The real configuration: `dots options` finds `nocasematch` without knowing which
 
 ## Expected
 
-The file and the setting's line, then `off` from bash, then `on` from dots and from bash.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as a copy of this repository.
+The file and the setting's line, then `off` from bash, then `on` from dots and from bash. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as a copy of this repository.

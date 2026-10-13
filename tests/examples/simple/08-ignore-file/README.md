@@ -8,4 +8,4 @@ Target paths listed in `.dotsignore` (glob patterns, `#` comments) are never man
 
 ## Expected
 
-`managed` lists `.bashrc` only; README.md and .dotsignore are absent.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+`managed` lists `.bashrc` only; README.md and .dotsignore are absent. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

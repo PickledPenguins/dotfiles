@@ -1,12 +1,12 @@
-# 50-plugins.conf: plugins through tpm.  Off until wanted: install tpm,
+# 50-plugins.conf: plugins through tpm. Off until wanted: install tpm,
 # drop the .off suffix, turn on the plugins you want, then prefix I
 # installs them (prefix U updates).
 #
 #   git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # tpm itself.
 set -g @plugin 'tmux-plugins/tpm'
@@ -15,7 +15,7 @@ set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-sensible'
 
 # tmux-resurrect: prefix C-s saves every session, window and pane, prefix
-# C-r restores them after a reboot, pane contents included.  Takes prefix
+# C-r restores them after a reboot, pane contents included. Takes prefix
 # C-s from 10-keys.conf.
 set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @resurrect-capture-pane-contents 'on'

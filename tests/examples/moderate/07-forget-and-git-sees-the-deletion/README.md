@@ -8,4 +8,4 @@ After `forget`, the source file is gone, so `git status` in the source tree show
 
 ## Expected
 
-`D dot_vimrc` from git; `~/.vimrc` is a regular file.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+`D dot_vimrc` from git; `~/.vimrc` is a regular file. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

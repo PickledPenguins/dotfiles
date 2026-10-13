@@ -4,7 +4,7 @@
 # config: hooks.protect
 #
 # hooks.protect is the list of protected branches, separated by spaces;
-# the default is "main master".  Commit on another branch and merge it.
+# the default is "main master". Commit on another branch and merge it.
 # A merge commit is not refused: pre-commit does not run for one.
 set -euo pipefail
 

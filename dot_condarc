@@ -1,9 +1,9 @@
-# ~/.condarc: conda defaults.  `conda config --describe KEY` explains any
+# ~/.condarc: conda defaults. `conda config --describe KEY` explains any
 # key; `conda config --show` prints what applies.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # A new shell stays on the system python; `conda activate NAME` when wanted.
 # Newer conda also calls this auto_activate; this name works in every version.
@@ -14,7 +14,7 @@ auto_activate_base: false
 changeps1: false
 
 # Packages only from conda-forge, the highest-priority channel that has
-# them, so builds from different channels do not mix.  No defaults channel:
+# them, so builds from different channels do not mix. No defaults channel:
 # its terms of service stop non-interactive conda 25.5+ until accepted, and
 # an organization over 200 people needs a paid license for it.
 channel_priority: strict
@@ -27,13 +27,13 @@ always_yes: false
 # Package listings show which channel each package came from.
 show_channel_urls: true
 
-# New named environments go under ~/.conda/envs.  Each one costs hundreds
+# New named environments go under ~/.conda/envs. Each one costs hundreds
 # of MB to a few GB of the home quota; on a cluster, put the directory on
 # a bigger disk, as with pkgs_dirs below.
 envs_dirs:
   - ~/.conda/envs
 
-# The package cache on a bigger disk than $HOME (a cluster's scratch).  The
+# The package cache on a bigger disk than $HOME (a cluster's scratch). The
 # path is an example.
 #pkgs_dirs:
   #- /scratch/$USER/conda/pkgs

@@ -1,6 +1,6 @@
 # Contributing
 
-Changing the project.  Back to the [README](../README.md);
+Changing the project. Back to the [README](../README.md);
 [architecture.md](architecture.md) has the shape and the extension points.
 
 ## Where a change goes
@@ -42,17 +42,17 @@ the comment character directly in front of its code:
 ```
 
 A setting that needs a program adds `# Needs: PROGRAM` to its description;
-the switch-on test skips it where the program is missing.  Then
+the switch-on test skips it where the program is missing. Then
 `./run-tests.sh long -k options`, and `dots options nocasematch` shows it.
 
 **Add a bash module** `dot_config/bash/rc.d/NN-name.sh`, in the same format:
 
 ```bash
-# 72-direnv.sh: per-directory .envrc.  Skipped when direnv is absent.
+# 72-direnv.sh: per-directory .envrc. Skipped when direnv is absent.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # Nothing to do without direnv.
 command -v direnv >/dev/null || return 0
@@ -80,9 +80,9 @@ and `./run-tests.sh cov mutate`.
 
 `dot_config/bash/prompt/toolkit/` is
 [bash-prompt-toolkit](https://github.com/PickledPenguins/bash-prompt-toolkit)
-as a git subtree (squashed).  A plain clone has it; nothing to initialize.
+as a git subtree (squashed). A plain clone has it; nothing to initialize.
 Edit it here, in a commit that touches only that directory, so it splits
-cleanly.  The toolkit's own tests run with `bats tests/` from inside it;
+cleanly. The toolkit's own tests run with `bats tests/` from inside it;
 `./run-tests.sh long` runs them too.
 
 ```sh
@@ -96,17 +96,17 @@ git subtree pull --squash --prefix=dot_config/bash/prompt/toolkit ../bash-prompt
 ```
 
 `git subtree push` to `../bash-prompt-toolkit` is refused while that
-repository has the branch checked out, hence split and pull.  Both
+repository has the branch checked out, hence split and pull. Both
 directions need a clean working tree.
 ## Commit convention
 
 One change per commit; the subject says what changed and the body says
-why, in normal prose.  No changelog: the log is the record.
+why, in normal prose. No changelog: the log is the record.
 
 ```
 Make apply exit 1 while conflicts remain
 
-`dots apply && exec bash` continued on a half-applied home.  The summary
+`dots apply && exec bash` continued on a half-applied home. The summary
 now counts conflicts and the exit status follows it; forget of an
 unmanaged path is treated the same way.
 ```

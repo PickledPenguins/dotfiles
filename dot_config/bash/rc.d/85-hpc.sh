@@ -1,4 +1,4 @@
-# 85-hpc.sh: PBS Pro, Slurm and Environment Modules shortcuts.  Every
+# 85-hpc.sh: PBS Pro, Slurm and Environment Modules shortcuts. Every
 # block checks for its scheduler's commands first, so on a workstation this
 # file defines nothing.
 #
@@ -9,9 +9,9 @@
 #            sn   node/partition summary     sacct-today
 #   modules  ml   module                     mla  module avail
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
@@ -39,14 +39,14 @@ if [[ -n "${_hpc_pbs-}" ]]; then
     alias qh='qstat -x -u "$USER"'
 fi
 
-# qtail JOBID: follow the output file of a running PBS job.  qstat wraps a
-# long path onto tab-indented lines, joined here first.  The file fills as
+# qtail JOBID: follow the output file of a running PBS job. qstat wraps a
+# long path onto tab-indented lines, joined here first. The file fills as
 # the job runs only when the job writes it in place (qsub -k oed, or a site
 # with direct write); otherwise PBS keeps the output on the execution host
 # and copies it there when the job ends.
 [[ -n "${_hpc_pbs-}" ]] && qtail() { tail -f "$(qstat -f "$1" | sed -e ':a;N;$!ba;s/\n\t//g' | sed -n 's/.*Output_Path = [^:]*:\(.*\)/\1/p')"; }
 
-# qint: an interactive job with X forwarding.  The resources are an example;
+# qint: an interactive job with X forwarding. The resources are an example;
 # every site's queues and limits differ.
 #[[ -n "${_hpc_pbs-}" ]] && alias qint='qsub -I -X -l select=1:ncpus=4:mem=8gb -l walltime=01:00:00'
 
@@ -73,7 +73,7 @@ command -v srun >/dev/null && srun-i() { srun --pty "$@" "${SHELL:-bash}" -l; }
 #export SQUEUE_FORMAT="%.10i %.9P %.20j %.8u %.8T %.10M %.10l %.6D %R"
 #export SACCT_FORMAT="JobID,JobName%20,Partition,State,Elapsed,MaxRSS,ExitCode"
 
-# sint: an interactive allocation.  The resources are an example; every
+# sint: an interactive allocation. The resources are an example; every
 # site's partitions and limits differ.
 #command -v salloc >/dev/null && alias sint='salloc --nodes=1 --ntasks=1 --cpus-per-task=4 --time=01:00:00'
 
@@ -99,13 +99,13 @@ fi
 # ── Login-node etiquette ──────────────────────────────────────────────────
 
 # One thread per program unless a job says otherwise, so a quick test on a
-# shared login node does not take every core.  Slurm copies it into every
+# shared login node does not take every core. Slurm copies it into every
 # job submitted from this shell (--export=ALL is its default), so a job
 # that does not set its own runs one thread: sbatch --export=NONE.
 #export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 
 # Temporary files on scratch instead of a small /tmp, when that scratch
-# directory exists.  The path is an example; use your site's.
+# directory exists. The path is an example; use your site's.
 #[[ -d "/scratch/$USER" ]] && export TMPDIR="/scratch/$USER/tmp" && command mkdir -p "$TMPDIR"
 
 # Tidy up the helper variable.

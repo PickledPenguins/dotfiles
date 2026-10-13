@@ -2,10 +2,10 @@
 " vim 9.0.1799+ ships editorconfig as an optional package that these files
 " do not load, so a project's .editorconfig is not read.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 "
 " Knobs (set in ~/.vimrc.before):
 "   g:dotfiles_indent   default width   default: 2

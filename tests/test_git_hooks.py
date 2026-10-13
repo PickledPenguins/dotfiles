@@ -103,8 +103,8 @@ def test_show_prints_the_header_and_each_setting_here(linked):
         "protect: refuse a push that deletes or rewrites a protected branch.\n"
         "events: pre-push\nconfig: hooks.protect\n\n"
         "hooks.protect is the list of protected branches, separated by spaces;\n"
-        "the default is \"main master\".  A push deleting one, or one that is not a\n"
-        "fast-forward of what the remote has (a force push), is refused.  A remote\n"
+        "the default is \"main master\". A push deleting one, or one that is not a\n"
+        "fast-forward of what the remote has (a force push), is refused. A remote\n"
         "commit this repository has not fetched counts as a rewrite: fetch first.\n\n"
         "hooks.protect = trunk\nhere: not installed\n")
 

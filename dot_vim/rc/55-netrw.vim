@@ -3,10 +3,10 @@
 "   :Explore or -   open the browser in the current file's directory
 "   <leader>ee      toggle a tree at the left
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 
 " No help banner at the top; a tree listing (i cycles the styles); the side
 " window 25% wide; files open in the window you came from, vertical splits
@@ -31,5 +31,5 @@ nnoremap <silent> - :Explore<CR>
 nnoremap <silent> <leader>ee :Lexplore<CR>
 
 " Switch netrw off completely, for a file-browser plugin such as NERDTree
-" or fern.  vim DIR then opens nothing useful.
+" or fern. vim DIR then opens nothing useful.
 "let g:loaded_netrw = 1 | let g:loaded_netrwPlugin = 1

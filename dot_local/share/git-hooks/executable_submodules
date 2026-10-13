@@ -4,8 +4,8 @@
 #
 # Runs git submodule update --init --recursive in a repository with a
 # .gitmodules file, so a submodule never sits at the commit the previous
-# branch wanted.  Edits not committed inside a submodule make the update
-# fail; git reports it and the checkout itself stands.  A file checkout, an
+# branch wanted. Edits not committed inside a submodule make the update
+# fail; git reports it and the checkout itself stands. A file checkout, an
 # amend and the steps inside a rebase do not run it.
 set -euo pipefail
 

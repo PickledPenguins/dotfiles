@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # client-env: give a tmux session the environment of the client typed on
-# last.  Run by the hooks in conf.d/45-client-env.conf:
+# last. Run by the hooks in conf.d/45-client-env.conf:
 #
 #   client-env SOCKET SERVER_PID CLIENT_PID SESSION_ID
 #
 # For each name in update-environment (DISPLAY, SSH_AUTH_SOCK, XAUTHORITY
 # ...) it takes the client's value, from /proc/CLIENT_PID/environ, or where
 # there is no /proc from the session, into which tmux copied the attaching
-# client's values.  The values are set in the session, for the panes and
+# client's values. The values are set in the session, for the panes and
 # programs tmux starts next, and written to SOCKET.env.SERVER_PID.SESSION
 # for the shells already running, which apply them before their next
-# command (rc.d/15-tmux-env.sh).  A name the client lacks is unset, as
+# command (rc.d/15-tmux-env.sh). A name the client lacks is unset, as
 # tmux does on attach.
 #
 # A live SSH_AUTH_SOCK is linked from ~/.ssh/agent.sock and the session

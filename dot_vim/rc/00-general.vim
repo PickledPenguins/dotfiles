@@ -1,10 +1,10 @@
 " 00-general.vim: core behavior every other module assumes: encoding,
 " buffers, timing, mouse, clipboard.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 
 " ── Files and encodings ─────────────────────────────────────────────────
 
@@ -37,11 +37,11 @@ augroup END
 "set confirm
 
 " Ignore modelines (vim: settings inside files), a known way for a file to
-" run code.  Files with a modeline lose it.
+" run code. Files with a modeline lose it.
 set nomodeline
 
 " Read a .vimrc or .exrc in the directory vim starts in, with `secure`
-" limiting what it may do.  Only for trees you trust.
+" limiting what it may do. Only for trees you trust.
 "set exrc secure
 
 " Keep ~/.viminfo (marks, registers, history) under ~/.vim/tmp instead of $HOME.
@@ -56,7 +56,7 @@ set history=1000
 set ttimeout ttimeoutlen=10
 
 " How long vim waits for the rest of a mapping such as <leader>ww (default
-" 1000 ms).  Shorter feels faster; too short makes two-key maps hard.
+" 1000 ms). Shorter feels faster; too short makes two-key maps hard.
 "set timeoutlen=500
 
 " CursorHold events and swap file writes after 300 ms idle (default 4 s).
@@ -81,8 +81,8 @@ set nostartofline
 
 " ── Mouse and clipboard ─────────────────────────────────────────────────
 
-" The mouse clicks, scrolls, selects and resizes in every mode.  Shift+drag
-" still selects terminal text.  For one machine without: set mouse= in
+" The mouse clicks, scrolls, selects and resizes in every mode. Shift+drag
+" still selects terminal text. For one machine without: set mouse= in
 " ~/.vimrc.local.
 set mouse=a
 

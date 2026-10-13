@@ -1,12 +1,12 @@
-# 80-tools.sh: optional programs.  Every block checks that its program is
+# 80-tools.sh: optional programs. Every block checks that its program is
 # installed first, so this file is the same on every machine and a missing
-# program costs one lookup.  A block that is on runs the set-up the
+# program costs one lookup. A block that is on runs the set-up the
 # program's own install instructions ask for; one that is off would change
 # what a familiar command or key does.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
@@ -57,7 +57,7 @@ command -v fnm >/dev/null && eval "$(fnm env --use-on-cd --shell bash)"
 # rbenv: ruby versions per directory.
 command -v rbenv >/dev/null && eval "$(rbenv init - bash)"
 
-# SDKMAN!: Java, Gradle, Kotlin ... versions.  Its start-up is slow (~100 ms).
+# SDKMAN!: Java, Gradle, Kotlin ... versions. Its start-up is slow (~100 ms).
 [[ -s "${SDKMAN_DIR:-$HOME/.sdkman}/bin/sdkman-init.sh" ]] && source "${SDKMAN_DIR:-$HOME/.sdkman}/bin/sdkman-init.sh"
 
 # ghcup: the Haskell toolchain's environment.
@@ -71,13 +71,13 @@ command -v rbenv >/dev/null && eval "$(rbenv init - bash)"
 # lesspipe: less opens archives, PDFs, images and packages as text.
 command -v lesspipe >/dev/null && eval "$(SHELL=/bin/sh lesspipe)"
 
-# bat: cat with syntax colors.  Debian installs it as batcat; `bat` works
-# either way.  BAT_STYLE=plain leaves out line numbers and the header.
+# bat: cat with syntax colors. Debian installs it as batcat; `bat` works
+# either way. BAT_STYLE=plain leaves out line numbers and the header.
 if command -v batcat >/dev/null && ! command -v bat >/dev/null; then alias bat='batcat'; fi
 if command -v bat >/dev/null || command -v batcat >/dev/null; then export BAT_STYLE=plain; fi
 
 # cat runs bat when bat is installed: colors on a terminal, the plain text
-# into a pipe or file.  \cat reaches the real cat.
+# into a pipe or file. \cat reaches the real cat.
 if command -v bat >/dev/null || command -v batcat >/dev/null; then alias cat='bat --paging=never'; fi
 
 # fd: Debian installs it as fdfind; `fd` works either way.
@@ -90,7 +90,7 @@ if command -v eza >/dev/null; then
     alias lt='eza -la --sort=modified --reverse'
 fi
 
-# eza for plain ls too.  Its options differ from ls's (ls -t is not eza -t),
+# eza for plain ls too. Its options differ from ls's (ls -t is not eza -t),
 # so habits and copied commands break.
 # Needs: eza
 #alias ls='eza --group-directories-first'
@@ -107,8 +107,8 @@ fi
 # ── Finding things ────────────────────────────────────────────────────────
 
 # fzf: Ctrl-R fuzzy history search, Ctrl-T pastes a file path, Alt-C cds
-# into a directory.  Files come from fd or ripgrep when installed, which
-# respect .gitignore.  fzf runs these lists with `$SHELL -c`, where the fd
+# into a directory. Files come from fd or ripgrep when installed, which
+# respect .gitignore. fzf runs these lists with `$SHELL -c`, where the fd
 # alias does not exist, so they name the program Debian installs.
 if command -v fzf >/dev/null; then
     if fzf --bash >/dev/null 2>&1; then
@@ -156,7 +156,7 @@ fi
 command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 
 # zoxide takes over cd itself: `cd proj` jumps to ~/work/proj from anywhere.
-# Instead of the line above; cd without a match behaves as usual.  Loads
+# Instead of the line above; cd without a match behaves as usual. Loads
 # after 45-dirs.sh, so it replaces either cd function there.
 # Needs: zoxide
 #eval "$(zoxide init bash --cmd cd)"
@@ -176,7 +176,7 @@ command -v direnv >/dev/null && eval "$(direnv hook bash)"
 
 # atuin: history in SQLite with context (directory, exit status, duration),
 # searched full-screen on Ctrl-R and Up; sync between machines is opt-in.
-# Takes Ctrl-R from fzf.  Its bash hooks need bash-preexec or ble.sh
+# Takes Ctrl-R from fzf. Its bash hooks need bash-preexec or ble.sh
 # sourced first, which add a DEBUG trap beside the prompt's own.
 # Needs: atuin
 #eval "$(atuin init bash)"

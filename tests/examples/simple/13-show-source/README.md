@@ -8,4 +8,4 @@
 
 ## Expected
 
-Absolute source paths, one per line.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Absolute source paths, one per line. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

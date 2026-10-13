@@ -1,30 +1,30 @@
 # 25-ssh-agent.sh: one ssh-agent per machine, shared by every shell.
 #
 # Off: desktops usually run an agent already (gnome-keyring, KDE wallet,
-# 1Password).  Turn it on for headless boxes and hosts reached only by ssh:
+# 1Password). Turn it on for headless boxes and hosts reached only by ssh:
 # drop the .off suffix, or copy it to 25-ssh-agent.sh on that machine.
 #
 # The agent's environment is saved in ~/.ssh/agent.env; a new shell reads it
-# and starts a fresh agent only when that one is gone.  Keys are added the
+# and starts a fresh agent only when that one is gone. Keys are added the
 # first time they are used (AddKeysToAgent in ~/.ssh/config), so logging in
 # asks for no passphrase.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 #
 # Knobs (set in ~/.bashrc.before):
 #   DOTFILES_SSH_AGENT_ENV   where to keep the agent env   default: ~/.ssh/agent.env
 #   DOTFILES_SSH_AGENT_KEYS  keys to add at start          default: none (added on use)
 
 # Use keychain instead: it starts one agent per machine and asks for each
-# key's passphrase once, at the first login after boot.  The agent code
+# key's passphrase once, at the first login after boot. The agent code
 # below then finds that agent alive and does nothing.
 # Needs: keychain
 #eval "$(keychain --eval --quiet --noask)"
 
 # Use gpg-agent as the ssh agent: one agent for gpg and ssh, or ssh keys on
-# a smartcard or YubiKey.  Needs enable-ssh-support in
+# a smartcard or YubiKey. Needs enable-ssh-support in
 # ~/.gnupg/gpg-agent.conf; the agent code below then does nothing.
 # Needs: gpgconf
 #export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"; gpgconf --launch gpg-agent

@@ -8,4 +8,4 @@
 
 ## Expected
 
-`1 link(s) removed`, `~/.bashrc` gone, source file still there.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+`1 link(s) removed`, `~/.bashrc` gone, source file still there. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

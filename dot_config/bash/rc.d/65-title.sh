@@ -1,12 +1,12 @@
 # 65-title.sh: keep the terminal window or tab title current.
 #
 # Only for terminals that understand the xterm title escape, and only when
-# the shell's output is a terminal.  Inside tmux the title is discarded:
+# the shell's output is a terminal. Inside tmux the title is discarded:
 # allow-rename is off and set-titles-string has no #T (00-options.conf).
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
@@ -47,7 +47,7 @@ _title_arm() {
 }
 
 # While a command runs, the title shows it, so a busy tab says what it is
-# doing.  Armed at the end of the first prompt, after the prompt has
+# doing. Armed at the end of the first prompt, after the prompt has
 # claimed its own trap, so loading the rest of the configuration does not
 # flash titles; that trap is read outside a function, where bash shows it.
 # Costs a function call before every command.

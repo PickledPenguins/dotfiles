@@ -1,15 +1,15 @@
-! ~/.Xresources: xterm, urxvt and X font settings.  Load with
-! `xrdb -merge ~/.Xresources` (display managers do it at login).  Each line
-! starts with the program it is for.  Comments must be on their own lines.
+! ~/.Xresources: xterm, urxvt and X font settings. Load with
+! `xrdb -merge ~/.Xresources` (display managers do it at login). Each line
+! starts with the program it is for. Comments must be on their own lines.
 !
-! Each setting has its description in the comment above it.  A setting with
+! Each setting has its description in the comment above it. A setting with
 ! "!" directly in front of it is off: delete that "!" to turn it on, or add
-! one to turn a setting off.  `dots options WORD` searches every file.
+! one to turn a setting off. `dots options WORD` searches every file.
 
 ! ── Fonts for every X program ─────────────────────────────────────────────
 
 ! Font rendering: antialiasing, light hinting, subpixel order for a common
-! LCD, at 96 dpi.  Change Xft.dpi to scale everything on a high-DPI screen.
+! LCD, at 96 dpi. Change Xft.dpi to scale everything on a high-DPI screen.
 !Xft.antialias: true
 !Xft.hinting: true
 !Xft.hintstyle: hintslight
@@ -53,7 +53,7 @@ XTerm*ttyModes:           erase ^?
 ! Selecting with the mouse also copies to the CLIPBOARD, not only PRIMARY.
 XTerm*selectToClipboard:  true
 
-! A steady cursor; programs may not resize or move the window.  With window
+! A steady cursor; programs may not resize or move the window. With window
 ! ops off xterm also refuses OSC 52, so tmux set-clipboard and vim over ssh
 ! cannot set the clipboard: add XTerm*disallowedWindowOps: 20,21,SetXprop
 ! to allow that one.

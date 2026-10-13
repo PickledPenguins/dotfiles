@@ -2,22 +2,22 @@
 # after everything else, even ones a system file made read-only.
 #
 # A cluster's /etc/profile or /etc/bash.bashrc may make TMOUT read-only, so
-# an idle shell logs out, or fix HISTSIZE for everyone.  Bash cannot change
-# or unset a read-only variable in the shell that has it.  When a listed
+# an idle shell logs out, or fix HISTSIZE for everyone. Bash cannot change
+# or unset a read-only variable in the shell that has it. When a listed
 # name is read-only, this replaces the shell (exec: same process ID,
 # directory, limits and terminal) with a new bash that reads none of the
 # startup files and takes over this one's variables, functions, aliases,
 # shell options, completions, key bindings and traps, less the listed
-# names.  When none is read-only, it sets and unsets them in this shell.
+# names. When none is read-only, it sets and unsets them in this shell.
 # The swap costs one more bash start and a dump of the shell, tens of ms,
 # on the machines that need it only, and the history list is read again
-# from HISTFILE.  In a login shell the swap waits for the end of
-# ~/.bash_profile, so the lines after ~/.bashrc there still run.  `bash -c`
+# from HISTFILE. In a login shell the swap waits for the end of
+# ~/.bash_profile, so the lines after ~/.bashrc there still run. `bash -c`
 # and scripts keep the read-only values: the new shell would not run them.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 #
 # Knobs (set in ~/.bashrc.before):
 #   DOTFILES_OVERRIDE  an array: NAME to unset, NAME=VALUE to set   default: none
@@ -37,10 +37,10 @@ _override_bash_own=" BASH BASHOPTS BASHPID BASH_ALIASES BASH_ARGC BASH_ARGV BASH
 # Replace this shell with bash in POSIX mode, which reads only the file in
 # $ENV (no /etc/bash.bashrc, no ~/.bashrc; --noprofile: no /etc/profile).
 # The file turns POSIX mode off, restores this shell's state, sets the
-# listed values and deletes itself.  Shell options first (a function body
+# listed values and deletes itself. Shell options first (a function body
 # may need extglob to parse), functions before aliases (an alias would
-# expand again inside the bodies).  No local variables, which
-# declare -p would copy.  The _override_ globals are left out instead.
+# expand again inside the bodies). No local variables, which
+# declare -p would copy. The _override_ globals are left out instead.
 _override_swap() {
     _override_dir=$(mktemp -d "${TMPDIR:-/tmp}/bash-override.XXXXXX") || return
     _override_file=$_override_dir/env
@@ -111,7 +111,7 @@ for _override_e in "${DOTFILES_OVERRIDE[@]}"; do
 done
 
 # Swap when a name is read-only, in an interactive shell on a terminal
-# that runs no command or script.  A login shell swaps at the end of
+# that runs no command or script. A login shell swaps at the end of
 # ~/.bash_profile instead, which calls _override_swap when
 # _override_readonly is still set.
 if [[ -n $_override_readonly && -t 0 && $- != *c* && ( ${0##*/} == bash* || ${0##*/} == -bash* ) ]]; then

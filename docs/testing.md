@@ -19,25 +19,25 @@ active), the runner reruns itself under `in-env` from the skills tools,
 whose default environment has it, and otherwise stops with exit 2 and a
 message naming the interpreter.
 Generated files (coverage data) land in `.build/`; the pytest cache is
-disabled.  Nothing here touches the real home directory: every test gets a
+disabled. Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
 
 ## Numbers (2026-10-10, this machine, measured on the commit that added this line)
 
-- fast: 336 tests, 3.6 s.  long: 325 passed and 14 skipped (programs not
+- fast: 336 tests, 3.6 s. long: 325 passed and 14 skipped (programs not
   installed here: conda, sqlite3, ctags, ripgrep, matplotlib in the test
   interpreter; settings whose `Needs:` program is missing), 131 s, of
-  which the toolkit's 165 bats tests are about 45 s.  A gdb
+  which the toolkit's 165 bats tests are about 45 s. A gdb
   built without debuginfod support passes the debuginfod setting.
 - coverage of `dots`: 100% lines (363), 100% branches (154); floor 100.
-- mutation: 51 mutants, 51 caught, 0 survivors.  The list is hand-written
+- mutation: 51 mutants, 51 caught, 0 survivors. The list is hand-written
   (no mutmut here), one mutant per decision in the script: each attribute
   prefix, the ignore matching, the root-dotfile skip, the home-directory
   guard, each state classification, each mode bit, the force/dry-run
   branches, every exit code, the `add` attribute inference, path
-  selection, and the options parser and filters.  A new branch in `dots`
+  selection, and the options parser and filters. A new branch in `dots`
   needs a line there.
-- performance: not gated.  `dots apply` on this repository (76 targets)
+- performance: not gated. `dots apply` on this repository (76 targets)
   is ~60 ms; no path is worth a timing baseline yet.
 
 ## Layout
@@ -64,7 +64,7 @@ than passing silently.
 ## Standard
 
 - A test asserts the value: the exact lines printed, the exit code, the
-  link target, the mode.  "It ran" is not a test.
+  link target, the mode. "It ran" is not a test.
 - A bug fix lands with the test that reproduces it, named for the bug
   (`test_add_refuses_paths_that_escape_home_via_dotdot`).
 - A new `dots` branch needs: a unit or CLI test, a mutant line, and a
@@ -97,10 +97,10 @@ fails when any of it is missing from the document that owns it:
 
 Each case is a script run from a fresh `HOME` with `dots` on `PATH`; the
 output, with paths normalized to `SRC`/`HOME`/`TMP` and timestamps to
-`TS`, must equal `expected.txt`.  `python3 tests/test_examples.py NAME`
-prints a case; `--write` re-records it after an intended change.  Complex
+`TS`, must equal `expected.txt`. `python3 tests/test_examples.py NAME`
+prints a case; `--write` re-records it after an intended change. Complex
 cases and `moderate/08`-`10` copy this repository as the source and run the
-real configuration.  The catalog README is `tests/examples/README.md`.
+real configuration. The catalog README is `tests/examples/README.md`.
 
 ## What is not measured
 
@@ -110,7 +110,7 @@ real configuration.  The catalog README is `tests/examples/README.md`.
   runs `bats tests` in `dot_config/bash/prompt/toolkit/` and requires
   every test to pass (skipped where `bats` is not installed), and checks
   each layout builds a PS1, the exit status shown beside the title module,
-  and a hostile directory name shown as typed.  The pre-push hook does
+  and a hostile directory name shown as typed. The pre-push hook does
   not run bats.
 - Programs absent on the machine the suite runs on (screen, ctags, delta)
   are skipped, not faked; so is a setting whose `Needs:` line names a

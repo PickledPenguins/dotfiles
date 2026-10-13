@@ -1,6 +1,6 @@
 """Run the example catalog: every case under tests/examples/, end to end.
 
-A case is a directory with a README.md and a case.sh.  The runner gives the
+A case is a directory with a README.md and a case.sh. The runner gives the
 script a fresh SRC (empty, or a copy of this repository when the script says
 `# source: repo`), a fresh HOME, and a `dots` on PATH, runs it with bash from
 inside HOME, and compares stdout+stderr -- with the temporary paths and

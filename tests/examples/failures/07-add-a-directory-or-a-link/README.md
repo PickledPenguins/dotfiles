@@ -8,4 +8,4 @@ A directory or an existing symlink is skipped with the reason; the files inside 
 
 ## Expected
 
-Two skip lines with reasons, exit 0.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Two skip lines with reasons, exit 0. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

@@ -1,12 +1,12 @@
-# signing.gitconfig: sign commits and tags.  Off until its include line in
+# signing.gitconfig: sign commits and tags. Off until its include line in
 # ~/.gitconfig is on; needs user.signingkey in ~/.gitconfig.local:
 #
 #   GPG:  the key ID from  gpg --list-secret-keys --keyid-format long
 #   ssh:  the public key file, user.signingkey = ~/.ssh/id_ed25519.pub
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.gitconfig.local instead.
 
 [commit]

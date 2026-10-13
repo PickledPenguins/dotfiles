@@ -8,4 +8,4 @@
 
 ## Expected
 
-Two targets, both starting with a dot, in alphabetical order.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Two targets, both starting with a dot, in alphabetical order. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

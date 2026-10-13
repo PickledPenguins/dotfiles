@@ -8,4 +8,4 @@
 
 ## Expected
 
-One line naming the missing directory, exit 2.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+One line naming the missing directory, exit 2. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

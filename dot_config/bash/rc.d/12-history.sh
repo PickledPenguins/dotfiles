@@ -1,8 +1,8 @@
 # 12-history.sh: one history file per tmux pane, a log of every command,
-# and hgrep to search that log.  Bash 4.2+.
+# and hgrep to search that log. Bash 4.2+.
 #
 # With the pane setting on, each tmux pane keeps its own history file, so
-# Up and Ctrl-R recall what was typed in that pane only.  A new pane's
+# Up and Ctrl-R recall what was typed in that pane only. A new pane's
 # file is chosen once, when its shell starts:
 #   - a pane split from another starts with a copy of that pane's history;
 #   - the first pane of a new window or session takes over the history of
@@ -14,17 +14,17 @@
 # as 10-options.sh sets it), which shells outside tmux keep using.
 #
 # Pane files are ~/.hist/HOST/SESSION/PID.START, named after the shell
-# that writes them.  A file is closed once that process is gone.  Closed
+# that writes them. A file is closed once that process is gone. Closed
 # files unchanged for DOTFILES_HIST_DAYS days are deleted when a pane
-# starts.  Each machine has its own HOST directory, so a home shared over
+# starts. Each machine has its own HOST directory, so a home shared over
 # NFS never mixes up two machines' process IDs.
 #
-# The log is ~/.hist/log/YYYY-MM, one file a month.  When a shell with the
+# The log is ~/.hist/log/YYYY-MM, one file a month. When a shell with the
 # log on starts, months older than the last DOTFILES_HIST_LOG_MONTHS go.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
@@ -43,7 +43,7 @@ _hist_shared="${_hist_shared:-${HISTFILE:-$HOME/.bash_history}}"
 _hist_pwd=$PWD
 
 # Point HISTFILE at this tmux pane's own file, chosen as the header says.
-# Outside tmux, or when tmux does not answer, nothing changes.  Sourcing
+# Outside tmux, or when tmux does not answer, nothing changes. Sourcing
 # ~/.bashrc again keeps the file already chosen.
 _hist_pane_start() {
     if [[ -n ${_hist_pane_file-} ]]; then
@@ -66,15 +66,15 @@ _hist_pane_start() {
                list-panes -t "$TMUX_PANE" -F '#{pane_id} #{pane_active} #{pane_last} #{pane_pid}' 2>/dev/null)
     [[ -n $session ]] || return 0
 
-    # A pane split off and focused leaves its source as the last pane.  One
-    # split off with -d leaves its source active.  A shell started inside
+    # A pane split off and focused leaves its source as the last pane. One
+    # split off with -d leaves its source active. A shell started inside
     # the pane's own shell (bash at the prompt) starts from that shell's.
     local source_pid=$active_pid
     [[ $self_active == 1 ]] && source_pid=$last_pid
     [[ $self_pid != "$$" ]] && source_pid=$self_pid
 
     # Prune before choosing, so nothing about to be taken over is old
-    # enough to go.  A live pane's file stays however old, and an empty
+    # enough to go. A live pane's file stays however old, and an empty
     # directory goes only when old: never one another shell has just made
     # and is about to fill.
     local old days=${DOTFILES_HIST_DAYS:-90}
@@ -94,7 +94,7 @@ _hist_pane_start() {
 
     # The file this process had before `exec bash`, else a new one: copied
     # from the source pane's, else taken over from a closed pane's, else
-    # copied from the shared file.  `exec bash` keeps $$ and the
+    # copied from the shared file. `exec bash` keeps $$ and the
     # environment; a shell started inside has another $$.
     if [[ ${_hist_own-} == "$$:"* ]]; then
         file=${_hist_own#*:}
@@ -132,7 +132,7 @@ _hist_pane_start() {
 
 # _hist_newest DIR PID [SKIP]: REPLY is the most recently written pane
 # file in DIR: of shell PID when PID is given, else of any shell that has
-# exited, leaving out the names listed in SKIP (" a b ").  Fails when there
+# exited, leaving out the names listed in SKIP (" a b "). Fails when there
 # is none.
 _hist_newest() {
     local f base newest=
@@ -152,7 +152,7 @@ _hist_newest() {
 
 # At each prompt the commands typed since the last one go to HISTFILE, to
 # the shared file when HISTFILE is the pane's, and to the log when it is
-# on.  HISTFILE unset, empty or /dev/null keeps them out of all three.
+# on. HISTFILE unset, empty or /dev/null keeps them out of all three.
 # `history -a` into a scratch file is how bash says which commands are new:
 # it leaves out ignored ones and keeps count across `history -c; history -r`.
 # The exit status is handed on untouched for the prompt to show.
@@ -171,7 +171,7 @@ _hist_record() {
 
 # _hist_log ENTRIES DIR: add history-file ENTRIES, typed in DIR, to this
 # month's log, one line each: time, host, tmux session (- outside tmux),
-# DIR, the command.  A command over several lines is joined with \n, and a
+# DIR, the command. A command over several lines is joined with \n, and a
 # tab in the command or directory is written \t.
 _hist_log() {
     local where=${_hist_session:--} dir=${2//$'\t'/\\t}
@@ -216,7 +216,7 @@ _hist_log_start() {
     _hist_hook
 }
 
-# Put _hist_record in PROMPT_COMMAND once, ahead of what is there.  Its
+# Put _hist_record in PROMPT_COMMAND once, ahead of what is there. Its
 # scratch file holds only what is typed between two prompts and goes when
 # the shell exits, unless an EXIT trap was set already: that one is kept.
 # The scratch files of shells that are gone, left by that or by a kill,
@@ -235,7 +235,7 @@ _hist_hook() {
 }
 
 # hgrep PATTERN [N]: the last N (default 30) logged commands matching
-# PATTERN, newest last: time, directory, command.  PATTERN is an extended
+# PATTERN, newest last: time, directory, command. PATTERN is an extended
 # regular expression, matched in any case when it has no capital letter.
 # Needs the log setting below.
 hgrep() {
@@ -249,7 +249,7 @@ hgrep() {
 
 # One history file per tmux pane, kept after the pane closes and picked up
 # by the next pane as the header describes, so panes never mix their
-# commands.  Costs one tmux call when a shell starts.  Shells outside tmux
+# commands. Costs one tmux call when a shell starts. Shells outside tmux
 # keep the shared file.
 # Needs: tmux.
 #_hist_pane_start

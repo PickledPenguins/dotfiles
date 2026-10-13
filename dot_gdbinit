@@ -1,8 +1,8 @@
-# ~/.gdbinit: gdb defaults.  Comments must be on their own lines here.
+# ~/.gdbinit: gdb defaults. Comments must be on their own lines here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # ── History and prompts ───────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ set pagination off
 # and never download it (offline, or on a cluster).
 #set debuginfod enabled off
 
-# Always download debug information from debuginfod, without asking.  A
+# Always download debug information from debuginfod, without asking. A
 # gdb built without debuginfod support rejects this line.
 #set debuginfod enabled on
 
@@ -59,7 +59,7 @@ set disassembly-flavor intel
 # A breakpoint in a shared library not loaded yet is kept for when it loads.
 set breakpoint pending on
 
-# Every directory's .gdbinit and gdb scripts are trusted and run.  Off
+# Every directory's .gdbinit and gdb scripts are trusted and run. Off
 # because a .gdbinit in a cloned repository, an unpacked tarball or a
 # shared directory then runs as you, shell commands included.
 #set auto-load safe-path /

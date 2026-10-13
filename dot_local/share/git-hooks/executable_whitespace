@@ -5,7 +5,7 @@
 # Runs git diff --cached --check on what is staged, so what counts as a
 # whitespace error follows core.whitespace and .gitattributes: by default
 # trailing whitespace, a space before a tab in the indent, and a blank line
-# at the end of a file.  The lines it found are printed.
+# at the end of a file. The lines it found are printed.
 set -euo pipefail
 
 git diff --cached --check >&2 && exit 0

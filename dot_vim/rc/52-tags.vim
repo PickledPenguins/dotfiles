@@ -10,10 +10,10 @@
 "                   the definition under the cursor in a split, a vertical
 "                   split, a new tab, the preview window
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 
 " Vim looks for a tags file beside the current file, then in each directory
 " above it, then in vim's own directory and above: a file deep in a project
@@ -22,7 +22,7 @@ set tags=./tags;,tags;
 
 " <leader>tg builds the tags: `git ctags` (~/.local/bin) when the current
 " file is in a git repository, which also keeps them current through the
-" repository's ctags hook; plain ctags in vim's directory otherwise.  Needs:
+" repository's ctags hook; plain ctags in vim's directory otherwise. Needs:
 " universal-ctags.
 function! s:BuildTags() abort
   let l:dir = expand('%:p:h')
@@ -48,7 +48,7 @@ nnoremap <leader>tf :tjump<Space>
 
 " <leader>th, <leader>tv and <leader>tt open the definition under the
 " cursor in a split, a vertical split and a new tab; <leader>tp shows it in
-" the preview window (Ctrl-W z closes it).  Several definitions: a list.
+" the preview window (Ctrl-W z closes it). Several definitions: a list.
 nnoremap <leader>th :stjump <C-r><C-w><CR>
 nnoremap <leader>tv :vertical stjump <C-r><C-w><CR>
 nnoremap <leader>tt :tab stjump <C-r><C-w><CR>

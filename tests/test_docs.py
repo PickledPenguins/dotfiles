@@ -4,7 +4,7 @@ Every surface is enumerated from the code or the tree at run time -- the
 argument parser, the exit codes, the knobs the modules read, the module
 files, the hook files the loaders name, the top-level targets -- and each
 kind names the document that owns it, so a failure says where the missing
-entry goes.  The README's examples are the recorded output of catalog cases.
+entry goes. The README's examples are the recorded output of catalog cases.
 """
 
 import re

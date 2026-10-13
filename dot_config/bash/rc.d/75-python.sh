@@ -1,12 +1,12 @@
-# 75-python.sh: python conveniences.  $PYTHONSTARTUP and the bytecode
-# settings are in 00-env.sh.  Nothing here when python3 is missing.
+# 75-python.sh: python conveniences. $PYTHONSTARTUP and the bytecode
+# settings are in 00-env.sh. Nothing here when python3 is missing.
 #
 #   venv [DIR]   create DIR (default .venv) if missing, then activate it
 #   deactivate   leave it (defined by the venv itself)
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
@@ -40,8 +40,8 @@ venv() {
 }
 
 # The function for the setting below: activate ./.venv when there is one,
-# deactivate after leaving its project.  A venv activated by hand is left
-# alone.  Hands the exit status on for the prompt.
+# deactivate after leaving its project. A venv activated by hand is left
+# alone. Hands the exit status on for the prompt.
 _venv_auto() {
     local status=$? dir="${DOTFILES_VENV_DIR:-.venv}"
     if [[ -f "$dir/bin/activate" && "${VIRTUAL_ENV-}" != "$PWD/$dir"
@@ -61,13 +61,13 @@ _venv_auto() {
 #PROMPT_COMMAND="_venv_auto${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 
 # pip refuses to install anything outside a virtual environment, so
-# nothing lands in the system or user site by mistake.  A conda environment
-# does not count: pip refuses there too.  Once, anywhere:
+# nothing lands in the system or user site by mistake. A conda environment
+# does not count: pip refuses there too. Once, anywhere:
 # PIP_REQUIRE_VIRTUALENV=0 pip install ...
 #export PIP_REQUIRE_VIRTUALENV=true
 
 # breakpoint() opens ipdb (IPython's debugger: colors, Tab completion)
-# instead of pdb.  Needs the ipdb package in the environment that runs.
+# instead of pdb. Needs the ipdb package in the environment that runs.
 #export PYTHONBREAKPOINT=ipdb.set_trace
 
 # The plain REPL of python 3.12 and older in 3.13+: the new one ignores

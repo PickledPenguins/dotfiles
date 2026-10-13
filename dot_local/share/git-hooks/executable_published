@@ -3,8 +3,8 @@
 # events: pre-rebase
 #
 # A commit that some remote-tracking branch holds has been published;
-# rebasing it rewrites history other people may have.  Fetch first so the
-# check sees what the remotes have.  git rebase --no-verify rebases anyway.
+# rebasing it rewrites history other people may have. Fetch first so the
+# check sees what the remotes have. git rebase --no-verify rebases anyway.
 set -euo pipefail
 
 upstream=${1-} branch=${2:-HEAD}

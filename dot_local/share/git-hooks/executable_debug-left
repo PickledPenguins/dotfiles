@@ -4,7 +4,7 @@
 #
 # Looks at the lines the staged changes add for breakpoint(), pdb or ipdb
 # (import pdb, pdb.set_trace()), JavaScript's debugger; and Ruby's
-# binding.pry.  A line holding the text hooks:allow-debug is not checked.
+# binding.pry. A line holding the text hooks:allow-debug is not checked.
 set -euo pipefail
 
 found=$(git diff --cached -U0 --no-color --no-ext-diff --no-renames --diff-filter=AM |

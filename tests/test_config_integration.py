@@ -2,7 +2,7 @@
 real programs: bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python.
 
 Each test asserts a setting that only the module under test provides, so a
-module that silently fails to load is caught.  Programs not installed on
+module that silently fails to load is caught. Programs not installed on
 the test machine skip their tests by name.
 """
 
@@ -96,7 +96,7 @@ def test_bashrc_sources_again_silently(linked):
 
 
 def test_bashrc_sourced_again_leaves_prompt_command_as_it_was(linked):
-    # Stdout on a terminal, so 65-title adds its hook too.  Each hook added a
+    # Stdout on a terminal, so 65-title adds its hook too. Each hook added a
     # second time put a `history -a` before the second prompt_build, which
     # then showed its 0 as the last command's exit status.
     main, side = pty.openpty()
@@ -422,7 +422,7 @@ def test_prompt_toolkit_links_only_the_code_bash_sources(linked):
 @needs("bats")
 def test_prompt_toolkit_bats_suite_passes():
     # The toolkit's own suite (cache, escaping, collectors, nounset), so a
-    # toolkit fix made here cannot ship with it failing.  About 45 s.
+    # toolkit fix made here cannot ship with it failing. About 45 s.
     proc = subprocess.run(["bats", "tests"], cwd=REPO / "dot_config/bash/prompt/toolkit",
                           capture_output=True, text=True)
     plan = re.match(r"1\.\.(\d+)\n", proc.stdout)
@@ -674,7 +674,7 @@ HISTORY_ON = "_hist_pane_start\n_hist_log_start\n"
 
 class Panes:
     """A private tmux server whose panes run the applied bash, switched on
-    by HISTORY_ON in ~/.bashrc.local.  Commands are typed with a leading
+    by HISTORY_ON in ~/.bashrc.local. Commands are typed with a leading
     space, so the pane's history never records them."""
 
     def __init__(self, home, tmp_path):
@@ -925,7 +925,7 @@ def vim(home, *commands, before=None):
     if before is not None:
         (home / ".vimrc.before").write_text(before)
     # -es prints :set queries on stdout; anything else needs :verbose, which
-    # writes to stderr.  One line per command, stripped, "Last set from" dropped.
+    # writes to stderr. One line per command, stripped, "Last set from" dropped.
     cmds = [c for command in commands
             for c in ("-c", command if command.startswith("set ") else "verbose " + command)]
     proc = subprocess.run(["vim", "-es", "-u", str(home / ".vimrc"), *cmds, "-c", "qall!"],
@@ -1268,7 +1268,7 @@ def test_tmux_env_follows_the_client_typed_on_last(linked, tmp_path):
         second = clients.attach(DISPLAY=":2", SSH_AUTH_SOCK=str(tmp_path / "agent2"))
         show = 'echo "$DISPLAY $SSH_AUTH_SOCK ${XAUTHORITY-unset}"'
         link = linked / ".ssh/agent.sock"
-        # The pane's shell started before either client attached.  It takes
+        # The pane's shell started before either client attached. It takes
         # the values of the client typed on, before the command it runs.
         assert clients.type_on(first, ":1", show) == f":1 {link} unset\n"
         assert os.readlink(link) == str(tmp_path / "agent1")
@@ -1438,7 +1438,7 @@ def test_ssh_config_parses_and_local_include_wins(linked):
 @needs("ssh")
 def test_ssh_control_socket_path_fits_the_unix_socket_limit_for_a_long_host_name(linked):
     # ssh adds 17 characters while it creates the socket; sun_path holds 104
-    # (BSD) to 108 bytes.  The path is a hash, whatever the host's name.
+    # (BSD) to 108 bytes. The path is a hash, whatever the host's name.
     host = "node" + "x" * 60 + ".cluster.example.edu"
     proc = subprocess.run(["ssh", "-F", str(linked / ".ssh" / "config"), "-G", host],
                           capture_output=True, text=True)
@@ -1641,7 +1641,7 @@ def test_title_collapses_home_only_at_a_path_boundary(linked):
 
 
 # What a system file does, run from .bashrc.before ahead of every module:
-# TMOUT and LIMIT read-only and exported.  The rest marks the first shell's
+# TMOUT and LIMIT read-only and exported. The rest marks the first shell's
 # process ID, a temporary directory to find the swap's file in, and two key
 # bindings and a trap a new bash would not have.
 OVERRIDE_BEFORE = """readonly TMOUT=60 LIMIT=1; export TMOUT LIMIT
@@ -1694,7 +1694,7 @@ def test_override_sets_and_unsets_in_place_without_read_only_names(linked):
 
 def test_override_leaves_a_command_shell_alone(linked):
     # bash -ic (editors read the environment this way) would lose its
-    # command.  On a terminal, which a swap needs, and through a pipe.
+    # command. On a terminal, which a swap needs, and through a pipe.
     before = "readonly TMOUT=60; GONE=1\nDOTFILES_OVERRIDE=(TMOUT GONE)\n"
     command = 'echo "ran:$TMOUT:${GONE-unset}"'
     screen = pty_session(linked, [], before=before, seconds=1.5,

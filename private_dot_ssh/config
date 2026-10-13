@@ -1,11 +1,11 @@
-# ~/.ssh/config: defaults for every host.  Your hosts go in
+# ~/.ssh/config: defaults for every host. Your hosts go in
 # ~/.ssh/config.local (never committed), which is read first: ssh keeps the
 # first value it finds for each setting, so a Host block there wins over
 # the defaults here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # `ssh -G HOST` prints the settings that apply to HOST.
 
 # Your hosts first: ~/.ssh/config.local, then every file in ~/.ssh/config.d/.
@@ -46,7 +46,7 @@ Host *
     AddKeysToAgent yes
 
     # Offer only the key configured for a host, not every key in the agent:
-    # servers that allow few attempts do not lock you out.  Hosts that
+    # servers that allow few attempts do not lock you out. Hosts that
     # relied on agent keys need an IdentityFile line; for a key that is only
     # in an agent (forwarded with ForwardAgent to a machine that has these
     # files too, gpg-agent, a hardware token) it names a copy of its .pub.
@@ -60,7 +60,7 @@ Host *
 
     # Multiplexing: a second ssh, scp or git to a host reuses the first
     # connection (no new login, no new two-factor prompt) and stays open 10
-    # minutes after the last one closes.  The socket is named by a hash of
+    # minutes after the last one closes. The socket is named by a hash of
     # user, host and port (%C), so a long home directory or host name stays
     # inside the Unix socket path limit.
     ControlMaster auto
@@ -75,7 +75,7 @@ Host *
     StrictHostKeyChecking ask
 
     # New host keys are accepted without asking; a changed key is still
-    # refused.  Instead of the line above.
+    # refused. Instead of the line above.
     #StrictHostKeyChecking accept-new
 
     # A server's other host keys are learned when it offers them, so a key
@@ -89,7 +89,7 @@ Host *
     Compression no
 
     # No agent forwarding by default: anyone with root on the remote host
-    # could use your keys while you are connected.  Turn it on per host.
+    # could use your keys while you are connected. Turn it on per host.
     ForwardAgent no
 
     # No X11 forwarding by default (ssh -X per connection, or per host).
@@ -111,7 +111,7 @@ Host *
 
     # Tell the remote side TERM=xterm-256color: fixes "unknown terminal
     # type" and broken keys on hosts that lack your terminal's terminfo
-    # (xterm-kitty, alacritty, foot).  Needs OpenSSH 8.7+ at both ends.
+    # (xterm-kitty, alacritty, foot). Needs OpenSSH 8.7+ at both ends.
     #SetEnv TERM=xterm-256color
 
     # Send your locale, so remote programs print UTF-8 (the server must
@@ -123,6 +123,6 @@ Host *
     #ExitOnForwardFailure yes
 
     # Allow the old ssh-rsa (SHA-1) signatures that very old servers still
-    # need.  Weaker; enable per host rather than here.
+    # need. Weaker; enable per host rather than here.
     #HostKeyAlgorithms +ssh-rsa
     #PubkeyAcceptedAlgorithms +ssh-rsa

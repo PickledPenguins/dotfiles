@@ -2,10 +2,10 @@
 "
 "   za toggle   zR open all   zM close all   zj/zk next/previous fold
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 "
 " Knobs (set in ~/.vimrc.before):
 "   g:dotfiles_foldmethod   indent | syntax | marker | manual   default: 'indent'

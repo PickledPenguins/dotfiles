@@ -3,9 +3,9 @@
 # events: prepare-commit-msg
 # config: hooks.tagPattern
 #
-# On branch ABC-123-fix-login the message starts "ABC-123: ".  The tag is the
+# On branch ABC-123-fix-login the message starts "ABC-123: ". The tag is the
 # first part of the branch name matching hooks.tagPattern, an extended regular
-# expression (default [A-Z][A-Z0-9]+-[0-9]+).  Nothing is added when the
+# expression (default [A-Z][A-Z0-9]+-[0-9]+). Nothing is added when the
 # branch has no tag, when the message already holds it, or for a merge, a
 # squash, or a message reused with -c, -C or --amend.
 set -euo pipefail

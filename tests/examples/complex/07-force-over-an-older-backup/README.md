@@ -8,8 +8,8 @@
 
 ## Why the combination matters
 
-The backup tree is the only copy of what `--force` replaced.  The second run must start a new timestamped tree beside the first rather than write over the older backup of the same path.
+The backup tree is the only copy of what `--force` replaced. The second run must start a new timestamped tree beside the first rather than write over the older backup of the same path.
 
 ## Expected
 
-Two backup trees, each holding its own `.bashrc` (`theirs one`, `theirs two`), and a final status of `ok: 1`.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Two backup trees, each holding its own `.bashrc` (`theirs one`, `theirs two`), and a final status of `ok: 1`. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

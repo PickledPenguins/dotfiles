@@ -1,10 +1,10 @@
-# aliases.gitconfig: git aliases; `git aliases` lists them.  An alias only
-# adds a command, so they are all on.  Shell aliases (g, gs, gl) are in
+# aliases.gitconfig: git aliases; `git aliases` lists them. An alias only
+# adds a command, so they are all on. Shell aliases (g, gs, gl) are in
 # ~/.config/bash/rc.d/30-aliases.sh.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.gitconfig.local instead.
 
 [alias]

@@ -1,10 +1,10 @@
 # ~/.inputrc: readline, the line editor of bash and of python, gdb, psql,
-# bc and others.  `bind -v` lists every variable, `bind -p` every key.
+# bc and others. `bind -v` lists every variable, `bind -p` every key.
 # Comments must be on their own lines here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # Ctrl-X Ctrl-R re-reads this file in a running shell.
 
 # The distribution's key definitions first (Home, End, Delete ...).
@@ -16,7 +16,7 @@ $include /etc/inputrc
 set editing-mode emacs
 
 # vi keys instead: Esc for normal mode, then hjkl, w, b, dd, / ...  In every
-# readline program, not just bash.  The Alt macros below assume emacs keys
+# readline program, not just bash. The Alt macros below assume emacs keys
 # (Alt-S's Ctrl-A types itself in vi insert mode), and Esc waits for the
 # rest of a key sequence while keyseq-timeout is off.
 #set editing-mode vi
@@ -25,7 +25,7 @@ set editing-mode emacs
 #set show-mode-in-prompt on
 
 # In vi mode, the cursor is a bar while inserting and a block otherwise,
-# instead of the (ins)/(cmd) text.  Needs show-mode-in-prompt on.
+# instead of the (ins)/(cmd) text. Needs show-mode-in-prompt on.
 #set vi-ins-mode-string "\1\e[6 q\2"
 #set vi-cmd-mode-string "\1\e[2 q\2"
 
@@ -144,16 +144,16 @@ set revert-all-at-newline on
 "\e[3;5~": kill-word
 
 # Alt-Enter runs the line and brings the next history line up (repeat a
-# sequence of commands).  Alt-. inserts the last argument (the default).
+# sequence of commands). Alt-. inserts the last argument (the default).
 "\e\C-m": operate-and-get-next
 
 # Ctrl-W deletes back to the previous / (a path component) instead of the
-# previous space.  Needs the terminal's own Ctrl-W switched off, as here.
+# previous space. Needs the terminal's own Ctrl-W switched off, as here.
 #set bind-tty-special-chars off
 #"\C-w": unix-filename-rubout
 
 # Ctrl-Backspace deletes the word before the cursor, in terminals where it
-# sends ^H.  In terminals where Backspace itself sends ^H it breaks Backspace.
+# sends ^H. In terminals where Backspace itself sends ^H it breaks Backspace.
 #"\C-h": backward-kill-word
 
 $if Bash

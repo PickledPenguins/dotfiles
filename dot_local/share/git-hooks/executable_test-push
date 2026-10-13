@@ -8,9 +8,9 @@
 # checked out at each commit pushed:
 #     git config hooks.test "./run-tests.sh fast"
 # Neither uncommitted edits nor untracked files decide the result, and the
-# tests are the ones the pushed commit has.  The first failure stops the
+# tests are the ones the pushed commit has. The first failure stops the
 # push; git push --no-verify skips every pre-push hook, and
-# HOOKS_SKIP=test-push git push skips this one.  A deleted branch is not
+# HOOKS_SKIP=test-push git push skips this one. A deleted branch is not
 # tested; only the tip of each branch pushed is.
 set -euo pipefail
 

@@ -1,10 +1,10 @@
-# ~/.ipython/profile_default/ipython_config.py: IPython's defaults.  Every
+# ~/.ipython/profile_default/ipython_config.py: IPython's defaults. Every
 # setting here is off, so IPython behaves as it does without a config file
-# until you choose.  `ipython --help-all` lists every option.
+# until you choose. `ipython --help-all` lists every option.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # The object every setting below is set on.
 c = get_config()  # noqa: F821 -- provided by IPython when it reads this file
@@ -12,7 +12,7 @@ c = get_config()  # noqa: F821 -- provided by IPython when it reads this file
 # ── Start-up ──────────────────────────────────────────────────────────────
 
 # Edited modules are reloaded before each command: change a file, call its
-# function again, get the new code.  Occasionally confuses class instances.
+# function again, get the new code. Occasionally confuses class instances.
 # Its start-up line is added to exec_lines, beside the next setting's.
 #c.InteractiveShellApp.extensions = ["autoreload"]
 #c.InteractiveShellApp.exec_lines.extend(["%autoreload 2"])

@@ -8,4 +8,4 @@ Entries in the source root whose name starts with `.` -- `.git`, `.gitignore`, `
 
 ## Expected
 
-Only `.bashrc` is managed.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Only `.bashrc` is managed. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

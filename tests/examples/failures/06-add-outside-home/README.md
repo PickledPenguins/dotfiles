@@ -8,4 +8,4 @@
 
 ## Expected
 
-`skip ... not under HOME` for both, exit 0, file untouched.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+`skip ... not under HOME` for both, exit 0, file untouched. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

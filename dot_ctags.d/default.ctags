@@ -1,9 +1,9 @@
 # ~/.ctags.d/default.ctags: universal-ctags defaults, for `ctags` in a
-# project.  Comments must be on their own lines here.
+# project. Comments must be on their own lines here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # `ctags` alone indexes the whole tree below the current directory, with
 # paths relative to the tags file.

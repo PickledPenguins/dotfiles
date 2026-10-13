@@ -8,7 +8,7 @@
 #   ./run-tests.sh mutate     every mutant in tests/mutants.txt must make the fast suite fail
 #   ./run-tests.sh hook       install tests/hooks/pre-push into .git/hooks, switched off
 #
-# Anything after the name is passed to pytest.  Generated files go to .build/.
+# Anything after the name is passed to pytest. Generated files go to .build/.
 set -e
 cd "$(dirname "$0")"
 mkdir -p .build

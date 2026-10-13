@@ -1,10 +1,10 @@
-# 40-functions.sh: small shell functions.  Each has its usage in the
-# comment above it; `type NAME` prints the body.  A function only adds a
+# 40-functions.sh: small shell functions. Each has its usage in the
+# comment above it; `type NAME` prints the body. A function only adds a
 # command, so they are all on: an unused one costs nothing.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 #
 # Functions say `command mkdir`, `command cp` ... where 30-aliases.sh has an
 # alias of that name: an alias expands inside a function body when the
@@ -43,8 +43,8 @@ cdf() { cd -- "$(dirname -- "${1:?cdf FILE}")" || return; }
 
 # extract ARCHIVE...: unpack each archive, choosing the tool by extension.
 # One that is missing or of an unknown kind is skipped; the status is then 1.
-# tar: x extract, j bzip2, z gzip, J xz, f FILE.  bunzip2, gunzip, unxz: -k
-# keep the archive.  unzip: -q quiet.  7z, unrar: x with paths.  ar: x members.
+# tar: x extract, j bzip2, z gzip, J xz, f FILE. bunzip2, gunzip, unxz: -k
+# keep the archive. unzip: -q quiet. 7z, unrar: x with paths. ar: x members.
 extract() {
     local f rc=0
     for f in "$@"; do
@@ -70,7 +70,7 @@ extract() {
 
 # targz DIR: pack DIR into DIR.tar.gz, leaving out version control and
 # editor swap files.
-# tar: -c create, -z gzip, -f FILE.  ls: -l long, -h human sizes.
+# tar: -c create, -z gzip, -f FILE. ls: -l long, -h human sizes.
 targz() { tar --exclude-vcs --exclude='*.swp' -czf "${1%/}.tar.gz" "${1%/}" && ls -lh "${1%/}.tar.gz"; }
 
 # ff PATTERN [FIND-ARGS...]: find what has PATTERN in its name, any case.
@@ -79,8 +79,8 @@ targz() { tar --exclude-vcs --exclude='*.swp' -czf "${1%/}.tar.gz" "${1%/}" && l
 ff() { find "${@:2}" -iname "*${1:?ff PATTERN [FIND-ARGS...]}*"; }
 
 # rgv PATTERN [PATH...]: ripgrep, then open every match in vim's quickfix
-# list (:cn, :cp to step through).  Only where rg is installed.
-# rg: --vimgrep FILE:LINE:COLUMN:TEXT.  vim: -q FILE read as the quickfix list.
+# list (:cn, :cp to step through). Only where rg is installed.
+# rg: --vimgrep FILE:LINE:COLUMN:TEXT. vim: -q FILE read as the quickfix list.
 if type -P rg >/dev/null; then
     rgv() { vim -q <(rg --vimgrep "$@"); }
 fi
@@ -88,7 +88,7 @@ fi
 # bak FILE: copy FILE to FILE.YYYYmmdd-HHMMSS.bak, keeping its mode and times.
 bak() { command cp -a -- "$1" "$1.$(date +%Y%m%d-%H%M%S).bak"; }
 
-# swapname A B: exchange the names of two files.  When B cannot be moved, A
+# swapname A B: exchange the names of two files. When B cannot be moved, A
 # gets its name back rather than staying under the temporary one.
 swapname() {
     local tmp; tmp=$(mktemp -d -- "${1%/}.XXXXXX") || return
@@ -99,12 +99,12 @@ swapname() {
 
 # bigfiles [DIR] [N]: the N largest files under DIR, not crossing into
 # other file systems (default: here, 20).
-# find: -xdev this file system only, -printf size and path.  sort: -rn
-# largest first.  numfmt: --to=iec sizes in K, M, G.
+# find: -xdev this file system only, -printf size and path. sort: -rn
+# largest first. numfmt: --to=iec sizes in K, M, G.
 bigfiles() { find "${1:-.}" -xdev -type f -printf '%s\t%p\n' 2>/dev/null | sort -rn | head -n "${2:-20}" | numfmt --field=1 --to=iec; }
 
 # count [DIR]: how many files under DIR have each extension.
-# sed: -n with p prints only the extension.  uniq: -c count each.  sort: -rn most first.
+# sed: -n with p prints only the extension. uniq: -c count each. sort: -rn most first.
 count() { find "${1:-.}" -type f | sed -n 's/.*\.\([^./]*\)$/\1/p' | sort | uniq -c | sort -rn; }
 
 # sha FILE: the sha256 of a file, hash only.
@@ -112,7 +112,7 @@ count() { find "${1:-.}" -type f | sed -n 's/.*\.\([^./]*\)$/\1/p' | sort | uniq
 sha() { sha256sum -- "$1" | cut -d' ' -f1; }
 
 # mkscript NAME: a new executable bash script with a strict-mode header,
-# opened in $EDITOR.  Refuses to overwrite.
+# opened in $EDITOR. Refuses to overwrite.
 # set: -e stop at a failure, -u at an unset variable, -o pipefail at a
 # failure anywhere in a pipe.
 mkscript() {
@@ -128,7 +128,7 @@ note() {
 }
 
 # tree fallback, only where the real tree is missing: an indented listing
-# that skips .git.  type -P, so a second `source ~/.bashrc` does not take
+# that skips .git. type -P, so a second `source ~/.bashrc` does not take
 # this function for the program; `function tree`, because bash expands the
 # alias 30-aliases.sh sets in `tree()` while it reads this block, taken or not.
 if ! type -P tree >/dev/null; then
@@ -160,7 +160,7 @@ timit() {
 }
 
 # histstat [N]: the N commands you run most often (default 20).
-# fc: -l list, -n without numbers, 1 from the first.  uniq: -c count each.
+# fc: -l list, -n without numbers, 1 from the first. uniq: -c count each.
 # sort: -rn most first.
 histstat() { fc -ln 1 | awk '{print $1}' | sort | uniq -c | sort -rn | head -n "${1:-20}"; }
 
@@ -182,7 +182,7 @@ reload() { exec "$BASH" -l; }
 calc() { bc -l <<<"$*"; }
 
 # genpass [LENGTH]: a random password of letters and digits (default 20).
-# tr: -d delete, -c all but the set named.  head: -c LENGTH bytes.
+# tr: -d delete, -c all but the set named. head: -c LENGTH bytes.
 genpass() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "${1:-20}"; echo; }
 
 # urlencode TEXT / urldecode TEXT: percent-encoding, as in URLs.
@@ -207,7 +207,7 @@ hr() { local line; printf -v line '%*s' "${COLUMNS:-80}" ''; echo "${line// /${1
 envg() { env | grep -i -- "${1:?envg PATTERN}" | sort; }
 
 # port N: what is listening on port N (ss).
-# ss: -t TCP, -u UDP, -l listening, -n port numbers, -p program.  awk keeps
+# ss: -t TCP, -u UDP, -l listening, -n port numbers, -p program. awk keeps
 # the header and the lines whose local address ends in :N.
 port() { ss -tulnp | awk -v p=":${1:?port N}\$" 'NR == 1 || $5 ~ p'; }
 

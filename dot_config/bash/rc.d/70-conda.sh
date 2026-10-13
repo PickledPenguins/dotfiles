@@ -2,20 +2,20 @@
 #
 # Sources <root>/etc/profile.d/conda.sh, which is what `conda init` would
 # paste into ~/.bashrc minus its `conda shell.bash hook`, a process that
-# costs about a second per shell.  Base is not activated at start (that is
+# costs about a second per shell. Base is not activated at start (that is
 # ~/.condarc); `conda activate NAME` as usual.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
 #   DOTFILES_CONDA_ROOT   explicit install root       default: first found of the list below
 #   DOTFILES_CONDA_ENV    environment to activate     default: none
 
-# Find conda: the knob's root, else the usual install places.  mamba's
-# shell functions too, when installed.  The knob's environment is
+# Find conda: the knob's root, else the usual install places. mamba's
+# shell functions too, when installed. The knob's environment is
 # activated here, before 80-tools.sh: Homebrew, mise, asdf or pyenv set up
 # there come before it on PATH.
 for _conda_root in "${DOTFILES_CONDA_ROOT-}" \

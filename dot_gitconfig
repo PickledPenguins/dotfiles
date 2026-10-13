@@ -1,12 +1,12 @@
-# ~/.gitconfig: loader only.  One include per concern; later includes
+# ~/.gitconfig: loader only. One include per concern; later includes
 # override earlier ones, so the local file goes last.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # `git config --show-origin --includes -l` shows where each value came from.
 #
-# Identity is NOT here.  Create ~/.gitconfig.local (never committed):
+# Identity is NOT here. Create ~/.gitconfig.local (never committed):
 #
 #   [user]
 #       name = Your Name

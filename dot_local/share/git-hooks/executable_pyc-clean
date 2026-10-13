@@ -4,8 +4,8 @@
 #
 # Bytecode left from another branch can be loaded in place of a source
 # file that changed within the same second, or stand in for a module the
-# branch deleted.  Every __pycache__ under the work tree goes, except under
-# hidden directories (.venv, .git, .tox) and node_modules.  A file checkout,
+# branch deleted. Every __pycache__ under the work tree goes, except under
+# hidden directories (.venv, .git, .tox) and node_modules. A file checkout,
 # an amend and the steps inside a rebase do not run it; the rebase as a
 # whole does.
 set -euo pipefail

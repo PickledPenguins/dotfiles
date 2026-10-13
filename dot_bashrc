@@ -1,9 +1,9 @@
-# ~/.bashrc: loader only.  Everything lives in ~/.config/bash/rc.d/.
+# ~/.bashrc: loader only. Everything lives in ~/.config/bash/rc.d/.
 #
 # Each NN-name.sh there has one concern and lists its settings, every one
-# described in the comment above it.  A setting with "#" directly in front
+# described in the comment above it. A setting with "#" directly in front
 # of it is off: delete that "#" to turn it on, or add one to turn a setting
-# off.  `dots options WORD` searches every file.  Ways to change things,
+# off. `dots options WORD` searches every file. Ways to change things,
 # most to least permanent:
 #
 #   1. edit the module (committed, every machine)
@@ -35,7 +35,7 @@ _dotfiles_disabled() {
     grep -qxF "$1" <(sed 's/#.*//; s/[[:space:]]//g' "$DOTFILES_BASH_DIR/disabled")
 }
 
-# Every rc.d/*.sh in number order; .sh.off files are not matched.  With
+# Every rc.d/*.sh in number order; .sh.off files are not matched. With
 # DOTFILES_DEBUG set, each one's name and load time goes to stderr.
 for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
     [[ -r "$_rc" ]] || continue

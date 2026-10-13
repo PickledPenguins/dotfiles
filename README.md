@@ -10,7 +10,7 @@ symlinks them into `$HOME` and lists the settings.
 The repository mirrors `$HOME` with chezmoi's naming (`dot_bashrc` is
 `~/.bashrc`, `private_dot_ssh/config` is `~/.ssh/config` at mode 600).
 `dots apply` creates real directories and one symlink per file, so editing
-`~/.vimrc` edits the repository and `git status` is the change list.  Each
+`~/.vimrc` edits the repository and `git status` is the change list. Each
 tool's entry point is a loader that reads numbered modules -- one concern
 each, switched off by an `.off` rename or a per-machine list -- and two hook
 files, one before the modules for knobs and one after for overrides.
@@ -18,20 +18,20 @@ Identity and secrets never enter the repository.
 
 Nothing needs looking up: each file carries the options people commonly
 want for its tool -- about 640 on and 420 off -- each with a description
-of what it does, what it costs and when not to use it.  A setting written
+of what it does, what it costs and when not to use it. A setting written
 with its comment character directly in front (`#shopt -s histverify`) is
-off; delete that character to turn it on.  `dots options WORD` finds a
-setting in any file.  Every one that is off is tested to load once
+off; delete that character to turn it on. `dots options WORD` finds a
+setting in any file. Every one that is off is tested to load once
 switched on.
 
 For one person's machines, including HPC login nodes: `dots` is a
-stdlib-only Python 3 script, nothing else is required to install.  It does
+stdlib-only Python 3 script, nothing else is required to install. It does
 not template files (per-machine differences are knobs and hook files) and
 never deletes anything: a file in the way is moved to a timestamped backup.
 
 ## Install
 
-Requires python3 (3.8+), git, bash 4+.  vim, tmux and the others are
+Requires python3 (3.8+), git, bash 4+. vim, tmux and the others are
 optional; their configuration is linked whether or not they are installed.
 
 ```sh
@@ -45,7 +45,7 @@ exec bash
 
 `apply` links `~/.local/bin/dots` to this checkout, so `dots` is a command
 from then on, with Tab completion of its subcommands and options
-(`~/.local/share/bash-completion/completions/dots`).  `dots unlink`
+(`~/.local/share/bash-completion/completions/dots`). `dots unlink`
 uninstalls: it removes every link `apply` made, these two included.
 
 ## Quick start

@@ -8,4 +8,4 @@
 
 ## Expected
 
-Both settings, then only the one that is off, then that one in full.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+Both settings, then only the one that is off, then that one in full. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

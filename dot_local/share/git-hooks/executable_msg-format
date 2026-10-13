@@ -6,7 +6,7 @@
 # The subject line holds at most hooks.subjectMax characters (default 72)
 # and does not end in a period; a body is parted from it by a blank line.
 # Comments and everything below the scissors line of commit --verbose are
-# not part of the message.  A fixup!, squash! or amend! commit is not
+# not part of the message. A fixup!, squash! or amend! commit is not
 # checked, nor an empty message (git refuses that itself).
 set -euo pipefail
 

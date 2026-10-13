@@ -5,8 +5,8 @@
 #
 # A commit whose subject matches hooks.wipPattern, an extended regular
 # expression (default ^(wip|WIP|fixup!|squash!|amend!)), may not reach a
-# branch in hooks.protect (default "main master").  The commits checked are
-# the ones the remote does not have yet.  Squash them first (git rebase -i
+# branch in hooks.protect (default "main master"). The commits checked are
+# the ones the remote does not have yet. Squash them first (git rebase -i
 # --autosquash), or push with --no-verify.
 set -euo pipefail
 

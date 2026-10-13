@@ -8,4 +8,4 @@ A `~/.bashrc` that is already a symlink to somewhere outside the source tree (an
 
 ## Expected
 
-conflict, then after --force the backup is a symlink and `~/env/.bashrc` is unchanged.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+conflict, then after --force the backup is a symlink and `~/env/.bashrc` is unchanged. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

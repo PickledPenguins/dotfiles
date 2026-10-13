@@ -1,10 +1,10 @@
 " 10-ui.vim: what the screen shows: numbers, the current line, invisible
 " characters, wrapping, colors, the cursor.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 "
 " Knobs (set in ~/.vimrc.before):
 "   g:dotfiles_colorscheme   scheme name   default: 'desert'
@@ -44,7 +44,7 @@ augroup dotfiles_cursorline
   autocmd WinLeave          * setlocal nocursorline
 augroup END
 
-" Highlight the cursor's column too, for lining up YAML or tables.  Slows
+" Highlight the cursor's column too, for lining up YAML or tables. Slows
 " redrawing in big files.
 "set cursorcolumn
 
@@ -83,7 +83,7 @@ set list listchars=tab:»·,trail:·,nbsp:␣,extends:›,precedes:‹
 " ── Wrapping ────────────────────────────────────────────────────────────
 
 " Wrap long lines on screen at a word boundary, keeping their indent, and
-" mark the continuation with ↪.  The file itself is not changed.
+" mark the continuation with ↪. The file itself is not changed.
 set wrap linebreak
 set breakindent
 let &showbreak = '↪ '
@@ -111,7 +111,7 @@ set showmatch matchtime=2
 " The sign column (git, linters) appears only when there are signs.
 set signcolumn=auto
 
-" vim sets the terminal title to the file name.  Replaces the shell's
+" vim sets the terminal title to the file name. Replaces the shell's
 " title from 65-title.sh while vim runs.
 "set title
 
@@ -130,7 +130,7 @@ set background=dark
 "set background=light
 
 " The colorcolumn marks in a quiet slate gray instead of the scheme's red:
-" dark on a dark background, light on a light one.  Set again whenever a
+" dark on a dark background, light on a light one. Set again whenever a
 " color scheme loads.
 augroup dotfiles_colorcolumn
   autocmd!
@@ -141,13 +141,13 @@ augroup dotfiles_colorcolumn
         \ | endif
 augroup END
 
-" The color scheme, from the knob.  Built in: blue darkblue default delek
+" The color scheme, from the knob. Built in: blue darkblue default delek
 " desert elflord evening habamax industry koehler lunaperche morning murphy
 " pablo peachpuff quiet retrobox ron shine slate sorbet torte wildcharm
 " zaibatsu zellner (:colorscheme <Tab> lists what this vim has).
 execute 'silent! colorscheme' get(g:, 'dotfiles_colorscheme', 'desert')
 
-" Yanked text flashes briefly, to show what was copied.  Vim 9.1's hlyank
+" Yanked text flashes briefly, to show what was copied. Vim 9.1's hlyank
 " package; an older vim has none.
 silent! packadd! hlyank
 

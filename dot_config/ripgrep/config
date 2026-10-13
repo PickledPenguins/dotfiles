@@ -1,10 +1,10 @@
 # ~/.config/ripgrep/config: ripgrep defaults, read because 00-env.sh sets
-# RIPGREP_CONFIG_PATH.  One flag per line, no quoting; a flag on the command
+# RIPGREP_CONFIG_PATH. One flag per line, no quoting; a flag on the command
 # line wins, and --no-config skips this file.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # Case-insensitive unless the pattern has a capital letter.
 --smart-case
@@ -17,7 +17,7 @@
 --glob=!__pycache__/
 
 # Lines longer than 250 columns show as a preview instead of in full
-# (minified files).  Every program that runs rg reads this file, vim's
+# (minified files). Every program that runs rg reads this file, vim's
 # :grep and scripts included; rg --max-columns=0 shows full lines once.
 --max-columns=250
 --max-columns-preview

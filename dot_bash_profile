@@ -3,18 +3,18 @@
 # Order:  ~/.profile  ->  ~/.config/bash/profile.d/*.sh  ->  ~/.bashrc
 #
 # profile.d is for what should happen once per login and be inherited by
-# every program started from it (an ssh-agent, one-time exports).  Every
+# every program started from it (an ssh-agent, one-time exports). Every
 # tmux pane is a login shell too, so it runs again in each: a script there
 # should reuse what an earlier run started.
 # Interactive settings belong in ~/.config/bash/rc.d, which ~/.bashrc loads.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # A batch or CI job that is not interactive (PBS, Slurm, GitLab, GitHub)
 # reads none of this, so it runs the same for everyone who submits it.
-# Interactive jobs (qsub -I, srun --pty bash) read it all.  A job script
+# Interactive jobs (qsub -I, srun --pty bash) read it all. A job script
 # that needs ~/.local/bin or a conda path on PATH then sets it itself.
 #[[ $- != *i* && -n ${PBS_JOBID-}${SLURM_JOB_ID-}${GITLAB_CI-}${GITHUB_ACTIONS-} ]] && return
 
@@ -32,7 +32,7 @@ unset _p
 [[ -r ~/.bashrc ]] && source ~/.bashrc
 
 # An ssh login goes straight into tmux, attaching to the session "main" or
-# creating it, so a dropped connection loses nothing.  Leaving tmux then
+# creating it, so a dropped connection loses nothing. Leaving tmux then
 # ends the ssh session; scp, ssh HOST COMMAND and editors that read the
 # environment over ssh without a terminal (VS Code Remote-SSH) are not.
 #[[ -n "${SSH_CONNECTION-}" && -z "${TMUX-}" && -z "${VSCODE_RESOLVING_ENVIRONMENT-}" && -t 0 && $- == *i* ]] && command -v tmux >/dev/null && exec tmux new-session -A -s main

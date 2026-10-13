@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """dots: a small chezmoi-alike that symlinks instead of copying.
 
-The source directory mirrors $HOME.  A source path becomes a target path by
+The source directory mirrors $HOME. A source path becomes a target path by
 stripping attribute prefixes from every component:
 
     dot_         leading "." on the target name
@@ -13,10 +13,10 @@ stripping attribute prefixes from every component:
     dot_local/bin/executable_hi   ->  ~/.local/bin/hi        (mode u+x)
 
 Directories are created for real; every file is a symlink back into the
-source directory.  Directories whose name starts with "." (.git) are never
+source directory. Directories whose name starts with "." (.git) are never
 managed, at any depth; neither are such files in the root (.dotsignore),
-while deeper ones are (private_dot_ssh/sockets/.keep).  .dotsignore lists
-further target paths to skip.  A home file whose name starts with an
+while deeper ones are (private_dot_ssh/sockets/.keep). .dotsignore lists
+further target paths to skip. A home file whose name starts with an
 attribute prefix (~/private_notes) cannot be managed: add refuses it.
 
 `dots options` reads the settings back out of the configuration files that
@@ -148,7 +148,7 @@ def state(entry, src):
 
 def linked_dir(entry, src, home):
     """The directory above the target, below home, that is a symlink into the
-    source tree, or None.  Through such a link the target IS the source file."""
+    source tree, or None. Through such a link the target IS the source file."""
     for rel in reversed(list(Path(entry.rel).parents)[:-1]):
         directory = home / rel
         if directory.is_symlink() and os.path.realpath(directory).startswith(str(src) + os.sep):
@@ -249,7 +249,7 @@ def cmd_prune(args, src, home):
     """Remove symlinks into the source tree whose file no longer exists.
 
     A moved or deleted source path leaves its old link behind, and that link
-    is no longer a target, so apply and unlink never see it.  Only links that
+    is no longer a target, so apply and unlink never see it. Only links that
     point inside the source tree AND are broken are removed; a link into the
     tree that still resolves is someone's deliberate choice and stays.
     """
@@ -339,9 +339,9 @@ def parse_options(text, marker):
     """Split a configuration file into options.
 
     A comment line whose marker is followed by a space, or by nothing, is
-    description.  One whose marker is followed directly by code is a setting
-    switched off: "#shopt -s histverify".  Description attaches to the code
-    right below it and a blank line ends an option.  Code with nothing above
+    description. One whose marker is followed directly by code is a setting
+    switched off: "#shopt -s histverify". Description attaches to the code
+    right below it and a blank line ends an option. Code with nothing above
     it -- a [section] header, the line after a switched-off one -- comes back
     with an empty description.
     """

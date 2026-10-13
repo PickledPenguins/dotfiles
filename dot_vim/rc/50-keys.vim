@@ -1,16 +1,16 @@
-" 50-keys.vim: key mappings.  The leader is a comma.  Mapping lines take no
+" 50-keys.vim: key mappings. The leader is a comma. Mapping lines take no
 " trailing comment: it would become part of the mapping.
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
-" every file.  For one machine only, put the line in ~/.vimrc.local instead.
+" it on, or add one to turn a setting off. `dots options WORD` searches
+" every file. For one machine only, put the line in ~/.vimrc.local instead.
 " :map lists what is mapped; :verbose map KEY says where.
 "
 " Knobs (set in ~/.vimrc.before):
 "   g:dotfiles_leader   leader key   default: ','
 
-" The leader key starts the <leader> mappings below (from the knob).  A
+" The leader key starts the <leader> mappings below (from the knob). A
 " comma loses its own meaning, "repeat the last f/t backward": it now waits
 " for the rest of a mapping first.
 let mapleader = get(g:, 'dotfiles_leader', ',')
@@ -32,9 +32,9 @@ endfunction
 nnoremap <silent> <leader><space> :nohlsearch<CR>
 
 " <leader>qq closes the window and deletes its buffer, as :bdelete does: the
-" file leaves the buffer list and memory.  A buffer another window still
-" shows stays.  Refuses unsaved changes; <leader>QQ throws them away (:quit!).
-" In the last window both quit vim.  <leader>qa quits vim (:qall), refusing
+" file leaves the buffer list and memory. A buffer another window still
+" shows stays. Refuses unsaved changes; <leader>QQ throws them away (:quit!).
+" In the last window both quit vim. <leader>qa quits vim (:qall), refusing
 " while anything is unsaved.
 function! s:Close(bang) abort
   let l:buffer = bufnr('%')
@@ -76,11 +76,11 @@ nnoremap <leader>cp :let @+ = expand('%:p')<CR>:echo @+<CR>
 " F5 saves and runs the current file (it needs a #! line and execute permission).
 nnoremap <F5> :write <Bar> !%:p<CR>
 
-" jk in insert mode is Esc, without reaching for it.  Typing a real "jk"
+" jk in insert mode is Esc, without reaching for it. Typing a real "jk"
 " then needs a pause between the letters.
 "inoremap jk <Esc>
 
-" ; starts a command, like :, without Shift.  Loses ; as "repeat the last f/t".
+" ; starts a command, like :, without Shift. Loses ; as "repeat the last f/t".
 "nnoremap ; :
 
 " Q formats text (gq) instead of entering Ex mode.
@@ -106,7 +106,7 @@ nnoremap <F5> :write <Bar> !%:p<CR>
 
 " ── Windows and buffers ─────────────────────────────────────────────────
 
-" Ctrl-h/j/k/l move between windows.  Ctrl-l no longer redraws the screen;
+" Ctrl-h/j/k/l move between windows. Ctrl-l no longer redraws the screen;
 " :redraw! does.
 nnoremap <C-h> <C-w>h
 nnoremap <C-j> <C-w>j
@@ -125,7 +125,7 @@ nnoremap <leader>sh :split<CR>
 
 " <leader>z zooms the current window to fill the screen, and again puts
 " every window back at its size (or evens them out, if one was opened or
-" closed meanwhile).  The other windows stay open, squeezed to a line.
+" closed meanwhile). The other windows stay open, squeezed to a line.
 function! s:ToggleZoom() abort
   if exists('t:zoom_sizes')
     if winnr('$') == t:zoom_count
@@ -154,7 +154,7 @@ nnoremap <leader><leader> <C-^>
 " <leader>bl lists buffers, then waits for the number of one to open.
 nnoremap <leader>bl :ls<CR>:buffer<Space>
 
-" Tab and Shift-Tab switch buffers.  Tab is also Ctrl-I, so Ctrl-I no
+" Tab and Shift-Tab switch buffers. Tab is also Ctrl-I, so Ctrl-I no
 " longer jumps forward in the jump list.
 nnoremap <Tab> :bnext<CR>
 nnoremap <S-Tab> :bprevious<CR>
@@ -190,7 +190,7 @@ inoremap <C-u> <C-g>u<C-u>
 inoremap <C-w> <C-g>u<C-w>
 
 " <leader>y yanks to the system clipboard; <leader>p and <leader>P put from
-" it after and before the cursor, as p and P do.  Over a selection both
+" it after and before the cursor, as p and P do. Over a selection both
 " replace it; <leader>p yanks what was there, <leader>P keeps the register.
 nnoremap <leader>y "+y
 xnoremap <leader>y "+y
@@ -209,7 +209,7 @@ nnoremap <leader>id "=strftime('%Y-%m-%d')<CR>p
 
 " <leader>rw starts replacing the word under the cursor everywhere in the
 " file, matching its case exactly (\C, whatever 'ignorecase' says);
-" <leader>ri in any case (\c).  gdefault in 20-search.vim makes it every
+" <leader>ri in any case (\c). gdefault in 20-search.vim makes it every
 " match on a line.
 nnoremap <leader>rw :%s/\C\<<C-r><C-w>\>//<Left>
 nnoremap <leader>ri :%s/\c\<<C-r><C-w>\>//<Left>
@@ -221,7 +221,7 @@ nnoremap gV `[v`]
 cnoremap w!! w !sudo tee % > /dev/null
 
 " Ctrl-A and Ctrl-E move to the start and end of the command line, as in
-" bash.  Loses Ctrl-A's "insert every match".
+" bash. Loses Ctrl-A's "insert every match".
 "cnoremap <C-a> <Home>
 "cnoremap <C-e> <End>
 
@@ -245,7 +245,7 @@ endfunction
 
 " <leader>cc comments the current line (a count: that many lines) or the
 " selected lines, or uncomments them when every non-blank one already is a
-" comment.  The marker comes from 'commentstring' (# in python, /* */ in C)
+" comment. The marker comes from 'commentstring' (# in python, /* */ in C)
 " and goes at the smallest indent; blank lines are left alone.
 function! s:ToggleComment(first, last) abort
   if &commentstring !~# '%s'
@@ -274,7 +274,7 @@ nnoremap <silent> <leader>cc :<C-u>call <SID>ToggleComment(line('.'), line('.') 
 xnoremap <silent> <leader>cc :<C-u>call <SID>ToggleComment(line("'<"), line("'>"))<CR>
 
 " gc comments as an operator: gcc a line, gcip a paragraph, gc over a
-" selection; ic and ac select a comment.  Vim 9.1's comment package; an
+" selection; ic and ac select a comment. Vim 9.1's comment package; an
 " older vim has none, and <leader>cc above still works there.
 silent! packadd! comment
 
@@ -282,7 +282,7 @@ silent! packadd! comment
 
 " <leader>ww fixes whitespace when asked, never on its own: strips trailing
 " whitespace and turns tabs into spaces, tabstop wide (:retab; a buffer
-" with noexpandtab, make or go, keeps its tabs).  In the whole file, or in
+" with noexpandtab, make or go, keeps its tabs). In the whole file, or in
 " the selected lines.
 function! s:FixWhitespace(first, last) abort
   let l:range = a:first . ',' . a:last
@@ -302,9 +302,9 @@ nnoremap <leader>uu :sort u<CR>
 xnoremap <leader>uu :sort u<CR>
 
 " <leader>j lays out the JSON in the buffer, or in the selection (JSON
-" inside a log line, say), two spaces deep.  Invalid JSON leaves the text
-" as it was and shows python's error.  The z and unnamed registers come
-" through unchanged.  Needs: python3.9+.
+" inside a log line, say), two spaces deep. Invalid JSON leaves the text
+" as it was and shows python's error. The z and unnamed registers come
+" through unchanged. Needs: python3.9+.
 function! s:FormatJson(visual) abort
   if a:visual
     let l:saved = [getreginfo('z'), getreginfo('"')]
@@ -371,5 +371,5 @@ nnoremap <silent> <leader>co :call <SID>ToggleQuickfix()<CR>
 " ── Terminal ────────────────────────────────────────────────────────────
 
 " Esc twice in a :terminal window returns to normal mode (the default is
-" Ctrl-W N).  A program in it that uses Esc sees the first one late.
+" Ctrl-W N). A program in it that uses Esc sees the first one late.
 "tnoremap <Esc><Esc> <C-\><C-n>

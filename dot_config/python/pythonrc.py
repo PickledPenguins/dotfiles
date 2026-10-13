@@ -1,10 +1,10 @@
 # ~/.config/python/pythonrc.py: run when an interactive python starts
-# ($PYTHONSTARTUP, set in ~/.config/bash/rc.d/00-env.sh).  Not run by
+# ($PYTHONSTARTUP, set in ~/.config/bash/rc.d/00-env.sh). Not run by
 # scripts, python -c or IPython.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # The modules the settings below use.
 import atexit

@@ -2,7 +2,7 @@
 
 `dots` has no .py suffix, so it is loaded here by path once per session and
 handed to tests as the `dots` fixture; the CLI tests call `dots.main(argv)`
-in-process so coverage sees every line.  HOME is redirected per test through
+in-process so coverage sees every line. HOME is redirected per test through
 the environment -- Path.home() reads $HOME -- so nothing here can touch the
 real home directory.
 """

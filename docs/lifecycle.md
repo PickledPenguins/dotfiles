@@ -1,20 +1,20 @@
 # Lifecycle
 
-What happens in what order.  Back to the [README](../README.md).
+What happens in what order. Back to the [README](../README.md).
 
 ## `dots apply`
 
 1. **Resolve the source tree**: `-S DIR`, else `$DOTS_SOURCE`, else
    `~/.dotfiles` (symlinks resolved), else the directory holding the `dots`
-   script.  A source that does not exist stops here with exit 2.
-2. **Read `.dotsignore`** from the source root.  Unreadable is a hard error
+   script. A source that does not exist stops here with exit 2.
+2. **Read `.dotsignore`** from the source root. Unreadable is a hard error
    (a traceback), not a silent apply of everything.
 3. **Walk the source tree**, skipping directories whose name starts with
    `.` at every depth and such files in the root only (a deeper one, like
    `private_dot_ssh/sockets/.keep`, is managed), dropping ignored targets,
    and refusing any entry whose target would
    have an empty, `.` or `..` component (a file named just `dot_` would map
-   to `~` itself) with a warning on stderr.  Entries are sorted by target.
+   to `~` itself) with a warning on stderr. Entries are sorted by target.
 4. **Restrict to the paths given**, if any: only targets equal to or below
    them.
 5. For each entry, **classify the target** (`ok`, `missing`, `stale-link`,
@@ -38,16 +38,16 @@ only links whose state is `ok`.
 
 - `add FILE`: the path is made absolute lexically (`..` collapsed, symlinks
   not followed) and must be a regular file under `$HOME` that is not a
-  symlink and whose source name is free.  The file is **moved** into the
+  symlink and whose source name is free. The file is **moved** into the
   source tree under its attribute name (`private_` when it has no
   permission bits for others or `--private` was given, `executable_` when
-  the owner can execute it) and a symlink is left behind.  Order of the
+  the owner can execute it) and a symlink is left behind. Order of the
   arguments is the order of the moves.
 - `forget FILE`: if the target is our link, it is replaced by a **copy** of
-  the source file; then the source file is removed.  A target in any other
+  the source file; then the source file is removed. A target in any other
   state is left alone and only the source is removed, so its content is
-  then only in git.  A target reached through a directory link into the
-  source is the source file itself and is refused.  Unmanaged and refused
+  then only in git. A target reached through a directory link into the
+  source is the source file itself and is refused. Unmanaged and refused
   paths are reported and give exit 1.
 
 ## `dots prune`
@@ -55,13 +55,13 @@ only links whose state is `ok`.
 Collects the symlinks directly in `$HOME` plus every symlink under each
 top-level directory that contains a managed target (walking without
 following links), and removes those whose link text starts with the
-source tree path and whose referent does not exist.  Everything else --
+source tree path and whose referent does not exist. Everything else --
 valid links, broken links elsewhere, files -- is untouched.
 
 ## A bash shell
 
 1. bash reads `~/.bash_profile` (login) or `~/.bashrc` (interactive
-   non-login).  `~/.bash_profile` sources `~/.profile` (PATH and locale, in
+   non-login). `~/.bash_profile` sources `~/.profile` (PATH and locale, in
    POSIX sh), then `~/.config/bash/profile.d/*.sh` if the directory exists,
    then `~/.bashrc`.
 2. `~/.bashrc` returns immediately for a non-interactive shell.
@@ -70,17 +70,17 @@ valid links, broken links elsewhere, files -- is untouched.
 4. It sources **`~/.bashrc.before`** if present -- this is where knobs go.
 5. It sources `rc.d/*.sh` in name order, skipping any whose module name is
    in **`~/.config/bash/disabled`** (`.off` files are not matched by the
-   glob at all).  With `DOTFILES_DEBUG=1` each module's name and load time
+   glob at all). With `DOTFILES_DEBUG=1` each module's name and load time
    go to stderr.
 6. The last module, `90-local.sh`, sources **`~/.bashrc.local`** if present.
-7. On each prompt, `PROMPT_COMMAND` runs.  Each module prepends its entry,
+7. On each prompt, `PROMPT_COMMAND` runs. Each module prepends its entry,
    so the later module runs earlier:
    `_title_prompt;prompt_build;_prompt_gap;history -a` by default, with
-   `_venv_auto` (`75-python`, when enabled) first of all.  `_prompt_gap`
+   `_venv_auto` (`75-python`, when enabled) first of all. `_prompt_gap`
    (`prompt/layout.sh`) goes in right after `prompt_build` and puts a blank
    line above the prompt it built.
    Anything ahead of `prompt_build` must return the `$?` it found, since
-   the prompt shows that status.  The toolkit arms its command timer in
+   the prompt shows that status. The toolkit arms its command timer in
    `prompt_build`, and `history -a` after it starts the timer early, so
    `@cmd_time` currently includes the time spent at the prompt
    ([F.2.i](future-work.md)).
@@ -95,19 +95,19 @@ source `~/.vimrc.local` if present, define `:DotfilesModules`.
 ## tmux
 
 `~/.tmux.conf`: `source-file -q ~/.config/tmux/conf.d/*.conf` (glob, sorted
-by tmux), then `source-file -q ~/.tmux.conf.local`.  `-q` means a missing
-file is not an error.  `prefix r` re-reads the whole chain.
+by tmux), then `source-file -q ~/.tmux.conf.local`. `-q` means a missing
+file is not an error. `prefix r` re-reads the whole chain.
 
 ## git
 
 `~/.gitconfig` is only `[include]` lines, read in order: `core`, `color`,
 `aliases`, `diff`, `url`, (`signing`, commented out), then
-`~/.gitconfig.local`.  Later files override earlier keys, so identity and
-per-machine overrides in the local file win.  `~/.config/git/ignore` and
+`~/.gitconfig.local`. Later files override earlier keys, so identity and
+per-machine overrides in the local file win. `~/.config/git/ignore` and
 `~/.config/git/attributes` are read by git without any setting.
 
 ## ssh
 
 `~/.ssh/config` starts with `Include ~/.ssh/config.local` and
-`Include ~/.ssh/config.d/*`, then `Host *` defaults.  ssh takes the first
+`Include ~/.ssh/config.d/*`, then `Host *` defaults. ssh takes the first
 value it finds for each option, so a `Host` block in the local file wins.

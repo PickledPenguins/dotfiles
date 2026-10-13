@@ -1,7 +1,7 @@
 """Every option in the configuration files: described, and working when switched on.
 
 The configuration files are written in the options format that `dots
-options` reads (docs/configuration.md#the-options-format).  For every
+options` reads (docs/configuration.md#the-options-format). For every
 managed file that declares it, two promises are checked:
 
 - fast: every setting has a description above it -- off ones always, on
@@ -9,12 +9,12 @@ managed file that declares it, two promises are checked:
   so a file can be read, and a setting switched, without looking anything up;
 - long: switching a setting on, by deleting the comment character in front
   of each of its lines, leaves a file its program still loads without an
-  error.  The real program reads a copy of the file with that one option
-  switched on, inside a temporary HOME that holds the applied tree.  Slow
+  error. The real program reads a copy of the file with that one option
+  switched on, inside a temporary HOME that holds the applied tree. Slow
   programs read one copy with every option on, and one copy per option only
   when that fails, to say which.
 
-A program that is not installed skips its files by name.  An option whose
+A program that is not installed skips its files by name. An option whose
 description has a `Needs: NAME, ...` line is skipped while any NAME is
 absent: a program on PATH, or a path when it starts with ~ or /.
 """

@@ -1,10 +1,10 @@
 # ~/.curlrc: defaults for every curl call; an option on the command line
-# wins.  `curl -q` as the first option skips this file.  Comments must be on
+# wins. `curl -q` as the first option skips this file. Comments must be on
 # their own lines here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # Follow redirects (301, 302 ...) to the final page.
 --location
@@ -17,7 +17,7 @@
 --speed-limit 1000
 --speed-time 60
 
-# Give up on every transfer after 5 minutes, however fast it is going.  A
+# Give up on every transfer after 5 minutes, however fast it is going. A
 # big download or a curl ... | sh installer stops part way, and --retry
 # then starts it again from zero.
 #--max-time 300
@@ -39,11 +39,11 @@
 #--compressed
 
 # An HTTP error (404, 500) makes curl fail with exit 22 instead of printing
-# the error page and succeeding.  Scripts then notice.
+# the error page and succeeding. Scripts then notice.
 #--fail
 
 # A newline after the output, so the prompt does not land at the end of a
-# response that lacks one.  It goes into a download saved with > too, so
+# response that lacks one. It goes into a download saved with > too, so
 # curl URL > file.tar.gz gets an extra byte; -o is not affected.
 #--write-out "\n"
 

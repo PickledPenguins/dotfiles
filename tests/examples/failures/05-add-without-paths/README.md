@@ -8,4 +8,4 @@
 
 ## Expected
 
-`the following arguments are required: paths`, exit 2, for both.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+`the following arguments are required: paths`, exit 2, for both. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

@@ -10,15 +10,15 @@
 #   git hooks off [NAME...]     switch hooks off (default: every hook that is on)
 #
 # The packaged hooks live in ~/.local/share/git-hooks, each describing itself
-# in its header.  git runs one file per event, so install links
+# in its header. git runs one file per event, so install links
 # .git/hooks/EVENT to the dispatcher there, which runs each
-# .git/hooks/EVENT.d/NAME in name order.  A hook is off while its name ends
-# in .off.  A hook the repository already had for the event moves into
+# .git/hooks/EVENT.d/NAME in name order. A hook is off while its name ends
+# in .off. A hook the repository already had for the event moves into
 # EVENT.d under the event's name, in the state it was in, and remove moves it
-# back once no packaged hook is left there.  A hook that needs a setting
+# back once no packaged hook is left there. A hook that needs a setting
 # (its "requires:" line, git config hooks.KEY) is not switched on until the
-# setting is made.  on and off also switch a plain hook at the top of the
-# hooks directory, by its event name.  The hooks directory is shared by
+# setting is made. on and off also switch a plain hook at the top of the
+# hooks directory, by its event name. The hooks directory is shared by
 # every worktree of the repository.
 #
 # git has no event after a push completes, so there is no post-push hook.

@@ -9,9 +9,9 @@
 # twice, and skip one that does not exist, so each line below is harmless on
 # a machine without that directory.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
@@ -57,7 +57,7 @@ path_append "${NPM_CONFIG_PREFIX:-$HOME/.npm-global}/bin"
 #path_append "$HOME/.juliaup/bin"
 
 # Haskell: ghcup's toolchain and programs from `cabal install`, in
-# CABAL_DIR when set.  With GHCUP_USE_XDG_DIRS (00-env.sh) ghcup puts its
+# CABAL_DIR when set. With GHCUP_USE_XDG_DIRS (00-env.sh) ghcup puts its
 # programs in ~/.local/bin, already on PATH.
 #path_append "$HOME/.ghcup/bin"; path_append "${CABAL_DIR:-$HOME/.cabal}/bin"
 
@@ -87,7 +87,7 @@ unset _dirs _d
 export PATH
 
 # man finds pages installed under ~/.local/share/man (pip, cargo, by hand)
-# as well as the system's; the trailing : keeps the system path.  Added
+# as well as the system's; the trailing : keeps the system path. Added
 # once, so a nested shell does not add it again.
 [[ -d "$HOME/.local/share/man" && ":${MANPATH-}:" != *":$HOME/.local/share/man:"* ]] &&
     export MANPATH="$HOME/.local/share/man:${MANPATH:-}"

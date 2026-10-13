@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # dispatch: run the hooks switched on for one git event.
 #
-# git hooks install links .git/hooks/EVENT here.  Each .git/hooks/EVENT.d/NAME
+# git hooks install links .git/hooks/EVENT here. Each .git/hooks/EVENT.d/NAME
 # runs in name order with git's arguments, its stdin and GIT_HOOK_EVENT set
-# to EVENT; NAME.off is switched off.  For a post- event every hook runs and
-# git ignores the status.  For any other event the first hook to fail stops
+# to EVENT; NAME.off is switched off. For a post- event every hook runs and
+# git ignores the status. For any other event the first hook to fail stops
 # the rest and fails the event, so git stops the commit, merge or push.
 # HOOKS_SKIP="NAME..." skips those hooks for one command, as in
 # HOOKS_SKIP=test-push git push.

@@ -8,4 +8,4 @@ An already-linked `private_` file whose mode was loosened is tightened again on 
 
 ## Expected
 
-`0 change(s)` yet the mode is back to 600.  The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.
+`0 change(s)` yet the mode is back to 600. The exact output is `expected.txt`; `case.sh` is the script, run from a fresh HOME with `dots` on PATH and `$SRC` as the source directory.

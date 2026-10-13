@@ -1,12 +1,12 @@
 # ~/.config/matplotlib/matplotlibrc: matplotlib's defaults for every
-# script.  Every setting here is off, so plots look as they do without this
+# script. Every setting here is off, so plots look as they do without this
 # file until you choose; a script's own rcParams win.
 # matplotlib.rcParams lists every key; matplotlib.matplotlib_fname() says
 # which file was read.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # ── Figures ───────────────────────────────────────────────────────────────
 

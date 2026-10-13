@@ -11,33 +11,33 @@ are off, each with its description directly above it.
 
 ```bash
 # A history expansion (!!, !$, !git) is put on the command line for a look
-# before it runs.  Safer; costs one more Enter.
+# before it runs. Safer; costs one more Enter.
 #shopt -s histverify
 ```
 
 - **The description** is the comment lines directly above a setting: its
   first sentence says what it is, the rest what it does, what it costs and
-  when you would not want it.  A `Needs: PROGRAM` line names what must be
+  when you would not want it. A `Needs: PROGRAM` line names what must be
   installed first, with the oldest version that works where that matters
   (`Needs: git 2.35+`).
 - **Off** is a setting whose lines each start with the comment character
   directly followed by the code: `#shopt -s histverify`, `"set
-  cursorcolumn` in vim, `!Xft.dpi: 96` in `~/.Xresources`.  Delete that
+  cursorcolumn` in vim, `!Xft.dpi: 96` in `~/.Xresources`. Delete that
   character (on every line of a multi-line setting) to turn it on.
 - **On** is live code; put the comment character in front of each line to
   turn it off.
 - A comment character followed by a space is description; a blank line
-  ends a setting.  Indented lines keep their indentation before the
+  ends a setting. Indented lines keep their indentation before the
   character (`    #ff = only` in a git section).
 - **What starts on:** everything the configuration already did, and
   anything that only adds a name (a function, an alias, a git alias, a key
-  that had no binding).  **What starts off:** anything that would change
-  what an existing command, key or program does.  The kitty, IPython,
+  that had no binding). **What starts off:** anything that would change
+  what an existing command, key or program does. The kitty, IPython,
   matplotlib and sqlite files ship with everything off, so those programs
   behave as they do without a config file.
 - Every file says this in its header and mentions `dots options`, which is
   how [`dots options`](cli.md#dots-options---on----off--f-words) recognizes
-  the files it reads.  `dots options WORD` lists every setting whose file,
+  the files it reads. `dots options WORD` lists every setting whose file,
   description or code contains WORD, with the file and line to edit.
 
 `tests/test_options.py` holds the files to this: every setting that is off
@@ -62,13 +62,13 @@ For bash, from weakest to strongest:
 
 Turning a module off entirely is separate: rename it `NN-name.sh.off`
 (committed, every machine) or list its name in
-**`~/.config/bash/disabled`** (this machine).  Vim follows the same shape
+**`~/.config/bash/disabled`** (this machine). Vim follows the same shape
 with `~/.vimrc.before` (`let g:dotfiles_x = ...`), the modules,
-`~/.vimrc.local`.  tmux, git and ssh have no variables: their `.local`
+`~/.vimrc.local`. tmux, git and ssh have no variables: their `.local`
 files are read last (tmux, git) or first (ssh, where the first value wins).
 
 Knobs are for values that differ between machines (a size, a path, a
-name).  On/off choices are settings in the files, switched by their comment
+name). On/off choices are settings in the files, switched by their comment
 character, or per machine in the `.local` file.
 
 ## Hook files
@@ -147,23 +147,23 @@ Read-only variables the loader sets for modules and for you:
 
 | Module | Provides |
 |--------|----------|
-| `00-env.sh` | `EDITOR`, `PAGER`, `LESS`, colored man pages, `GREP_COLORS`, `COLORTERM`, XDG variables, `RIPGREP_CONFIG_PATH`, `PYTHONSTARTUP`, locale fallback, `TIME_STYLE`, `PYTHONDONTWRITEBYTECODE`.  Off: less mouse/chop/centering, bat or vim as `MANPAGER`, `MANWIDTH`, `NO_COLOR`, moves of tool files out of `$HOME` (the toolchains' and version managers' among them, which `20-path.sh` and `80-tools.sh` follow), `LC_COLLATE=C`, `PYTHONPYCACHEPREFIX`, `GPG_TTY`, `BROWSER` |
-| `10-options.sh` | `globstar extglob autocd cdspell dirspell checkjobs huponexit histappend cmdhist lithist checkwinsize`, history sizes and control, history written after every command, `stty -ixon`, `umask 022`.  Off: `dotglob nocaseglob nullglob failglob nocasematch cdable_vars direxpand notify noclobber pipefail IGNOREEOF histexpand TMOUT histverify histreedit`, XDG history file, live history sharing, no mail check, `umask 077/027`, `ulimit` core and stack |
-| `12-history.sh` | `hgrep PATTERN [N]` searches the command log.  Off: one history file per tmux pane (a split starts from its source pane, a new window or session takes over the pane closed last in a session of the same name, else a copy of the shared file), the log of every command with time, host, session and directory, a file a month, the last 12 kept |
+| `00-env.sh` | `EDITOR`, `PAGER`, `LESS`, colored man pages, `GREP_COLORS`, `COLORTERM`, XDG variables, `RIPGREP_CONFIG_PATH`, `PYTHONSTARTUP`, locale fallback, `TIME_STYLE`, `PYTHONDONTWRITEBYTECODE`. Off: less mouse/chop/centering, bat or vim as `MANPAGER`, `MANWIDTH`, `NO_COLOR`, moves of tool files out of `$HOME` (the toolchains' and version managers' among them, which `20-path.sh` and `80-tools.sh` follow), `LC_COLLATE=C`, `PYTHONPYCACHEPREFIX`, `GPG_TTY`, `BROWSER` |
+| `10-options.sh` | `globstar extglob autocd cdspell dirspell checkjobs huponexit histappend cmdhist lithist checkwinsize`, history sizes and control, history written after every command, `stty -ixon`, `umask 022`. Off: `dotglob nocaseglob nullglob failglob nocasematch cdable_vars direxpand notify noclobber pipefail IGNOREEOF histexpand TMOUT histverify histreedit`, XDG history file, live history sharing, no mail check, `umask 077/027`, `ulimit` core and stack |
+| `12-history.sh` | `hgrep PATTERN [N]` searches the command log. Off: one history file per tmux pane (a split starts from its source pane, a new window or session takes over the pane closed last in a session of the same name, else a copy of the shared file), the log of every command with time, host, session and directory, a file a month, the last 12 kept |
 | `15-tmux-env.sh` | Off: a shell in tmux takes `DISPLAY`, `SSH_AUTH_SOCK` and the rest of `update-environment` from the client typed on last, before each command (at each prompt before bash 5.3); goes with `45-client-env.conf` |
-| `20-path.sh` | `path_prepend`/`path_append`/`path_remove`; `~/.local/bin`, `~/bin`, cargo/go/npm bins, each where its home variable says; `MANPATH`.  Off: deno, bun, .NET, juliaup, ghcup/cabal, pixi, CUDA, Flatpak, snap |
-| `25-ssh-agent.sh.off` | one shared ssh-agent per machine, environment in `~/.ssh/agent.env`.  Off inside: keychain or gpg-agent instead |
-| `30-aliases.sh` | ls/grep/diff/ip color, `ll la l lt ltr lS lsd`, `.. ... .... ..... cd.. - d cdg`, `rm -I cp -i mv -i`, `mkdir -pv ln -v chmox`, `df du free dus psg top ports j mnt`, `c clc h hg e v sb vb path now week timestamp epoch ping tree serve cpv myip :q`, `pbcopy`/`pbpaste`, `g gs gl gd gp`, `alert`.  Off: grep skipping VCS dirs, `rm -i`, `--preserve-root`, `sudo ` alias expansion, `vi`→vim, `vim`→nvim, `open`, the oh-my-zsh git set |
+| `20-path.sh` | `path_prepend`/`path_append`/`path_remove`; `~/.local/bin`, `~/bin`, cargo/go/npm bins, each where its home variable says; `MANPATH`. Off: deno, bun, .NET, juliaup, ghcup/cabal, pixi, CUDA, Flatpak, snap |
+| `25-ssh-agent.sh.off` | one shared ssh-agent per machine, environment in `~/.ssh/agent.env`. Off inside: keychain or gpg-agent instead |
+| `30-aliases.sh` | ls/grep/diff/ip color, `ll la l lt ltr lS lsd`, `.. ... .... ..... cd.. - d cdg`, `rm -I cp -i mv -i`, `mkdir -pv ln -v chmox`, `df du free dus psg top ports j mnt`, `c clc h hg e v sb vb path now week timestamp epoch ping tree serve cpv myip :q`, `pbcopy`/`pbpaste`, `g gs gl gd gp`, `alert`. Off: grep skipping VCS dirs, `rm -i`, `--preserve-root`, `sudo ` alias expansion, `vi`→vim, `vim`→nvim, `open`, the oh-my-zsh git set |
 | `40-functions.sh` | `mkcd tmpd up bd cdf extract targz ff rgv bak swapname bigfiles count sha mkscript note tree retry timit histstat man reload calc genpass urlencode urldecode fromepoch title hr envg port cheat weather` |
-| `45-dirs.sh` | `mark jump unmark marks` bookmarks, `CDPATH`, `1`..`9` for the pushd stack.  Off: ls after cd, cd that pushes (auto_pushd) |
-| `50-completion.sh` | bash-completion, `completion.d/`, git completion for the `g` alias, `git ctags` and `git hooks`.  Off: no `/etc/hosts` in host completion, pip completion |
-| `60-prompt.sh` | the toolkit prompt: `prompt/toolkit/prompt.sh` + `prompt/layout.sh` (every segment described and switchable there).  The toolkit's own variables are in its [README](../dot_config/bash/prompt/toolkit/README.md); `CMD_TIMER_SKIP_TRAP=1` leaves the DEBUG trap to another tool and drops `@cmd_time` |
-| `61-prompt-simple.sh.off` | one-line colored prompt with git branch.  Off inside: time, short directory, `PROMPT_DIRTRIM`, exit status |
-| `65-title.sh` | terminal title at each prompt.  Off: the running command in the title |
+| `45-dirs.sh` | `mark jump unmark marks` bookmarks, `CDPATH`, `1`..`9` for the pushd stack. Off: ls after cd, cd that pushes (auto_pushd) |
+| `50-completion.sh` | bash-completion, `completion.d/`, git completion for the `g` alias, `git ctags` and `git hooks`. Off: no `/etc/hosts` in host completion, pip completion |
+| `60-prompt.sh` | the toolkit prompt: `prompt/toolkit/prompt.sh` + `prompt/layout.sh` (every segment described and switchable there). The toolkit's own variables are in its [README](../dot_config/bash/prompt/toolkit/README.md); `CMD_TIMER_SKIP_TRAP=1` leaves the DEBUG trap to another tool and drops `@cmd_time` |
+| `61-prompt-simple.sh.off` | one-line colored prompt with git branch. Off inside: time, short directory, `PROMPT_DIRTRIM`, exit status |
+| `65-title.sh` | terminal title at each prompt. Off: the running command in the title |
 | `70-conda.sh` | finds conda and sources its `conda.sh`; optional env activation; `ca cda cel` |
-| `75-python.sh` | `py pyv pipup pyclean json pt ipy jl jn`, `venv`, uv completion.  Off: `.venv` auto-activation, `PIP_REQUIRE_VIRTUALENV`, ipdb breakpoints, `PYTHON_BASIC_REPL` |
-| `80-tools.sh` | each only if installed: Homebrew, Nix, mise, asdf, pyenv, nvm (lazy), fnm, rbenv, SDKMAN!, ghcup, cargo env, lesspipe, bat and `cat`→bat, `fd`, eza for `ll lt`, fzf with `fe fkill fbr`, zoxide, direnv, docker/kubectl/aws/terraform/gh/lazygit shortcuts and completion, tmux `ta tn tl tat`, yazi `y`, `lfcd`.  Off: eza as ls/tree, vivid, fzf previews, `zoxide --cmd cd`, starship, atuin, thefuck, fortune, fastfetch |
-| `85-hpc.sh` | Each only if present: PBS (`qs qsa qw qi qd qn qh qtail`, found by `${PBS_CONF_FILE:-/etc/pbs.conf}`, not by `qstat`, which Slurm's Torque wrappers also install), Slurm (`sq sqa sw si sc sn sacct-today sstart srun-i`), modules (`ml mla mll mlp mls`).  Off: `qint`, `sint`, `SQUEUE_FORMAT`/`SACCT_FORMAT`, `LMOD_REDIRECT`, `LMOD_PAGER`, one thread per program, `TMPDIR` on scratch |
+| `75-python.sh` | `py pyv pipup pyclean json pt ipy jl jn`, `venv`, uv completion. Off: `.venv` auto-activation, `PIP_REQUIRE_VIRTUALENV`, ipdb breakpoints, `PYTHON_BASIC_REPL` |
+| `80-tools.sh` | each only if installed: Homebrew, Nix, mise, asdf, pyenv, nvm (lazy), fnm, rbenv, SDKMAN!, ghcup, cargo env, lesspipe, bat and `cat`→bat, `fd`, eza for `ll lt`, fzf with `fe fkill fbr`, zoxide, direnv, docker/kubectl/aws/terraform/gh/lazygit shortcuts and completion, tmux `ta tn tl tat`, yazi `y`, `lfcd`. Off: eza as ls/tree, vivid, fzf previews, `zoxide --cmd cd`, starship, atuin, thefuck, fortune, fastfetch |
+| `85-hpc.sh` | Each only if present: PBS (`qs qsa qw qi qd qn qh qtail`, found by `${PBS_CONF_FILE:-/etc/pbs.conf}`, not by `qstat`, which Slurm's Torque wrappers also install), Slurm (`sq sqa sw si sc sn sacct-today sstart srun-i`), modules (`ml mla mll mlp mls`). Off: `qint`, `sint`, `SQUEUE_FORMAT`/`SACCT_FORMAT`, `LMOD_REDIRECT`, `LMOD_PAGER`, one thread per program, `TMPDIR` on scratch |
 | `90-local.sh` | sources `~/.bashrc.local` |
 | `95-override.sh` | sets and unsets the variables in `DOTFILES_OVERRIDE`; when one is read-only (a system file's `TMOUT`), replaces the shell with a bash that reads no startup file and takes over the rest of its state, at the end of `~/.bash_profile` in a login shell; `bash -c` and scripts keep read-only values |
 
@@ -171,29 +171,29 @@ Read-only variables the loader sets for modules and for you:
 
 | Module | Provides |
 |--------|----------|
-| `00-general.vim` | encoding, `hidden`, `autoread` on focus, `ttimeoutlen`, `updatetime`, `nomodeline`, `mouse=a`, system clipboard, `filetype plugin indent on`.  Off: `autowrite`, `confirm`, `exrc secure`, `viminfofile`, `timeoutlen`, `ttymouse=sgr` |
-| `10-ui.vim` | numbers, `cursorline` in the active window, `scrolloff`, `listchars`, splits below/right, `wrap`+`breakindent`, search count, true color, colorscheme, gray `colorcolumn` marks, yank flash (`hlyank`), cursor shape.  Off: `relativenumber`, `cmdheight`, `cursorcolumn`, `colorcolumn`, `eol:¬`, `fillchars`, `nowrap`, `title`, light background |
-| `15-statusline.vim` | status line with buffer, path, flags, filetype, encoding, git branch, position.  Off: spelling language |
-| `20-search.vim` | `hlsearch incsearch ignorecase smartcase wrapscan gdefault`, `inccommand`, `:grep` recursive (`rg`, else `grep -r`), quickfix auto-open, visual `*`/`#`.  Off: `nowrapscan`, very magic search, Esc clears highlight |
-| `25-completion.vim` | `wildmenu`/`wildmode`/`wildignore`, `path+=**`, popup menu, `completeopt`, omni completion, spelling.  Off: bash-style wildmode, fuzzy, popup info, `noinsert`, `kspell`, Tab completion |
-| `30-indent.vim` | width from the knob, spaces; 4 for rust/c/java/sh, tabs for make/go, 2 for python/yaml/json/web; `<`/`>` keep the selection.  Off: tabs by default, `copyindent` |
-| `35-folding.vim` | fold method from the knob, all open at start, custom fold text.  Off: `foldenable`, `foldcolumn`, saved views |
-| `40-files.vim` | swap/backup/undo under `~/.vim/tmp/`, persistent undo, no backups for secrets, last position, mkdir on write, strip trailing whitespace.  Off: `noswapfile`, autosave on focus loss |
-| `45-filetypes.vim` | prose wrap+spell, gitcommit columns, python columns, `q` closes help, `g:is_bash`, `.pbs`/`.slurm`/`.env` filetypes, `:Make`.  Off: markdown conceal, soft-wrapped text, F5 runs python, fenced-code highlighting |
-| `50-keys.vim` | leader `,`; leader maps (`<space> , qq QQ qa ev cd cp z sv sh bn bp bl bd f gg / gb y p P o O id rw ri cc ww = ss uu j sc wr tn tl co`), `gc` comment package, `Y`, `j`/`k`, `n`/`N`, F5 runs the file, `Ctrl-hjkl`, `Ctrl-arrows` resize, `Tab`/`S-Tab` buffers, visual `J`/`K`, `gV`, `]q [q ]l [l`, `w!!`, `F2` paste.  Off: `jk`, `;` as `:`, `Q` as `gq`, `Ctrl-S`, centered `Ctrl-D`/`Ctrl-U`, `J` in place, no arrow keys, emacs keys on the command line, `Esc Esc` in `:terminal` |
-| `52-tags.vim` | `tags` searched upward from the file and from vim's directory; `<leader>tg` builds tags (`git ctags` in a repository), `tf` jumps by name, `th tv tt tp` open the tag under the cursor in a split, vertical split, tab, preview.  Off: `Ctrl-]` lists when ambiguous |
-| `55-netrw.vim` | tree-style netrw, `-` and `<leader>ee`.  Off: hide dotfiles, netrw off |
+| `00-general.vim` | encoding, `hidden`, `autoread` on focus, `ttimeoutlen`, `updatetime`, `nomodeline`, `mouse=a`, system clipboard, `filetype plugin indent on`. Off: `autowrite`, `confirm`, `exrc secure`, `viminfofile`, `timeoutlen`, `ttymouse=sgr` |
+| `10-ui.vim` | numbers, `cursorline` in the active window, `scrolloff`, `listchars`, splits below/right, `wrap`+`breakindent`, search count, true color, colorscheme, gray `colorcolumn` marks, yank flash (`hlyank`), cursor shape. Off: `relativenumber`, `cmdheight`, `cursorcolumn`, `colorcolumn`, `eol:¬`, `fillchars`, `nowrap`, `title`, light background |
+| `15-statusline.vim` | status line with buffer, path, flags, filetype, encoding, git branch, position. Off: spelling language |
+| `20-search.vim` | `hlsearch incsearch ignorecase smartcase wrapscan gdefault`, `inccommand`, `:grep` recursive (`rg`, else `grep -r`), quickfix auto-open, visual `*`/`#`. Off: `nowrapscan`, very magic search, Esc clears highlight |
+| `25-completion.vim` | `wildmenu`/`wildmode`/`wildignore`, `path+=**`, popup menu, `completeopt`, omni completion, spelling. Off: bash-style wildmode, fuzzy, popup info, `noinsert`, `kspell`, Tab completion |
+| `30-indent.vim` | width from the knob, spaces; 4 for rust/c/java/sh, tabs for make/go, 2 for python/yaml/json/web; `<`/`>` keep the selection. Off: tabs by default, `copyindent` |
+| `35-folding.vim` | fold method from the knob, all open at start, custom fold text. Off: `foldenable`, `foldcolumn`, saved views |
+| `40-files.vim` | swap/backup/undo under `~/.vim/tmp/`, persistent undo, no backups for secrets, last position, mkdir on write, strip trailing whitespace. Off: `noswapfile`, autosave on focus loss |
+| `45-filetypes.vim` | prose wrap+spell, gitcommit columns, python columns, `q` closes help, `g:is_bash`, `.pbs`/`.slurm`/`.env` filetypes, `:Make`. Off: markdown conceal, soft-wrapped text, F5 runs python, fenced-code highlighting |
+| `50-keys.vim` | leader `,`; leader maps (`<space> , qq QQ qa ev cd cp z sv sh bn bp bl bd f gg / gb y p P o O id rw ri cc ww = ss uu j sc wr tn tl co`), `gc` comment package, `Y`, `j`/`k`, `n`/`N`, F5 runs the file, `Ctrl-hjkl`, `Ctrl-arrows` resize, `Tab`/`S-Tab` buffers, visual `J`/`K`, `gV`, `]q [q ]l [l`, `w!!`, `F2` paste. Off: `jk`, `;` as `:`, `Q` as `gq`, `Ctrl-S`, centered `Ctrl-D`/`Ctrl-U`, `J` in place, no arrow keys, emacs keys on the command line, `Esc Esc` in `:terminal` |
+| `52-tags.vim` | `tags` searched upward from the file and from vim's directory; `<leader>tg` builds tags (`git ctags` in a repository), `tf` jumps by name, `th tv tt tp` open the tag under the cursor in a split, vertical split, tab, preview. Off: `Ctrl-]` lists when ambiguous |
+| `55-netrw.vim` | tree-style netrw, `-` and `<leader>ee`. Off: hide dotfiles, netrw off |
 | `60-plugins.vim.off` | vim-plug with commentary, surround, repeat, fugitive, gitgutter, fzf, editorconfig; about 25 more described and off |
 
 ## tmux modules (`~/.config/tmux/conf.d/`)
 
 | Module | Provides |
 |--------|----------|
-| `00-options.conf` | `tmux-256color` + true color, cursor shapes, focus events, `escape-time 0`, OSC 52 clipboard, 50000 lines, mouse, base index 1, renumber, names, vi copy mode, titles, activity monitoring.  Off: `screen-256color`, `terminal-features`, passthrough, extended keys, directory as window name, vi status keys, `repeat-time`, switch session on destroy, `remain-on-exit`, non-login shells, lock |
-| `10-keys.conf` | `r` reload, `\|`/`-` splits and `c` keeping the directory, `hjkl` panes, `HJKL` resize, `x`/`X` kill, `z` zoom, `b` break, `@` join, `y` synchronize panes, `Tab` last window, `M-arrows`, `S`/`C-s`/`R` sessions, `g` popup shell, `C-l` clear, `C-p` log pane, `m` mouse toggle.  Off: `C-a` or `C-Space` prefix, `"`/`%` keeping the directory, `M-hjkl`, vim-tmux-navigator, `S-arrows`, lazygit popup |
-| `20-status.conf` | status line: session, windows, prefix indicator, window count, host, clock; the palette in the header.  Off: top, centered, load and date, pane border titles |
-| `30-copy.conf` | `v V C-v y Y Esc` in copy mode, mouse drag and clicks, piping to xclip/xsel/wl-copy/pbcopy, `P` paste from clipboard.  Off: `H`/`L` line ends, one-line wheel, `Enter` copy mode |
-| `40-nested.conf` | `F12` toggles the outer tmux off for a nested one.  Off: status on top over ssh |
+| `00-options.conf` | `tmux-256color` + true color, cursor shapes, focus events, `escape-time 0`, OSC 52 clipboard, 50000 lines, mouse, base index 1, renumber, names, vi copy mode, titles, activity monitoring. Off: `screen-256color`, `terminal-features`, passthrough, extended keys, directory as window name, vi status keys, `repeat-time`, switch session on destroy, `remain-on-exit`, non-login shells, lock |
+| `10-keys.conf` | `r` reload, `\|`/`-` splits and `c` keeping the directory, `hjkl` panes, `HJKL` resize, `x`/`X` kill, `z` zoom, `b` break, `@` join, `y` synchronize panes, `Tab` last window, `M-arrows`, `S`/`C-s`/`R` sessions, `g` popup shell, `C-l` clear, `C-p` log pane, `m` mouse toggle. Off: `C-a` or `C-Space` prefix, `"`/`%` keeping the directory, `M-hjkl`, vim-tmux-navigator, `S-arrows`, lazygit popup |
+| `20-status.conf` | status line: session, windows, prefix indicator, window count, host, clock; the palette in the header. Off: top, centered, load and date, pane border titles |
+| `30-copy.conf` | `v V C-v y Y Esc` in copy mode, mouse drag and clicks, piping to xclip/xsel/wl-copy/pbcopy, `P` paste from clipboard. Off: `H`/`L` line ends, one-line wheel, `Enter` copy mode |
+| `40-nested.conf` | `F12` toggles the outer tmux off for a nested one. Off: status on top over ssh |
 | `45-client-env.conf` | Off: hooks on attach, change of session and change of the client typed on, which run `~/.config/tmux/client-env`; goes with `15-tmux-env.sh` |
 | `50-plugins.conf.off` | tpm with sensible, resurrect, yank; continuum, open, thumbs, extrakto, tmux-fzf, prefix-highlight, themes, navigator described and off |
 
@@ -201,43 +201,43 @@ Read-only variables the loader sets for modules and for you:
 
 | File | Provides |
 |------|----------|
-| `core.gitconfig` | pager, whitespace, `autocrlf=input`, `defaultBranch=main`, push current+autoSetupRemote+followTags, `pull.rebase`, `fetch.prune`, rebase autoStash/autoSquash/updateRefs, `diff3`, `commit.verbose`, rerere, status, log, branch/tag sort, columns, autocorrect prompt, `transfer.fsckObjects`, credential cache.  Off: `core.editor` (git opens `$EDITOR`), `quotePath`, `fsmonitor`, `untrackedCache`, `hooksPath`, `sshCommand`, `init.templateDir` (every packaged hook installed, off, in each new repository), `useForceIfIncludes`, `pull.ff=only`, `fetch.all`, `fetch.pruneTags`, commit graph, `missingCommitsCheck`, `merge.ff=only`, `merge.autoStash`, commit template, submodules, `log.follow`, libsecret/store credentials, advice, `singleKey`, grep, `safe.directory`, LFS |
-| `color.gitconfig` | `color.ui=auto` and per-command colors.  Off: moved-line colors, blame by age |
+| `core.gitconfig` | pager, whitespace, `autocrlf=input`, `defaultBranch=main`, push current+autoSetupRemote+followTags, `pull.rebase`, `fetch.prune`, rebase autoStash/autoSquash/updateRefs, `diff3`, `commit.verbose`, rerere, status, log, branch/tag sort, columns, autocorrect prompt, `transfer.fsckObjects`, credential cache. Off: `core.editor` (git opens `$EDITOR`), `quotePath`, `fsmonitor`, `untrackedCache`, `hooksPath`, `sshCommand`, `init.templateDir` (every packaged hook installed, off, in each new repository), `useForceIfIncludes`, `pull.ff=only`, `fetch.all`, `fetch.pruneTags`, commit graph, `missingCommitsCheck`, `merge.ff=only`, `merge.autoStash`, commit template, submodules, `log.follow`, libsecret/store credentials, advice, `singleKey`, grep, `safe.directory`, LFS |
+| `color.gitconfig` | `color.ui=auto` and per-command colors. Off: moved-line colors, blame by age |
 | `aliases.gitconfig` | `st a aa ap unstage discard staged conflicts cm cma ca cae fixup undo wip co sw cob br brdel brclean gone recent default pr lg lga last hist who fl contains root outgoing incoming standup find bl df dfs dfw dfn dfst f pl ps pst psf up sl sp ss snapshot ours theirs aliases ignored ignore assume unassume assumed tags cp rb rbi rbc rba whoami` |
-| `diff.gitconfig` | histogram, colorMoved, renames+copies, mnemonic prefixes, vimdiff as difftool/mergetool.  Off: `noprefix`, submodule log, difftastic, delta, diff-so-fancy, meld, VS Code, PDF and docx text diffs |
-| `url.gitconfig` | `gh:`, `gh-ssh:`, `gl:` shorthands.  Off: push to GitHub over ssh, all GitHub over ssh, `gl-ssh:`, `cb:`, `bb:` |
-| `signing.gitconfig` | commit and tag signing; its include line in `~/.gitconfig` is off.  Off inside: signed pushes, ssh signing, allowed signers, `showSignature` |
-| `ignore` | global excludes (editor, OS, environment, agent files).  Off: `*.orig`, Jupyter checkpoints, `.envrc`, packaging, coverage, clangd, node_modules, `*.log` |
-| `attributes` | `diff=` drivers by extension, binary types, LF for scripts.  Off: PDF and docx diffs, generated minified and lock files |
-| `template/` | a git template whose `hooks/` is what `git hooks install` leaves: the dispatcher on each event, every packaged hook linked switched off.  Used only once `init.templateDir` in `core.gitconfig` is switched on |
+| `diff.gitconfig` | histogram, colorMoved, renames+copies, mnemonic prefixes, vimdiff as difftool/mergetool. Off: `noprefix`, submodule log, difftastic, delta, diff-so-fancy, meld, VS Code, PDF and docx text diffs |
+| `url.gitconfig` | `gh:`, `gh-ssh:`, `gl:` shorthands. Off: push to GitHub over ssh, all GitHub over ssh, `gl-ssh:`, `cb:`, `bb:` |
+| `signing.gitconfig` | commit and tag signing; its include line in `~/.gitconfig` is off. Off inside: signed pushes, ssh signing, allowed signers, `showSignature` |
+| `ignore` | global excludes (editor, OS, environment, agent files). Off: `*.orig`, Jupyter checkpoints, `.envrc`, packaging, coverage, clangd, node_modules, `*.log` |
+| `attributes` | `diff=` drivers by extension, binary types, LF for scripts. Off: PDF and docx diffs, generated minified and lock files |
+| `template/` | a git template whose `hooks/` is what `git hooks install` leaves: the dispatcher on each event, every packaged hook linked switched off. Used only once `init.templateDir` in `core.gitconfig` is switched on |
 
 ## Other dotfiles
 
 | Target | Purpose |
 |--------|---------|
-| `~/.profile` | POSIX login: PATH and `LANG` for non-bash shells and display managers.  Off: `EDITOR` for desktop programs, session `umask`, nothing in a batch or CI job |
-| `~/.bash_profile` | `.profile`, then `profile.d/*.sh`, then `.bashrc`, then the `95-override.sh` swap when it waits for a login shell.  Off: nothing in a batch or CI job (PBS, Slurm, GitLab, GitHub), tmux on ssh login, `startx` on tty1 |
-| `~/.bash_logout` | `clear_console` on a top-level logout.  Off: nothing in a batch or CI job, `clear` |
-| `~/.inputrc` | readline: case-insensitive completion, single-Tab listing, colored stats, history search on Up/Down, Ctrl-arrows by word, Ctrl-Delete, Alt-S sudo.  Off: vi mode with mode strings and cursor shapes, `keyseq-timeout`, hidden files, horizontal lists, menu completion, `mark-modified-lines`, `expand-tilde`, Ctrl-P/N prefix search, `search-ignore-case`, Ctrl-W by path, Ctrl-Backspace, Alt-L, vi `jj`/`gg`/`G` |
-| `~/.editorconfig` | 2-space default (python too), 4 for rust/c/java/sh, tabs for make/go.  Off: `max_line_length`, CRLF for batch files |
-| `~/.curlrc` | follow redirects, connect timeout, stalled-transfer limit, retries, progress bar.  Off: whole-transfer time limit, silent, compressed, fail, newline after output, remote time, create dirs, netrc, IPv4, user agent, proxy |
-| `~/.wgetrc` | timeouts, retries.  Off: timestamping, resume, wait, no parent, HSTS file in `~/.cache`, user agent, proxy |
-| `~/.screenrc` | no splash, 10000 lines, status line, tmux-like keys.  Off: `C-b` escape, mouse, windows from 1, login shells |
+| `~/.profile` | POSIX login: PATH and `LANG` for non-bash shells and display managers. Off: `EDITOR` for desktop programs, session `umask`, nothing in a batch or CI job |
+| `~/.bash_profile` | `.profile`, then `profile.d/*.sh`, then `.bashrc`, then the `95-override.sh` swap when it waits for a login shell. Off: nothing in a batch or CI job (PBS, Slurm, GitLab, GitHub), tmux on ssh login, `startx` on tty1 |
+| `~/.bash_logout` | `clear_console` on a top-level logout. Off: nothing in a batch or CI job, `clear` |
+| `~/.inputrc` | readline: case-insensitive completion, single-Tab listing, colored stats, history search on Up/Down, Ctrl-arrows by word, Ctrl-Delete, Alt-S sudo. Off: vi mode with mode strings and cursor shapes, `keyseq-timeout`, hidden files, horizontal lists, menu completion, `mark-modified-lines`, `expand-tilde`, Ctrl-P/N prefix search, `search-ignore-case`, Ctrl-W by path, Ctrl-Backspace, Alt-L, vi `jj`/`gg`/`G` |
+| `~/.editorconfig` | 2-space default (python too), 4 for rust/c/java/sh, tabs for make/go. Off: `max_line_length`, CRLF for batch files |
+| `~/.curlrc` | follow redirects, connect timeout, stalled-transfer limit, retries, progress bar. Off: whole-transfer time limit, silent, compressed, fail, newline after output, remote time, create dirs, netrc, IPv4, user agent, proxy |
+| `~/.wgetrc` | timeouts, retries. Off: timestamping, resume, wait, no parent, HSTS file in `~/.cache`, user agent, proxy |
+| `~/.screenrc` | no splash, 10000 lines, status line, tmux-like keys. Off: `C-b` escape, mouse, windows from 1, login shells |
 | `~/.dircolors` | `dircolors -p` with `OTHER_WRITABLE` readable on dark terminals |
-| `~/.gdbinit` | history, no pagination, pretty printing, intel syntax.  Off: history dedup, debuginfod on or off, full-length printing, null-stop, quiet thread events, auto-load from every directory or from `~/work`, GEF, gdb-dashboard |
-| `~/.nanorc` | autoindent, 4-space tabs (2 in python), line numbers, soft wrap, syntax files.  Off: cut from cursor, guide stripe, no help, minibar, position and search history, backups, common editor keys |
-| `~/.condarc` | `auto_activate_base: false`, `changeps1: false`, conda-forge only.  Off: `pkgs_dirs`, outdated notice, self-update, default packages, threads, `env_prompt`, error reports, proxy |
-| `~/.Xresources` | xterm font, colors, scrollback, clipboard keys; urxvt basics.  Off: Xft rendering and dpi, URL double-click, light scheme |
+| `~/.gdbinit` | history, no pagination, pretty printing, intel syntax. Off: history dedup, debuginfod on or off, full-length printing, null-stop, quiet thread events, auto-load from every directory or from `~/work`, GEF, gdb-dashboard |
+| `~/.nanorc` | autoindent, 4-space tabs (2 in python), line numbers, soft wrap, syntax files. Off: cut from cursor, guide stripe, no help, minibar, position and search history, backups, common editor keys |
+| `~/.condarc` | `auto_activate_base: false`, `changeps1: false`, conda-forge only. Off: `pkgs_dirs`, outdated notice, self-update, default packages, threads, `env_prompt`, error reports, proxy |
+| `~/.Xresources` | xterm font, colors, scrollback, clipboard keys; urxvt basics. Off: Xft rendering and dpi, URL double-click, light scheme |
 | `~/.local/bin/dots` | this checkout's `dots`, on `PATH` through `~/.local/bin`; `dots unlink` removes it |
 | `~/.local/share/bash-completion/completions/dots` | Tab completion of the `dots` subcommands and their options, loaded by bash-completion on first use (`50-completion.sh`) |
-| `~/.ssh/config` (600, `~/.ssh` 700) | includes, keepalive, multiplexing (`~/.ssh/sockets/`), `AddKeysToAgent`, `IdentitiesOnly`, no agent/X11 forwarding by default.  Off: example hosts (cluster, bastion, GitHub on 443, Jupyter tunnel), `accept-new`, `UpdateHostKeys`, `ConnectTimeout`, IPv4, no GSSAPI, quiet log, `SetEnv TERM`, `SendEnv`, `ExitOnForwardFailure`, legacy ssh-rsa |
-| `~/.config/ripgrep/config` | smart case, hidden files, ignores, colors.  Off: follow links, sorted output, no VCS ignores, minified files |
-| `~/.config/python/pythonrc.py` | REPL history and completion before 3.13; `json math re Path pp` imported.  Off: datetime, numpy/pandas, pretty display, rich, colored prompt |
-| `~/.config/pip/pip.conf` | timeout.  Off: `require-virtualenv`, version check, mirror, extra index, trusted host, no cache, `--user` |
-| `~/.ctags.d/default.ctags` | universal-ctags excludes (caches, virtualenvs, build output, `target`) and fields.  Off: no `vendor/`, no markdown |
-| `~/.local/bin/git-ctags` | `git ctags`: a `tags` file at the worktree root, then the packaged `ctags` hook installed and switched on, which rebuilds it in the background after `post-checkout`, `post-merge`, `post-rewrite` and `post-commit`; `git ctags off` removes the hook and the file.  Exit 2 on a usage error, 1 without universal-ctags.  Needs: universal-ctags |
+| `~/.ssh/config` (600, `~/.ssh` 700) | includes, keepalive, multiplexing (`~/.ssh/sockets/`), `AddKeysToAgent`, `IdentitiesOnly`, no agent/X11 forwarding by default. Off: example hosts (cluster, bastion, GitHub on 443, Jupyter tunnel), `accept-new`, `UpdateHostKeys`, `ConnectTimeout`, IPv4, no GSSAPI, quiet log, `SetEnv TERM`, `SendEnv`, `ExitOnForwardFailure`, legacy ssh-rsa |
+| `~/.config/ripgrep/config` | smart case, hidden files, ignores, colors. Off: follow links, sorted output, no VCS ignores, minified files |
+| `~/.config/python/pythonrc.py` | REPL history and completion before 3.13; `json math re Path pp` imported. Off: datetime, numpy/pandas, pretty display, rich, colored prompt |
+| `~/.config/pip/pip.conf` | timeout. Off: `require-virtualenv`, version check, mirror, extra index, trusted host, no cache, `--user` |
+| `~/.ctags.d/default.ctags` | universal-ctags excludes (caches, virtualenvs, build output, `target`) and fields. Off: no `vendor/`, no markdown |
+| `~/.local/bin/git-ctags` | `git ctags`: a `tags` file at the worktree root, then the packaged `ctags` hook installed and switched on, which rebuilds it in the background after `post-checkout`, `post-merge`, `post-rewrite` and `post-commit`; `git ctags off` removes the hook and the file. Exit 2 on a usage error, 1 without universal-ctags. Needs: universal-ctags |
 | `~/.local/bin/git-hooks` | `git hooks`: install the [packaged git hooks](#packaged-git-hooks-localsharegit-hooks) in a repository, list its hooks, show what one does, switch them on and off |
-| `~/.config/tmux/client-env` | run by the `45-client-env.conf` hooks: the `update-environment` values of the client typed on last (from `/proc`, else the session) set in its session and written to `SOCKET.env.SERVER_PID.SESSION` for `15-tmux-env.sh`; a live `SSH_AUTH_SOCK` becomes `~/.ssh/agent.sock`, a link to it; files of gone sessions and servers deleted.  Needs: bash 4.3 |
+| `~/.config/tmux/client-env` | run by the `45-client-env.conf` hooks: the `update-environment` values of the client typed on last (from `/proc`, else the session) set in its session and written to `SOCKET.env.SERVER_PID.SESSION` for `15-tmux-env.sh`; a live `SSH_AUTH_SOCK` becomes `~/.ssh/agent.sock`, a link to it; files of gone sessions and servers deleted. Needs: bash 4.3 |
 | `~/.local/share/git-hooks/` | the packaged git hooks and their dispatcher, one file each; see [Packaged git hooks](#packaged-git-hooks-localsharegit-hooks) |
 | `~/.config/kitty/kitty.conf` | everything off: fonts, scrollback, copy on select, cursor, bell, window and tab look, opacity, themes, `term xterm-256color`, shell integration, remote control, keys; reads `local.conf` |
 | `~/.ipython/profile_default/ipython_config.py` | everything off: autoreload, start-up imports, banner, vi mode, exit confirmation, autosuggestions, editor, auto-match, colors, traceback mode, show every expression, history |
@@ -247,13 +247,13 @@ Read-only variables the loader sets for modules and for you:
 ## Scheduled jobs (`~/.config/systemd/user/`)
 
 Jobs that cron would run, kept as systemd user timers so they live in this
-repository.  `dots apply` links every unit but enables none: each machine
+repository. `dots apply` links every unit but enables none: each machine
 switches on the jobs it wants, and a machine that wants none does nothing.
 
 | Unit | Purpose |
 |------|---------|
-| `tool-report.service` | `~/work/ai/skills/bin/tool-report run`, the skills repository's daily report; skipped where that checkout is missing.  Off: lowest CPU and disk priority |
-| `tool-report.timer` | runs it daily at 06:15, and at the next start after a time the machine was off or asleep.  Off: up to 10 minutes' random delay |
+| `tool-report.service` | `~/work/ai/skills/bin/tool-report run`, the skills repository's daily report; skipped where that checkout is missing. Off: lowest CPU and disk priority |
+| `tool-report.timer` | runs it daily at 06:15, and at the next start after a time the machine was off or asleep. Off: up to 10 minutes' random delay |
 
 ```sh
 systemctl --user daemon-reload                  # once after dots apply adds a unit
@@ -264,16 +264,16 @@ journalctl --user -u tool-report                # what a run printed
 ```
 
 A user timer runs only while the user's systemd runs, that is while logged
-in, unless `loginctl enable-linger` keeps it running.  To add a job, put
+in, unless `loginctl enable-linger` keeps it running. To add a job, put
 `NAME.service` (what to run, `Type=oneshot`) and `NAME.timer` (when, and
 `WantedBy=timers.target`) here in the options format; a job that needs a
 program only some machines have gets `ConditionFileIsExecutable=` so it is
-skipped elsewhere.  `systemctl --user disable` a job before `dots unlink`.
+skipped elsewhere. `systemctl --user disable` a job before `dots unlink`.
 
 ## Packaged git hooks (`~/.local/share/git-hooks/`)
 
 Hooks people commonly want, every one off until switched on in a
-repository.  Each file's header says what it does, its events, its
+repository. Each file's header says what it does, its events, its
 settings and the settings it needs; `git hooks show NAME` prints it.
 
 ```sh
@@ -288,17 +288,17 @@ git hooks remove             # back to the hooks the repository had
 
 git runs one file per event, so `install` links `.git/hooks/EVENT` to
 `dispatch`, which runs each `.git/hooks/EVENT.d/NAME` in name order with
-git's arguments, its stdin and `GIT_HOOK_EVENT` set.  A hook is off while
-its name ends in `.off`.  A pre- event stops at the first hook that fails,
+git's arguments, its stdin and `GIT_HOOK_EVENT` set. A hook is off while
+its name ends in `.off`. A pre- event stops at the first hook that fails,
 which fails the commit, merge or push; a post- event runs every hook.
 `HOOKS_SKIP="NAME..."` skips hooks for one command; `--no-verify` skips
-all of an event's.  A hook the repository already had (a project's tracked
+all of an event's. A hook the repository already had (a project's tracked
 `pre-push` gate, linked as `pre-push.off`) moves into `EVENT.d` under its
 event name, in the state it was in, and `git hooks on pre-push` still
 switches it; `remove` moves it back once no packaged hook is left for the
-event.  `git hooks on` and `off` also switch a plain hook at the top of
-`.git/hooks` by name.  Settings are per repository (`git config`, or
-`--global` for every one).  `git hooks` exits 2 on a usage error and 1
+event. `git hooks on` and `off` also switch a plain hook at the top of
+`.git/hooks` by name. Settings are per repository (`git config`, or
+`--global` for every one). `git hooks` exits 2 on a usage error and 1
 when it refuses: no such packaged hook, a hook not installed, a required
 setting not made, or a hook and its `.off` both present.
 
@@ -323,16 +323,16 @@ setting not made, or a hook and its `.off` both present.
 | `ctags` | post-checkout, post-merge, post-rewrite, post-commit | `git ctags --hook` in the background | |
 
 `deps-changed`, `pyc-clean` and `submodules` skip a file checkout, an
-amend and the steps inside a rebase; `ctags` runs on every one.  git has
+amend and the steps inside a rebase; `ctags` runs on every one. git has
 no post-push event, so there is no post-push hook
 ([F.2.ad](future-work.md)).
 
 ## `.dotsignore`
 
-In the source root.  One glob per line, `#` comments, matched with
+In the source root. One glob per line, `#` comments, matched with
 `fnmatch` against the target-relative path and every leading directory of
 it: `README.md` matches only at the top; `tests` skips everything under
-`tests/`; `*.local` matches at any depth because `*` crosses `/`.  The
+`tests/`; `*.local` matches at any depth because `*` crosses `/`. The
 shipped file lists `README.md CLAUDE.md HANDOFF.md LICENSE dots
-run-tests.sh tests docs reviews __pycache__`.  To not link a file you do
+run-tests.sh tests docs reviews __pycache__`. To not link a file you do
 not want on any machine, add its target path here.

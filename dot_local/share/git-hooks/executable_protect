@@ -4,8 +4,8 @@
 # config: hooks.protect
 #
 # hooks.protect is the list of protected branches, separated by spaces;
-# the default is "main master".  A push deleting one, or one that is not a
-# fast-forward of what the remote has (a force push), is refused.  A remote
+# the default is "main master". A push deleting one, or one that is not a
+# fast-forward of what the remote has (a force push), is refused. A remote
 # commit this repository has not fetched counts as a rewrite: fetch first.
 set -euo pipefail
 

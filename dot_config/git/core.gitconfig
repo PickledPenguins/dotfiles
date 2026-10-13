@@ -1,15 +1,15 @@
 # core.gitconfig: how git behaves: editor, pager, push, pull, fetch,
-# merge and rebase, status and log.  Display is color.gitconfig; diff tools
+# merge and rebase, status and log. Display is color.gitconfig; diff tools
 # are diff.gitconfig.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.gitconfig.local instead.
 
 [core]
     # Commit messages and interactive rebases open in vim, whatever $EDITOR
-    # says.  Off, git opens $EDITOR like everything else: 00-env.sh sets it
+    # says. Off, git opens $EDITOR like everything else: 00-env.sh sets it
     # (DOTFILES_EDITOR picks another), and a machine with only vi works.
     #editor = vim
 
@@ -21,7 +21,7 @@
     whitespace = trailing-space,space-before-tab
 
     # Line endings: commit LF even when a file arrives with CRLF; check out
-    # as committed.  On Windows use true (check out CRLF).
+    # as committed. On Windows use true (check out CRLF).
     autocrlf = input
 
     # File names with accents or other non-ASCII letters are shown as they
@@ -48,7 +48,7 @@
     defaultBranch = main
 
     # git init and git clone copy this template: every packaged hook
-    # installed, switched off, as git hooks install would leave it.  Switch
+    # installed, switched off, as git hooks install would leave it. Switch
     # one on with git hooks on NAME.
     #templateDir = ~/.config/git/template
 
@@ -69,7 +69,7 @@
     rebase = true
 
     # git pull only ever fast-forwards and stops otherwise, so you choose
-    # merge or rebase yourself.  Instead of the rebase line above.
+    # merge or rebase yourself. Instead of the rebase line above.
     #ff = only
 
 [fetch]
@@ -109,7 +109,7 @@
     conflictStyle = diff3
 
     # git merge refuses anything but a fast-forward; merge commits then need
-    # an explicit --no-ff.  Surprising on a plain git merge.
+    # an explicit --no-ff. Surprising on a plain git merge.
     #ff = only
 
     # Stash a dirty working tree before a merge and restore it after.
@@ -137,7 +137,7 @@
     #submoduleSummary = true
 
 [submodule]
-    # checkout, pull and switch update submodules too.  Slower, and a
+    # checkout, pull and switch update submodules too. Slower, and a
     # surprise in repositories whose submodules you never touch.
     #recurse = true
 
@@ -168,7 +168,7 @@
     autocorrect = prompt
 
 [transfer]
-    # Refuse corrupt objects on fetch and push.  Some old repositories have
+    # Refuse corrupt objects on fetch and push. Some old repositories have
     # harmless faults (zeroPaddedFilemode, badTimezone) and fail to clone;
     # git -c transfer.fsckObjects=false clone ... gets them.
     fsckObjects = true
@@ -200,7 +200,7 @@
 
 [safe]
     # Trust repositories owned by other users (shared group directories on a
-    # cluster).  Their hooks and config can then run as you.
+    # cluster). Their hooks and config can then run as you.
     #directory = *
 
 [filter "lfs"]

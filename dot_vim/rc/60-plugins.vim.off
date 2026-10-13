@@ -1,13 +1,13 @@
-" 60-plugins.vim: plugins through vim-plug.  Off until wanted: drop the .off
+" 60-plugins.vim: plugins through vim-plug. Off until wanted: drop the .off
 " suffix, turn on the plugins you want below, then run :PlugInstall.
 " vim-plug itself installs with:
 "
 "   curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
 "     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 "
-" Each setting has its description in the comment above it.  A setting with
+" Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
-" it on, or add one to turn a setting off.  `dots options WORD` searches
+" it on, or add one to turn a setting off. `dots options WORD` searches
 " every file.
 "
 " Knobs (set in ~/.vimrc.before):

@@ -1,9 +1,9 @@
 # ~/.wgetrc: defaults for wget; an option on the command line wins.
 # Comments must be on their own lines here.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 
 # A stalled connection is retried after 30 s, 3 tries in all, also when the
 # connection is refused.
@@ -11,17 +11,17 @@ timeout = 30
 tries = 3
 retry_connrefused = on
 
-# Resume a partial download instead of starting again.  Off because it
+# Resume a partial download instead of starting again. Off because it
 # cannot tell a partial file from an old one: with timestamping, a file
 # that changed on the server is resumed from the old copy's size, leaving
-# the old start joined to the new end.  Use wget -c by hand instead.
+# the old start joined to the new end. Use wget -c by hand instead.
 #continue = on
 
 # Skip files the server has not changed since the local copy, instead of
-# saving another copy as FILE.1.  Off because wget -nc then refuses to run
+# saving another copy as FILE.1. Off because wget -nc then refuses to run
 # ("Can't timestamp and not clobber old files at the same time"), -O warns
 # that it does nothing, and with adjust_extension pages saved as X.html are
-# fetched again every time.  Use wget -N for it per command.
+# fetched again every time. Use wget -N for it per command.
 #timestamping = on
 
 # Follow links to FTP servers from HTML pages when recursing.
@@ -30,7 +30,7 @@ follow_ftp = on
 # Save web pages with an .html extension when their URL lacks one.
 adjust_extension = on
 
-# wget -r ignores robots.txt.  Be polite on sites that ask not to be
+# wget -r ignores robots.txt. Be polite on sites that ask not to be
 # crawled: turn this off, or add a wait below.
 robots = off
 

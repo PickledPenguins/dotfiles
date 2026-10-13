@@ -1,9 +1,9 @@
 # 00-env.sh: environment variables other programs read: editor, pager,
-# colors, XDG directories, locale.  PATH is 20-path.sh.
+# colors, XDG directories, locale. PATH is 20-path.sh.
 #
-# Each setting has its description in the comment above it.  A setting with
+# Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
-# one to turn a setting off.  `dots options WORD` searches every file.
+# one to turn a setting off. `dots options WORD` searches every file.
 # For one machine only, put the line in ~/.bashrc.local instead.
 #
 # Knobs (set in ~/.bashrc.before):
@@ -21,7 +21,7 @@ else
     export EDITOR=vi
 fi
 
-# $VISUAL and $SUDO_EDITOR follow $EDITOR.  Programs prefer VISUAL when
+# $VISUAL and $SUDO_EDITOR follow $EDITOR. Programs prefer VISUAL when
 # both are set, so set it on its own line for a separate full-screen editor.
 export VISUAL="$EDITOR"
 export SUDO_EDITOR="$EDITOR"
@@ -36,12 +36,12 @@ export PAGER=less
 # case unless the pattern has a capital.
 export LESS="-FRXi"
 
-# The mouse wheel scrolls inside less.  Selecting text with the mouse then
+# The mouse wheel scrolls inside less. Selecting text with the mouse then
 # needs Shift held down while less runs.
 #export LESS="$LESS --mouse --wheel-lines=3"
 
 # less chops long lines instead of wrapping them; Left and Right scroll
-# sideways.  Good for logs and wide tables, poor for prose.
+# sideways. Good for logs and wide tables, poor for prose.
 #export LESS="$LESS -S"
 
 # less shows a search match in the middle of the screen instead of on the
@@ -68,7 +68,7 @@ export SYSTEMD_LESS="$LESS"
 # ── Colors ────────────────────────────────────────────────────────────────
 
 # Tell programs this terminal shows 24-bit color (vim's termguicolors in
-# 10-ui.vim, bat, delta read it), unless the terminal already said.  Wrong
+# 10-ui.vim, bat, delta read it), unless the terminal already said. Wrong
 # on the Linux console and old terminals, where colors come out garbled:
 # `unset COLORTERM` in ~/.bashrc.local there.
 export COLORTERM="${COLORTERM:-truecolor}"
@@ -78,7 +78,7 @@ export COLORTERM="${COLORTERM:-truecolor}"
 export GREP_COLORS="mt=1;31:fn=35:ln=32:se=36"
 
 # man pages in color: bold text (headings, option names) bright cyan,
-# underlined text (arguments) yellow, search hits reversed.  Turn off every
+# underlined text (arguments) yellow, search hits reversed. Turn off every
 # line of it for plain man pages.
 export LESS_TERMCAP_md=$'\e[1;36m'
 export LESS_TERMCAP_me=$'\e[0m'
@@ -89,13 +89,13 @@ export LESS_TERMCAP_se=$'\e[0m'
 export GROFF_NO_SGR=1
 
 # No color at all from programs that follow no-color.org (a long list:
-# ls and grep excepted).  For monochrome terminals, logs, screen readers.
+# ls and grep excepted). For monochrome terminals, logs, screen readers.
 #export NO_COLOR=1
 
 # ── XDG base directories ──────────────────────────────────────────────────
 
 # Where programs that follow the XDG spec keep config, data, state and
-# cache.  These are the spec's own defaults, made explicit for the lines
+# cache. These are the spec's own defaults, made explicit for the lines
 # below.
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -115,7 +115,7 @@ export INPUTRC="$HOME/.inputrc"
 
 # ── Keep $HOME tidy ───────────────────────────────────────────────────────
 # Each line moves one program's file or directory out of $HOME into the
-# XDG directories.  The program stops looking in the old place, so move the
+# XDG directories. The program stops looking in the old place, so move the
 # old file to the new one first (both are named), or start afresh.
 
 # python 3.13+ REPL history: ~/.python_history -> ~/.local/state/python/history,
@@ -138,7 +138,7 @@ export INPUTRC="$HOME/.inputrc"
 #export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc" NPM_CONFIG_CACHE="$XDG_CACHE_HOME/npm"
 
 # npm global installs (npm install -g): into ~/.local/share/npm instead of
-# the system prefix, which needs root.  20-path.sh follows
+# the system prefix, which needs root. 20-path.sh follows
 # NPM_CONFIG_PREFIX for the bin directory.
 #export NPM_CONFIG_PREFIX="$XDG_DATA_HOME/npm"
 
@@ -146,7 +146,7 @@ export INPUTRC="$HOME/.inputrc"
 # 20-path.sh follows CARGO_HOME for the bin directory.
 #export CARGO_HOME="$XDG_DATA_HOME/cargo" RUSTUP_HOME="$XDG_DATA_HOME/rustup"
 
-# Go: ~/go -> ~/.local/share/go.  20-path.sh follows GOPATH for the bin
+# Go: ~/go -> ~/.local/share/go. 20-path.sh follows GOPATH for the bin
 # directory.
 #export GOPATH="$XDG_DATA_HOME/go"
 
@@ -163,47 +163,47 @@ export INPUTRC="$HOME/.inputrc"
 #export CUDA_CACHE_PATH="$XDG_CACHE_HOME/nv"
 
 # .NET: ~/.dotnet -> ~/.local/share/dotnet and ~/.nuget/packages ->
-# ~/.cache/NuGetPackages.  20-path.sh follows DOTNET_CLI_HOME for the
+# ~/.cache/NuGetPackages. 20-path.sh follows DOTNET_CLI_HOME for the
 # global tools.
 #export DOTNET_CLI_HOME="$XDG_DATA_HOME/dotnet" NUGET_PACKAGES="$XDG_CACHE_HOME/NuGetPackages"
 
-# deno: ~/.deno -> ~/.local/share/deno.  20-path.sh follows
+# deno: ~/.deno -> ~/.local/share/deno. 20-path.sh follows
 # DENO_INSTALL_ROOT for the bin directory.
 #export DENO_INSTALL_ROOT="$XDG_DATA_HOME/deno"
 
-# bun: ~/.bun -> ~/.local/share/bun.  20-path.sh follows BUN_INSTALL for
+# bun: ~/.bun -> ~/.local/share/bun. 20-path.sh follows BUN_INSTALL for
 # the bin directory.
 #export BUN_INSTALL="$XDG_DATA_HOME/bun"
 
 # ghcup: ~/.ghcup -> ~/.local/share/ghcup, its programs in ~/.local/bin.
 #export GHCUP_USE_XDG_DIRS=1
 
-# pixi: ~/.pixi -> ~/.local/share/pixi.  20-path.sh follows PIXI_HOME for
+# pixi: ~/.pixi -> ~/.local/share/pixi. 20-path.sh follows PIXI_HOME for
 # the bin directory.
 #export PIXI_HOME="$XDG_DATA_HOME/pixi"
 
-# pyenv: ~/.pyenv -> ~/.local/share/pyenv.  80-tools.sh follows
-# PYENV_ROOT.  After the move `pyenv rehash` rewrites the shims, which hold
-# the old path.  pyenv-virtualenv environments hold it too and need making
+# pyenv: ~/.pyenv -> ~/.local/share/pyenv. 80-tools.sh follows
+# PYENV_ROOT. After the move `pyenv rehash` rewrites the shims, which hold
+# the old path. pyenv-virtualenv environments hold it too and need making
 # again.
 #export PYENV_ROOT="$XDG_DATA_HOME/pyenv"
 
-# nvm: ~/.nvm -> ~/.local/share/nvm.  80-tools.sh follows NVM_DIR.
+# nvm: ~/.nvm -> ~/.local/share/nvm. 80-tools.sh follows NVM_DIR.
 # Without it nvm's installer picks ~/.config/nvm, since XDG_CONFIG_HOME is
 # set above, and 80-tools.sh does not look there.
 #export NVM_DIR="$XDG_DATA_HOME/nvm"
 
-# asdf 0.16+: ~/.asdf -> ~/.local/share/asdf.  80-tools.sh follows
-# ASDF_DATA_DIR.  After the move `asdf reshim` rewrites the shims.
+# asdf 0.16+: ~/.asdf -> ~/.local/share/asdf. 80-tools.sh follows
+# ASDF_DATA_DIR. After the move `asdf reshim` rewrites the shims.
 #export ASDF_DATA_DIR="$XDG_DATA_HOME/asdf"
 
-# rbenv: ~/.rbenv -> ~/.local/share/rbenv.  `rbenv init` in 80-tools.sh
-# follows RBENV_ROOT.  After the move `rbenv rehash` rewrites the shims,
+# rbenv: ~/.rbenv -> ~/.local/share/rbenv. `rbenv init` in 80-tools.sh
+# follows RBENV_ROOT. After the move `rbenv rehash` rewrites the shims,
 # which hold the old path.
 #export RBENV_ROOT="$XDG_DATA_HOME/rbenv"
 
-# SDKMAN!: ~/.sdkman -> ~/.local/share/sdkman.  80-tools.sh follows
-# SDKMAN_DIR.  Its `current` links hold the old path, so install it afresh
+# SDKMAN!: ~/.sdkman -> ~/.local/share/sdkman. 80-tools.sh follows
+# SDKMAN_DIR. Its `current` links hold the old path, so install it afresh
 # with this set (the installer follows it) rather than move it.
 #export SDKMAN_DIR="$XDG_DATA_HOME/sdkman"
 
@@ -214,7 +214,7 @@ export INPUTRC="$HOME/.inputrc"
 [[ -z "${LANG-}" ]] && export LANG=C.UTF-8
 
 # Sort by byte value: ls lists dotfiles and capitals first, and sort, comm
-# and join agree on every machine.  Changes the order of ls, sort and globs.
+# and join agree on every machine. Changes the order of ls, sort and globs.
 #export LC_COLLATE=C
 
 # 24-hour clock and English day and month names from date and ls, whatever
@@ -226,17 +226,17 @@ export INPUTRC="$HOME/.inputrc"
 # ls -l dates as 2026-09-20 15:04 instead of "Sep 20 15:04" (GNU ls).
 export TIME_STYLE=long-iso
 
-# python writes no __pycache__ directories beside the code it runs.  Imports
+# python writes no __pycache__ directories beside the code it runs. Imports
 # are compiled again each run: milliseconds for scripts, more for big packages.
 export PYTHONDONTWRITEBYTECODE=1
 
 # python keeps every __pycache__ under ~/.cache/python instead of beside the
-# code: source trees stay clean and imports stay fast.  Instead of the line
+# code: source trees stay clean and imports stay fast. Instead of the line
 # above; turn that one off.
 #export PYTHONPYCACHEPREFIX="$XDG_CACHE_HOME/python"
 
 # gpg asks for passphrases in the terminal it was run from (commit signing,
-# pinentry-curses).  Costs one `tty` process per shell.
+# pinentry-curses). Costs one `tty` process per shell.
 #export GPG_TTY="$(tty)"
 
 # The web browser for xdg-open, python -m webbrowser and git web--browse.
