@@ -56,6 +56,21 @@ setup() {
     [[ "$count" -eq 1 ]]
 }
 
+@test "prompt_layout finds prompt_build behind a bare ';' or a newline, not in prompt_buildx" {
+    prompt_row r1 '@solo'
+    PROMPT_COMMAND="foo"
+    prompt_layout r1
+    PROMPT_COMMAND="foo;$PROMPT_COMMAND"
+    prompt_layout r1
+    [[ "$PROMPT_COMMAND" == "foo;prompt_build; foo" ]]
+    PROMPT_COMMAND=$'foo\nprompt_build'
+    prompt_layout r1
+    [[ "$PROMPT_COMMAND" == $'foo\nprompt_build' ]]
+    PROMPT_COMMAND="prompt_buildx"
+    prompt_layout r1
+    [[ "$PROMPT_COMMAND" == "prompt_build; prompt_buildx" ]]
+}
+
 @test "no-box layout joins rows with real newlines, not box borders" {
     prompt_row r1 '@solo'
     prompt_row r2 '@solo'

@@ -449,10 +449,14 @@ prompt_layout() {
     fi
     _PS_PLAN_DIRTY=1
 
-    # Prepend once — checks the exact call token (start of string, or right
-    # after a "; "), not a bare substring, so a differently-named function
-    # that merely contains "prompt_build" can't cause a false-positive skip.
-    if [[ "${PROMPT_COMMAND-}" != 'prompt_build'* && "${PROMPT_COMMAND-}" != *'; prompt_build'* ]]; then
+    # Prepend once. Hooks may be joined with ";", "; " or a newline, so the
+    # check compares whole commands: newlines become ";", blanks go, and
+    # prompt_build must sit between two separators, so a differently-named
+    # function such as prompt_buildx can't cause a false-positive skip.
+    local commands=${PROMPT_COMMAND-}
+    commands=${commands//$'\n'/;}
+    commands=${commands//[[:blank:]]/}
+    if [[ ";$commands;" != *';prompt_build;'* ]]; then
         PROMPT_COMMAND="prompt_build${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
     fi
 }
