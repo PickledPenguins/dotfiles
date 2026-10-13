@@ -254,6 +254,19 @@ stale() { ! git_info_cache_valid; }
     git_info_cache_valid
 }
 
+@test "an unstaged edit shows once the TTL runs out" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    git_info_cache_ttl 30
+    git_info_refresh
+    echo y > f.txt
+    git_info_cache_valid
+    # Back-date the last refresh past the TTL rather than sleep 30 s
+    (( _CACHE_TOUCHED[git_info] -= 31 ))
+    stale
+    git_info_refresh
+    [ "$GIT_MODIFIED" -eq 1 ]
+}
+
 @test "inside .git the branch still shows" {
     echo x > f.txt && git add f.txt && git commit -qm init
     cd .git
