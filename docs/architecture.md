@@ -32,7 +32,7 @@ dot_config/systemd/user/        scheduled jobs as user timers, linked but enable
 private_dot_ssh/config          ~/.ssh/config (600) and ~/.ssh/sockets/ for ControlMaster
 dot_local/bin/dots              -> ../../dots: apply puts dots on PATH; unlink takes it off
 dot_local/share/bash-completion/completions/dots   Tab completion for dots
-tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, coveragerc
+tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, shell-mutants.txt, coveragerc
 docs/                           this set
 reviews/                        friction logs and review reports (caddressreview works through them)
 CLAUDE.md                       instructions for the coding agent

@@ -74,6 +74,13 @@ def test_install_moves_the_existing_hook_aside_lists_switches_and_remove_puts_it
         "../../tests/pre-push\npost-commit.off\npre-push.off\n", "")
 
 
+def test_remove_keeps_the_dispatcher_while_another_hook_is_installed(linked):
+    proc = hooks(linked, "printf '#!/bin/sh\\n' >.git/hooks/pre-push && chmod +x .git/hooks/pre-push && "
+                         "git hooks install protect test-push >/dev/null && git hooks remove protect && "
+                         "ls .git/hooks/pre-push.d && git hooks | awk '{print $1, $3}'")
+    assert (proc.stdout, proc.stderr) == ("protect removed\npre-push\ntest-push.off\non pre-push\noff test-push\n", "")
+
+
 def test_install_without_names_installs_every_packaged_hook_off(linked):
     proc = hooks(linked, "git hooks install >/dev/null && git hooks | awk '{print $1, $3}' | sort -u -k2")
     assert proc.stdout == "".join(f"off {name}\n" for name in packaged())

@@ -11,6 +11,7 @@ Back to the [README](../README.md).
 | `./run-tests.sh all` | both | | ~130 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
+| `./run-tests.sh mutate-shell` | every mutant in `tests/shell-mutants.txt` applied to a copy of the checkout under `.build/mutate-shell` with `breaks-it`, each checked by its own long-test subset or toolkit bats file; **fails if any survives, or if its line is no longer in the file (stale)**; exits 2 first if a TESTS fails with no mutant applied (a `-k` selecting nothing, bats missing), which would read as every mutant caught | on a change to a hook, a bash module, `layout.sh` or the toolkit's git cache | ~6 min |
 | `./run-tests.sh perf` | `tests/perf.py`: the median of 15 interactive bash starts and of a warm `prompt_build` at the top of the checkout, in a temporary linked home; **fails more than 25% over this machine's baseline**. Needs no pytest | on a module or prompt change; before each push once the packaged `perf-push` hook is switched on (`./run-tests.sh hook` installs it off; `git hooks on perf-push`) | ~6 s |
 
 `./run-tests.sh perf` keeps one baseline per host name in
@@ -46,6 +47,12 @@ temporary `HOME` through the `home` fixture.
   branches, every exit code, the `add` attribute inference, path
   selection, and the options parser and filters. A new branch in `dots`
   needs a line there.
+- shell mutation: 43 mutants, 43 caught, 0 survivors, 0 stale: the git
+  hooks and the dispatcher, `git hooks`, the `20-path.sh` helpers, `up`,
+  `bd`, `extract`, `swap`, `retry`, `_title_arm`, `_venv_auto`, the
+  prompt rows in `layout.sh`, and the toolkit's git cache and collector
+  touch. The first runs had 5 survivors; four tests were added and one
+  equivalent mutant dropped (the list says which). ~6 min.
 - performance (2026-10-13, 4 cores, load 0.5): an interactive start 70 ms
   median (68 to 74 over 15), a warm `prompt_build` 40 ms in this
   repository and 32 ms outside git; `perf` takes ~6 s. `dots apply` on
@@ -67,7 +74,7 @@ temporary `HOME` through the `home` fixture.
 | `tests/perf.py`, `tests/test_perf.py` | the `perf` gate; its baseline and verdict with the timing replaced (fast), one real measurement (long) | fast + long |
 | `tests/test_examples.py` | the example catalog: 51 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
-| `tests/mutants.txt`, `tests/coveragerc` | the gates | |
+| `tests/mutants.txt`, `tests/shell-mutants.txt`, `tests/coveragerc` | the gates | |
 
 Integration tests for programs not installed skip by name
 (`needs("tmux")`), so a missing program is visible in the report rather

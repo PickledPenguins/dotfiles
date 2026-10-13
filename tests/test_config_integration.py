@@ -213,8 +213,8 @@ def test_path_module_toolchain_lines_follow_the_moved_homes(linked, tmp_path):
 
 
 def test_path_helpers_are_idempotent_and_skip_missing_dirs(linked):
-    proc = bash(linked, 'path_prepend /usr; path_prepend /usr; path_append /nope/x; tr : "\\n" <<<"$PATH" | grep -c "^/usr$"; '
-                        '[[ $PATH == */nope/x* ]] || echo skipped')
+    proc = bash(linked, 'path_prepend /usr; path_prepend /usr; path_append /nope/x; path_prepend /nope/y; '
+                        'tr : "\\n" <<<"$PATH" | grep -c "^/usr$"; [[ $PATH == */nope/* ]] || echo skipped')
     assert proc.stdout == "1\nskipped\n"
 
 
@@ -326,9 +326,10 @@ def test_functions_extract_unknown_extension(linked):
 
 def test_functions_extract_goes_on_past_a_bad_argument_and_fails_at_the_end(linked):
     proc = bash(linked, "echo x > f && tar czf t.tgz f && rm f && touch f.xyz; "
-                        "extract f.xyz nope t.tgz; echo $?; cat f; extract t.tgz; echo $?")
-    assert proc.stdout == "1\nx\n0\n"
-    assert proc.stderr == "extract: don't know how to extract 'f.xyz'\nextract: 'nope' is not a file"
+                        "extract f.xyz nope t.tgz; echo $?; cat f; extract nope t.tgz; echo $?; extract t.tgz; echo $?")
+    assert proc.stdout == "1\nx\n1\n0\n"
+    assert proc.stderr == ("extract: don't know how to extract 'f.xyz'\nextract: 'nope' is not a file\n"
+                           "extract: 'nope' is not a file")
 
 
 def test_functions_hr_fills_the_terminal_width(linked):

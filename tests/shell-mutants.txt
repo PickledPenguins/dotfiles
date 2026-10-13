@@ -1,0 +1,72 @@
+# Mutation gate for the shell code: each line is
+#   FILE ||| FIND ||| WITH ||| TESTS
+# applied by run-tests.sh mutate-shell through breaks-it to a copy of the
+# checkout. TESTS is a pytest -k expression run over the long suite, or a
+# .bats file run with bats; it must FAIL for every mutant. FIND must match
+# the file exactly, indentation included: an edit to that line makes the
+# mutant stale, reported apart from one that survives. Lines starting with
+# # are comments.
+
+# git hooks: a push or commit the hook exists to refuse
+dot_local/share/git-hooks/executable_protect ||| if [[ $local_sha != *[!0]* ]]; then ||| if false; then ||| protect
+dot_local/share/git-hooks/executable_protect ||| elif ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then ||| elif false; then ||| protect
+dot_local/share/git-hooks/executable_protect ||| [[ " ${protected[*]} " == *" $branch "* ]] || continue ||| continue ||| protect
+dot_local/share/git-hooks/executable_wip-guard ||| [[ $subject =~ $pattern ]] && found+= ||| false && found+= ||| wip_guard
+dot_local/share/git-hooks/executable_wip-guard ||| range=("$local_sha" --not --remotes="$1") ||| range=("$local_sha" --not --remotes) ||| wip_guard
+dot_local/share/git-hooks/executable_no-commit-on ||| if [[ $branch == "$name" ]]; then ||| if false; then ||| no_commit_on
+dot_local/share/git-hooks/executable_test-push ||| if ! (cd "$tmp/w" && sh -c "$cmd" </dev/null); then ||| if ! (sh -c "$cmd" </dev/null); then ||| test_push
+dot_local/share/git-hooks/executable_test-push ||| sh -c "$cmd" </dev/null) ||| sh -c "$cmd") ||| test_push
+
+# git hooks: moving an old hook aside and back, switching, listing
+dot_local/bin/executable_git-hooks ||| if exists "$hook" && exists "$hook.off"; then ||| if false; then ||| refusals_and_usage
+dot_local/bin/executable_git-hooks ||| if [[ -n $target && $target != /* ]]; then ||| if false; then ||| install_moves
+dot_local/bin/executable_git-hooks ||| if [[ $target == ../* ]]; then ||| if false; then ||| install_moves
+dot_local/bin/executable_git-hooks ||| [[ ${path##*/} == "$1" || ${path##*/} == "$1.off" ]] || return 0 ||| : ||| remove_keeps
+dot_local/bin/executable_git-hooks ||| exists "$link" || exists "$link.off" && continue ||| false && continue ||| install_moves
+dot_local/bin/executable_git-hooks ||| [[ $path == "$from" ]] || continue ||| : ||| install_moves or on_needs
+dot_local/bin/executable_git-hooks ||| [[ ! -d $path && $name != *.off && $name != *.sample ]] ||| [[ ! -d $path && $name != *.sample ]] ||| install_moves
+
+# the dispatcher: order, failure, stdin, .off and HOOKS_SKIP
+dot_local/share/git-hooks/executable_dispatch ||| if ((status)) && [[ $GIT_HOOK_EVENT != post-* ]]; then ||| if false; then ||| dispatch
+dot_local/share/git-hooks/executable_dispatch ||| if ((status)) && [[ $GIT_HOOK_EVENT != post-* ]]; then ||| if ((status)); then ||| dispatch
+dot_local/share/git-hooks/executable_dispatch ||| && " ${HOOKS_SKIP-} " != *" $name "* ]] ||| ]] ||| dispatch
+dot_local/share/git-hooks/executable_dispatch ||| $name != *.off &&  ||| true &&  ||| dispatch or install
+dot_local/share/git-hooks/executable_dispatch |||     pre-push | post-rewrite) |||     pre-push) ||| dispatch
+
+# 20-path.sh helpers
+dot_config/bash/rc.d/20-path.sh ||| PATH="${PATH//:"$1":/:}" ||| PATH="${PATH//:$1:/:}" ||| path
+dot_config/bash/rc.d/20-path.sh ||| path_prepend() { [[ -d "$1" ]] || return 0; ||| path_prepend() { ||| path
+dot_config/bash/rc.d/20-path.sh ||| return 0; path_remove "$1"; PATH="$1${PATH:+:$PATH}"; ||| return 0; PATH="$1${PATH:+:$PATH}"; ||| path
+
+# 40-functions.sh
+dot_config/bash/rc.d/40-functions.sh ||| while (( n-- > 0 )); do path+="../"; done ||| while (( --n > 0 )); do path+="../"; done ||| functions
+dot_config/bash/rc.d/40-functions.sh ||| == "${1:?bd NAME}"* ]] ||| == "${1:?bd NAME}" ]] ||| functions
+dot_config/bash/rc.d/40-functions.sh ||| is not a file" >&2; rc=1; continue; } ||| is not a file" >&2; continue; } ||| functions
+dot_config/bash/rc.d/40-functions.sh ||| command mv -- "$2" "$1" || { command mv -- "$tmp/x" "$1"; ||| command mv -- "$2" "$1" || { ||| functions
+dot_config/bash/rc.d/40-functions.sh ||| (( i < n )) && sleep 1 ||| sleep 1 ||| functions
+
+# 65-title.sh: a DEBUG trap already set is kept
+dot_config/bash/rc.d/65-title.sh ||| trap "${old:+$old; }_title_command" DEBUG ||| trap "_title_command" DEBUG ||| title_shows
+
+# 75-python.sh: _venv_auto
+dot_config/bash/rc.d/75-python.sh ||| && "$PWD/" != "${VIRTUAL_ENV%/*}/"* ]] ||| && "$PWD" != "${VIRTUAL_ENV%/*}"* ]] ||| venv_auto
+dot_config/bash/rc.d/75-python.sh ||| && ( -z "${VIRTUAL_ENV-}" || "$VIRTUAL_ENV" == "${_venv_auto_env-}" ) ]] ||| ]] ||| venv_auto
+dot_config/bash/rc.d/75-python.sh ||| elif [[ -n "${VIRTUAL_ENV-}" && "$VIRTUAL_ENV" == "${_venv_auto_env-}" ||| elif [[ -n "${VIRTUAL_ENV-}" ||| venv_auto
+
+# prompt/layout.sh: the rows and their separators
+dot_config/bash/prompt/layout.sh ||| (( s || j )) && printf '| ' ||| (( j )) && printf '| ' ||| prompt_rows or git_row or top_row
+dot_config/bash/prompt/layout.sh ||| jobs %% >/dev/null 2>&1 && j=1 ||| false && j=1 ||| prompt_rows or git_row or top_row
+dot_config/bash/prompt/layout.sh ||| (( (d || t) && (c || v) )) && sep=' | ' ||| (( c || v )) && sep=' | ' ||| prompt_rows or git_row or top_row
+dot_config/bash/prompt/layout.sh ||| [[ -n $GIT_REMOTE ]] && { printf ' (' ||| false && { printf ' (' ||| prompt_rows or git_row or top_row
+dot_config/bash/prompt/layout.sh ||| [[ -n $GIT_SHA && $GIT_SHA != "$GIT_BRANCH" ]] ||| [[ -n $GIT_SHA ]] ||| prompt_rows or git_row or top_row
+dot_config/bash/prompt/layout.sh |||     _ps_seg_pwd |||     : ||| prompt_rows or git_row or top_row
+
+# the toolkit's git cache and collectors. Not listed: dropping git_info.sh's
+# [[ -d "$_GIT_CACHE_GIT_DIR" ]] check, an equivalent mutant: a deleted .git
+# reads HEAD as empty, so the refs comparison right after it invalidates too.
+dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "$_GIT_REFS" == "$_GIT_CACHE_REFS" ]] || return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
+dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "$_GIT_CACHE_GIT_DIR/index" -nt "$_GIT_CACHE_STAMP" ]] && return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
+dot_config/bash/prompt/toolkit/lib/git_info.sh ||| cache_stale git_info "$_GIT_CACHE_TTL" && return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
+dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "${d:-/}" -ef "$_GIT_CACHE_TOP" ]] || return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
+
+dot_config/bash/prompt/toolkit/prompt.sh ||| (( ttl > 0 )) && cache_touch "collector:$c" ||| : ||| dot_config/bash/prompt/toolkit/tests/test_v012_changes.bats

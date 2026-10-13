@@ -264,21 +264,22 @@ here is scheduled; an item is cited by its label. Back to the
   `cd` or a variable would leak), and the perf gate catches it growing.
   A tmux whose server cannot be reached now leaves an extra space in the
   env row, where `_ps_seg_tmux` prints nothing.
-- **F.3.d  Mutation of the shell code.**  `./run-tests.sh mutate` covers
-  `dots` only. The bash modules carry branches the long suite asserts
-  (`_venv_auto`, `_title_arm`, the `20-path.sh` helpers, `bd`, `swap`,
-  `extract`) and so does the toolkit's git cache (`lib/git_info.sh`,
-  mutated by hand on 2026-10-08: 9 mutants, all caught after three tests
-  were added), but nothing re-runs those mutants. From the 2026-10-08
-  ctesting audit. Fix: a second list, `FILE ||| find ||| with` per line,
-  driven through `breaks-it` by `mutate`, whose test command is the long
-  subset that loads the file, or `bats` for a toolkit file. Future work
-  because it is a new gate, and each mutant costs a long-suite subset
-  (seconds, not the fast suite's milliseconds). The 2026-10-10 ctesting
-  audit adds `git-hooks` (`ensure_dispatch`, `tidy`, `switch`, `on_now`),
-  the dispatcher's pre- against post- status rule and `HOOKS_SKIP`
-  matching, and the 18 packaged hooks, whose tests are in the long
-  `test_git_hooks.py`.
+- **F.3.d  Mutation of the shell code.**  Built 2026-10-13 as
+  `./run-tests.sh mutate-shell`: `tests/shell-mutants.txt` holds
+  `FILE ||| FIND ||| WITH ||| TESTS` per line, TESTS a `-k` expression over
+  the long suite or a toolkit `.bats` file; each mutant runs through
+  `breaks-it` on a copy of the checkout under `.build/mutate-shell`, and a
+  FIND no longer in its file is reported stale and fails the gate. Each
+  TESTS must pass unmutated first, so a `-k` that selects nothing cannot
+  pass for a caught mutant. 43
+  mutants over the packaged hooks and dispatcher, `git hooks`, the
+  `20-path.sh` and `40-functions.sh` helpers, `_title_arm`, `_venv_auto`,
+  `layout.sh` and the toolkit's git cache. The first run left 4 survivors:
+  three tests added (`path_prepend` of a missing directory, `extract`
+  failing on a missing file alone, the git cache's TTL) and one equivalent
+  mutant dropped, then a fourth test (`git hooks remove` keeping the
+  dispatcher while another hook stays) for a `tidy` mutant added later.
+  About 6 min, so not part of `all`.
 - **F.3.e  A toolkit test file named for a release.**
   `prompt/toolkit/tests/test_v012_changes.bats` holds 31 tests of features
   from v0.1.2 to v0.1.4 (cache, command timer, `term_utils`, `_ps_expand`,

@@ -6,6 +6,7 @@
 #   ./run-tests.sh all        both
 #   ./run-tests.sh cov        fast with coverage of dots; fails below the floor in tests/coveragerc
 #   ./run-tests.sh mutate     every mutant in tests/mutants.txt must make the fast suite fail
+#   ./run-tests.sh mutate-shell  every mutant in tests/shell-mutants.txt must make its long tests or bats file fail
 #   ./run-tests.sh perf       shell startup and the prompt against this machine's baseline (tests/perf.py)
 #   ./run-tests.sh hook       install the packaged test-push and perf-push hooks running fast and perf, switched off
 #
@@ -62,6 +63,45 @@ case "$command" in
         echo "$((total - failed))/$total mutants caught"
         [ "$failed" -eq 0 ]
         ;;
+    mutate-shell)
+        breaks_it=$(command -v breaks-it || echo "$HOME/work/ai/skills/bin/breaks-it")
+        [ -x "$breaks_it" ] || { echo "run-tests.sh: breaks-it not found" >&2; exit 2; }
+        rm -rf .build/mutate-shell
+        mkdir .build/mutate-shell
+        tar -c --exclude=./.git --exclude=./.build . | tar -x -C .build/mutate-shell
+        cd .build/mutate-shell
+        # with_tests TESTS CMD...: run CMD followed by the test command TESTS names
+        with_tests() {
+            t=$1; shift
+            case "$t" in
+                *.bats) "$@" bats "$t" ;;
+                *) "$@" $PYTEST -m long -x -k "$t" ;;
+            esac
+        }
+        # A mutant counts as caught when its tests fail, so each TESTS must
+        # pass unmutated first: a -k selecting nothing, a missing bats or a
+        # test already failing would read as every mutant caught.
+        sed -n 's/^[^#].* ||| //p' tests/shell-mutants.txt | sort -u | while IFS= read -r tests; do
+            with_tests "$tests" command </dev/null >/dev/null 2>&1 ||
+                { echo "run-tests.sh: '$tests' fails with no mutant (exit $?)" >&2; exit 2; }
+        done
+        survived=0; stale=0; total=0
+        while IFS= read -r line; do
+            case "$line" in ''|'#'*) continue ;; esac
+            file=${line%% ||| *}; rest=${line#* ||| }
+            find=${rest%% ||| *}; rest=${rest#* ||| }
+            with=${rest%% ||| *}; tests=${rest#* ||| }
+            total=$((total + 1))
+            with_tests "$tests" "$breaks_it" "$file" --find "$find" --with "$with" -- </dev/null >/dev/null 2>&1 && rc=0 || rc=$?
+            case $rc in
+                0) echo "caught    $file: $find" ;;
+                1) echo "SURVIVED  $file: $find  ->  $with"; survived=$((survived + 1)) ;;
+                *) echo "STALE     $file: $find  (not in the file)"; stale=$((stale + 1)) ;;
+            esac
+        done < tests/shell-mutants.txt
+        echo "$((total - survived - stale))/$total mutants caught, $survived survived, $stale stale"
+        [ "$survived" -eq 0 ] && [ "$stale" -eq 0 ]
+        ;;
     perf) exec python3 tests/perf.py "$@" ;;
     hook)
         # The pre-push gates are the packaged test-push and perf-push hooks
@@ -78,7 +118,7 @@ case "$command" in
         echo "switch them on with: git hooks on test-push perf-push"
         ;;
     *)
-        echo "usage: $0 [fast|long|all|cov|mutate|perf|hook] [arguments]" >&2
+        echo "usage: $0 [fast|long|all|cov|mutate|mutate-shell|perf|hook] [arguments]" >&2
         exit 2
         ;;
 esac
