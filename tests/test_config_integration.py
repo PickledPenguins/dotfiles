@@ -172,10 +172,10 @@ def test_options_module_history_and_shopts(linked):
 
 
 def test_options_module_opinionated_options_default_off(linked):
-    proc = bash(linked, "set -o | grep -E '^(noclobber|pipefail)' | awk '{print $2}'; shopt dotglob | awk '{print $2}'")
-    assert proc.stdout == "off\noff\noff\n"
-    proc = bash(linked, "set -o | grep -E '^noclobber' | awk '{print $2}'", local="set -o noclobber\n")
-    assert proc.stdout == "on\n"
+    proc = bash(linked, "set -o | grep -E '^pipefail' | awk '{print $2}'; shopt dotglob | awk '{print $2}'")
+    assert proc.stdout == "off\noff\n"
+    proc = bash(linked, "set -o | grep -E '^noclobber' | awk '{print $2}'", local="set +o noclobber\n")
+    assert proc.stdout == "off\n"
 
 
 def test_options_module_limits_stay_inside_the_hard_limit():
@@ -383,17 +383,23 @@ def test_dirs_module_mark_asks_before_moving_a_bookmark(linked):
     assert proc.stderr == f"mark: m -> {linked}/a; replace? [y/N] " * 3
 
 
+DIRS = (REPO / "dot_config/bash/rc.d/45-dirs.sh").read_text()
+CDPATH_ON = DIRS.split("\n#CDPATH=")[1].split("\n")[0]
+NUMBERS_ON = DIRS.split("\n#for _i in 1 2 3")[1].split("\n")[0]
+
+
 def test_dirs_module_cdpath_includes_home(linked):
-    proc = bash(linked, 'echo "$CDPATH"', before="DOTFILES_CDPATH=/opt\n")
+    proc = bash(linked, 'echo "$CDPATH"', before="DOTFILES_CDPATH=/opt\n", local=f"CDPATH={CDPATH_ON}\n")
     assert proc.stdout == f":{linked}:/opt\n"
 
 
-AUTO_PUSHD = (REPO / "dot_config/bash/rc.d/45-dirs.sh").read_text().split("\n#cd() {\n")[1].split("\n#}\n")[0]
+AUTO_PUSHD = DIRS.split("\n#cd() {\n")[1].split("\n#}\n")[0]
 
 
 @pytest.mark.parametrize("local", ["", "cd() {\n" + AUTO_PUSHD.replace("    #", "    ") + "\n}\n"],
                          ids=["builtin-cd", "auto-pushd"])
 def test_dirs_module_number_goes_to_that_stack_entry(linked, local):
+    local += f"for _i in 1 2 3{NUMBERS_ON}\nunset _i\n"
     proc = bash(linked, "command mkdir -p a b; cd a; pushd ../b >/dev/null; 1; pwd", local=local)
     assert (proc.stdout, proc.stderr) == (f"{linked}/a\n", "")
 
@@ -1276,7 +1282,7 @@ def test_tmux_env_check_applies_the_file_once_and_keeps_the_status(linked, tmp_p
     env_file.write_text("export DISPLAY=:5\nunset XAUTHORITY\n")
     script = (f"XAUTHORITY=x; false; _tmux_env_check; echo $? $DISPLAY ${{XAUTHORITY-unset}}; "
               f"DISPLAY=mine; _tmux_env_check; echo $DISPLAY; "
-              f"echo 'export DISPLAY=:6' > {env_file}; _tmux_env_check; echo $DISPLAY; "
+              f"echo 'export DISPLAY=:6' >| {env_file}; _tmux_env_check; echo $DISPLAY; "
               f"_tmux_env_start; _tmux_env_start; echo \"$PS0\"")
     proc = bash(linked, script, env={"TMUX": f"{tmp_path}/s,41,3"})
     assert (proc.stdout, proc.stderr) == ("1 :5 unset\nmine\n:6\n${ _tmux_env_check; }\n", "")
