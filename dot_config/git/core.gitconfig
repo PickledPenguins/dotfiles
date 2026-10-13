@@ -17,6 +17,15 @@
     # case-insensitive search.
     pager = less -FRXi
 
+    # The global ignore file, named so that git reads this one whatever
+    # $XDG_CONFIG_HOME says. Unset, git reads $XDG_CONFIG_HOME/git/ignore,
+    # which moves with that variable while dots links ~/.config.
+    excludesFile = ~/.config/git/ignore
+
+    # Objects are packed at the highest zlib level: smaller repositories,
+    # slower commits, fetches and gc.
+    #compression = 9
+
     # git diff marks whitespace errors: trailing spaces, spaces before tabs.
     whitespace = trailing-space,space-before-tab
 
@@ -117,8 +126,18 @@
     # an explicit --no-ff. Surprising on a plain git merge.
     #ff = only
 
+    # git merge always makes a merge commit, even where it could
+    # fast-forward, so a merged branch stays visible in the graph. Instead of
+    # the line above.
+    #ff = false
+
     # Stash a dirty working tree before a merge and restore it after.
     #autoStash = true
+
+[remote "origin"]
+    # Fetching from origin also fetches every tag, not only the tags on the
+    # branches fetched.
+    #tagOpt = --tags
 
 [commit]
     # The diff being committed is shown below the message in the editor.

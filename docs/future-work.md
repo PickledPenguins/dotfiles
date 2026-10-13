@@ -344,10 +344,12 @@ handoff.
   `CLAUDE.md`, untracked on 2026-10-11, leaves the public tip with the
   next push of `main` and stays in its history.
 - **F.4.b  `~/.gitignore`.**  Removed 2026-10-13. The old
-  `~/env/.gitconfig` set `excludesfile = ~/.gitignore`; this set leaves
-  `core.excludesFile` unset, so git reads its default,
-  `$XDG_CONFIG_HOME/git/ignore` (`~/.config/git/ignore`, linked from
-  `dot_config/git/ignore`), the one global ignore file. Checked first: the
+  `~/env/.gitconfig` set `excludesfile = ~/.gitignore`; this set names
+  `~/.config/git/ignore` (linked from `dot_config/git/ignore`), the one
+  global ignore file, in `core.excludesFile`, so git reads it whatever
+  `$XDG_CONFIG_HOME` says. The settings of the old configs that this set
+  lacked are in it too: `core.compression`, `merge.ff=false` and
+  `remote.origin.tagOpt` off, the `llg` and `ds` aliases. Checked first: the
   file's only line, `**/.claude/settings.local.json`, is line 43 there;
   no loaded git config, ripgrep or fd config names `~/.gitignore`; `$HOME`
   is not a repository; `git check-ignore -v` in a new repository names
