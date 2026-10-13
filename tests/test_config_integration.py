@@ -541,23 +541,31 @@ def test_hpc_module_leaves_lmods_own_ml_function(linked):
 
 
 def test_hpc_module_with_fake_schedulers(linked, tmp_path):
-    fake = tmp_path / "fakebin"
-    fake.mkdir()
-    for name in ("qstat", "squeue"):
-        (fake / name).write_text("#!/bin/sh\necho $0 $*\n")
-        os.chmod(fake / name, 0o755)
-    proc = bash(linked, "alias qs sq | cut -d= -f2-; qs", env={"PATH": f"{fake}:/usr/bin:/bin"})
+    fake = stubs(tmp_path, qstat="echo $0 $*\n", squeue="echo $0 $*\n")
+    (tmp_path / "pbs.conf").write_text("PBS_SERVER=head\n")
+    proc = bash(linked, "alias qs sq | cut -d= -f2-; qs; type -t qtail",
+                env={"PATH": f"{fake}:/usr/bin:/bin", "PBS_CONF_FILE": str(tmp_path / "pbs.conf")})
     lines = proc.stdout.splitlines()
     assert lines[0] == "'qstat -u \"$USER\"'"
     assert lines[1].startswith("'squeue -u \"$USER\"")
     assert lines[2] == f"{fake}/qstat -u {os.environ.get('USER', '')}".rstrip()
+    assert lines[3] == "function"
+
+
+def test_hpc_module_takes_slurms_qstat_wrapper_for_no_pbs(linked, tmp_path):
+    # Slurm's Torque wrappers install a qstat: without pbs.conf it is not PBS
+    fake = stubs(tmp_path, qstat="echo $0 $*\n", squeue="echo $0 $*\n")
+    proc = bash(linked, "alias qs 2>&1; type -t qtail; alias sq >/dev/null && echo slurm",
+                env={"PATH": f"{fake}:/usr/bin:/bin", "PBS_CONF_FILE": str(tmp_path / "absent")})
+    assert proc.stdout == "bash: alias: qs: not found\nslurm\n"
 
 
 def test_hpc_module_qtail_follows_an_output_path_qstat_wrapped(linked, tmp_path):
+    (tmp_path / "pbs.conf").write_text("PBS_SERVER=head\n")
     fake = stubs(tmp_path, tail='echo "tail $*"\n', qstat="printf '%s\\n' 'Job Id: 7.server' "
                  "'    Job_Name = run' '    Output_Path = node01:/scratch/someone/a/rather/long/project/dir"
                  "ectory/name' '\tthat/wraps/run.o7' '    Priority = 0'\n")
-    proc = bash(linked, "qtail 7", env={"PATH": f"{fake}:/usr/bin:/bin"})
+    proc = bash(linked, "qtail 7", env={"PATH": f"{fake}:/usr/bin:/bin", "PBS_CONF_FILE": str(tmp_path / "pbs.conf")})
     assert (proc.stdout, proc.stderr) == (
         "tail -f /scratch/someone/a/rather/long/project/directory/namethat/wraps/run.o7\n", "")
 

@@ -2,7 +2,7 @@
 # block checks for its scheduler's commands first, so on a workstation this
 # file defines nothing.
 #
-#   PBS      qs   my queued/running jobs     qw   watch them
+#   PBS      qs   my queued/running jobs     qw   watch them  (with pbs.conf)
 #            qi   qstat -f JOBID             qd   qdel
 #   Slurm    sq   my jobs                    sw   watch them
 #            si   scontrol show job          sc   scancel
@@ -22,9 +22,14 @@ _hpc_watch="${DOTFILES_HPC_WATCH:-10}"
 
 # ── PBS Pro ───────────────────────────────────────────────────────────────
 
+# PBS Pro is here when its configuration file is, not on qstat alone:
+# Slurm's Torque wrappers install a qstat, qsub and pbsnodes of their own,
+# without the options these aliases use.
+[[ -r "${PBS_CONF_FILE:-/etc/pbs.conf}" ]] && command -v qstat >/dev/null && _hpc_pbs=1
+
 # qs my jobs, qsa every job, qw watch mine, qi JOBID full details, qd JOBID
 # delete, qn node states, qh my finished jobs too (PBS Pro's -x).
-if command -v qstat >/dev/null; then
+if [[ -n "${_hpc_pbs-}" ]]; then
     alias qs='qstat -u "$USER"'
     alias qsa='qstat -a'
     alias qw="watch -n $_hpc_watch qstat -u \"\$USER\""
@@ -39,11 +44,11 @@ fi
 # the job runs only when the job writes it in place (qsub -k oed, or a site
 # with direct write); otherwise PBS keeps the output on the execution host
 # and copies it there when the job ends.
-command -v qstat >/dev/null && qtail() { tail -f "$(qstat -f "$1" | sed -e ':a;N;$!ba;s/\n\t//g' | sed -n 's/.*Output_Path = [^:]*:\(.*\)/\1/p')"; }
+[[ -n "${_hpc_pbs-}" ]] && qtail() { tail -f "$(qstat -f "$1" | sed -e ':a;N;$!ba;s/\n\t//g' | sed -n 's/.*Output_Path = [^:]*:\(.*\)/\1/p')"; }
 
 # qint: an interactive job with X forwarding.  The resources are an example;
 # every site's queues and limits differ.
-#command -v qsub >/dev/null && alias qint='qsub -I -X -l select=1:ncpus=4:mem=8gb -l walltime=01:00:00'
+#[[ -n "${_hpc_pbs-}" ]] && alias qint='qsub -I -X -l select=1:ncpus=4:mem=8gb -l walltime=01:00:00'
 
 # ── Slurm ─────────────────────────────────────────────────────────────────
 
@@ -104,4 +109,4 @@ fi
 #[[ -d "/scratch/$USER" ]] && export TMPDIR="/scratch/$USER/tmp" && command mkdir -p "$TMPDIR"
 
 # Tidy up the helper variable.
-unset _hpc_watch
+unset _hpc_watch _hpc_pbs
