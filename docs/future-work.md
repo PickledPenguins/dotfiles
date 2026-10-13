@@ -343,11 +343,15 @@ handoff.
   only commented `example.edu` hosts. Pushing stays the owner's call;
   `CLAUDE.md`, untracked on 2026-10-11, leaves the public tip with the
   next push of `main` and stays in its history.
-- **F.4.b  `~/.gitignore`.**  The old `~/env/.gitconfig` set
-  `excludesfile = ~/.gitignore`; this set uses `~/.config/git/ignore`,
-  which already holds that file's one line
-  (`**/.claude/settings.local.json`). The set is live, so `~/.gitignore`
-  can go; not checked whether anything else reads it.
+- **F.4.b  `~/.gitignore`.**  Removed 2026-10-13. The old
+  `~/env/.gitconfig` set `excludesfile = ~/.gitignore`; this set leaves
+  `core.excludesFile` unset, so git reads its default,
+  `$XDG_CONFIG_HOME/git/ignore` (`~/.config/git/ignore`, linked from
+  `dot_config/git/ignore`), the one global ignore file. Checked first: the
+  file's only line, `**/.claude/settings.local.json`, is line 43 there;
+  no loaded git config, ripgrep or fd config names `~/.gitignore`; `$HOME`
+  is not a repository; `git check-ignore -v` in a new repository names
+  `~/.config/git/ignore`.
 - **F.4.c  `~/env/` and `~/.bash_aliases`.**  The old configuration, kept
   as a backup. `~/.bash_aliases -> env/.bash_aliases` is still in `$HOME`
   and nothing sources it. Both can go once nothing from them is missed.
