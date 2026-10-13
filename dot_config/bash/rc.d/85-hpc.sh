@@ -91,7 +91,7 @@ fi
 
 # Lmod writes `module avail` and friends to stdout instead of stderr, so
 # `module avail 2>&1 | grep` is not needed: `mla | grep gcc` works.
-#export LMOD_REDIRECT=yes
+export LMOD_REDIRECT=yes
 
 # Lmod prints without a pager.
 #export LMOD_PAGER=none

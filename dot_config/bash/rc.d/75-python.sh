@@ -75,10 +75,10 @@ _venv_auto() {
 #export PYTHON_BASIC_REPL=1
 
 # ipy: IPython, when installed.
-command -v ipython >/dev/null && alias ipy='ipython'
+#command -v ipython >/dev/null && alias ipy='ipython'
 
 # jl / jn: Jupyter Lab / Notebook in this directory, when installed.
-command -v jupyter >/dev/null && alias jl='jupyter lab' jn='jupyter notebook'
+#command -v jupyter >/dev/null && alias jl='jupyter lab' jn='jupyter notebook'
 
 # uv's own Tab completion, when uv is installed (a few ms per shell).
-command -v uv >/dev/null && eval "$(uv generate-shell-completion bash)"
+#command -v uv >/dev/null && eval "$(uv generate-shell-completion bash)"

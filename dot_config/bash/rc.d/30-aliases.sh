@@ -56,7 +56,7 @@ alias egrep='grep -E --color=auto'
 
 # grep also skips version-control and dependency directories when it
 # recurses (grep -r).
-#alias grep='grep --color=auto --exclude-dir={.git,.svn,.hg,node_modules,.venv,__pycache__}'
+alias grep='grep --color=auto --exclude-dir={.git,.svn,.hg,node_modules,.venv,__pycache__}'
 
 # diff in color and in unified format, the one patches and git use. Plain
 # `diff a b` output then looks different from what tutorials show.
@@ -100,7 +100,7 @@ alias mv='mv -i'
 #alias rm='rm -i'
 
 # chown, chmod and chgrp refuse to work recursively on / (GNU coreutils).
-#alias chown='chown --preserve-root' chmod='chmod --preserve-root' chgrp='chgrp --preserve-root'
+alias chown='chown --preserve-root' chmod='chmod --preserve-root' chgrp='chgrp --preserve-root'
 
 # mkdir makes missing parent directories and says what it made.
 alias mkdir='mkdir -pv'
@@ -113,7 +113,7 @@ alias chmox='chmod +x'
 
 # sudo followed by an alias works: `sudo ll`. The trailing space makes bash
 # expand the word after sudo as an alias too.
-#alias sudo='sudo '
+alias sudo='sudo '
 
 # ── Disk, memory, processes ───────────────────────────────────────────────
 
@@ -161,7 +161,7 @@ alias e='$EDITOR'
 alias v='vim'
 
 # vi runs vim; the system vi is often vim-tiny or nvi, without syntax colors.
-#alias vi='vim'
+alias vi='vim'
 
 # vim runs neovim.
 # Needs: nvim

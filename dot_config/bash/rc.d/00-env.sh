@@ -38,7 +38,7 @@ export LESS="-FRXi"
 
 # The mouse wheel scrolls inside less. Selecting text with the mouse then
 # needs Shift held down while less runs.
-#export LESS="$LESS --mouse --wheel-lines=3"
+export LESS="$LESS --mouse --wheel-lines=3"
 
 # less chops long lines instead of wrapping them; Left and Right scroll
 # sideways. Good for logs and wide tables, poor for prose.
@@ -228,7 +228,7 @@ export TIME_STYLE=long-iso
 
 # python writes no __pycache__ directories beside the code it runs. Imports
 # are compiled again each run: milliseconds for scripts, more for big packages.
-export PYTHONDONTWRITEBYTECODE=1
+#export PYTHONDONTWRITEBYTECODE=1
 
 # python keeps every __pycache__ under ~/.cache/python instead of beside the
 # code: source trees stay clean and imports stay fast. Instead of the line
@@ -240,4 +240,4 @@ export PYTHONDONTWRITEBYTECODE=1
 #export GPG_TTY="$(tty)"
 
 # The web browser for xdg-open, python -m webbrowser and git web--browse.
-#export BROWSER=firefox
+export BROWSER=firefox

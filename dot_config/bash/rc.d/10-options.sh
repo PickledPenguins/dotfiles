@@ -24,7 +24,7 @@ shopt -s extglob
 #shopt -s dotglob
 
 # Case-insensitive globbing: *.jpg also matches IMG.JPG.
-#shopt -s nocaseglob
+shopt -s nocaseglob
 
 # A pattern that matches nothing expands to nothing instead of staying as
 # typed. Handy in loops; risky at the prompt: `ls *.xyz` with no match
@@ -60,7 +60,7 @@ shopt -s dirspell
 
 # Tab expands a variable in a path in place: $HOME/wo<Tab> becomes
 # /home/you/work/. Without it the variable stays and a $ gets escaped.
-#shopt -s direxpand
+shopt -s direxpand
 
 # ── Jobs ──────────────────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ shopt -s huponexit
 
 # > refuses to overwrite an existing file; >| overwrites on purpose.
 # Protects against a mistyped redirect. Scripts are not affected.
-#set -o noclobber
+set -o noclobber
 
 # A pipeline fails when any command in it fails, not only the last:
 # `false | true` fails. Surprising when head or a pager closes a pipe
@@ -114,11 +114,11 @@ shopt -s lithist
 
 # A history expansion (!!, !$, !git) is put on the command line for a look
 # before it runs. Safer; costs one more Enter.
-#shopt -s histverify
+shopt -s histverify
 
 # A failed history expansion (no command matches !foo) comes back for
 # editing instead of being thrown away with the whole line.
-#shopt -s histreedit
+shopt -s histreedit
 
 # Lines kept in memory (Up, `history`) and in the history file. -1 keeps
 # everything, and the file then grows without bound. Only a bash that
@@ -135,14 +135,14 @@ HISTCONTROL=ignoreboth:erasedups
 
 # Never recorded: these short commands, so history keeps what is worth
 # recalling; Up cannot bring them back either. DOTFILES_HISTIGNORE adds more.
-HISTIGNORE="ls:ll:la:l:cd:cd -:pwd:exit:clear:clc:history:bg:fg:jobs${DOTFILES_HISTIGNORE:+:$DOTFILES_HISTIGNORE}"
+HISTIGNORE="pwd:exit:clear:clc:history:bg:fg:jobs${DOTFILES_HISTIGNORE:+:$DOTFILES_HISTIGNORE}"
 
 # `history` shows when each command ran: 2026-09-20 15:04:05.
 HISTTIMEFORMAT="%F %T  "
 
 # Keep history in ~/.local/state/bash/history rather than ~/.bash_history.
 # Move the old file there first, or history starts empty.
-#HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/bash/history"; command mkdir -p "${HISTFILE%/*}"
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/bash/history"; command mkdir -p "${HISTFILE%/*}"
 
 # Save each command to the history file as soon as it runs, not when the
 # shell exits: a crash or a closed window loses nothing, and a new shell
@@ -176,14 +176,14 @@ shopt -s no_empty_cmd_completion
 
 # New files rw-r--r--, new directories rwxr-xr-x: everyone may read them.
 # Set in every interactive shell, so it replaces a umask from ~/.profile.
-umask 022
+#umask 022
 
 # New files private to you (rw-------): the safer choice on a shared machine
 # such as a cluster login node. Sharing with a group then needs a chmod.
 #umask 077
 
 # New files readable by your group but nobody else (rw-r-----).
-#umask 027
+umask 027
 
 # No core dumps: a crashing program leaves no core file, which can be
 # gigabytes. Soft limit only, so `ulimit -Sc hard` turns them back on.
@@ -191,8 +191,8 @@ umask 022
 
 # Core dumps of any size, to debug a crash with gdb afterwards. Only as
 # far as the system's hard limit allows.
-#ulimit -Sc hard
+ulimit -Sc hard
 
 # No stack size limit, which some Fortran and deeply recursive programs
 # need. Only as far as the system's hard limit allows.
-#ulimit -Ss hard
+ulimit -Ss hard
