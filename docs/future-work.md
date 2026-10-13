@@ -354,9 +354,10 @@ handoff.
   no loaded git config, ripgrep or fd config names `~/.gitignore`; `$HOME`
   is not a repository; `git check-ignore -v` in a new repository names
   `~/.config/git/ignore`.
-- **F.4.c  `~/env/` and `~/.bash_aliases`.**  The old configuration, kept
-  as a backup. `~/.bash_aliases -> env/.bash_aliases` is still in `$HOME`
-  and nothing sources it. Surveyed 2026-10-13; what is worth keeping is
+- **F.4.c  `~/env/` and `~/.bash_aliases`.**  Closed 2026-10-13: both
+  removed from `$HOME`, archived first in `~/env-pre-removal.tgz`. They
+  held the old configuration, and nothing sourced
+  `~/.bash_aliases -> env/.bash_aliases`. What is worth keeping is
   now in linuxbin (`d78c13f` on its `claude` branch): `restic.sh`'s
   `backup` as `bin/restic-backup`, and `colors.sh`'s palette display and
   RGB conversion as `bin/palette`. The rest is dropped, each for a
@@ -371,7 +372,7 @@ handoff.
   `installDotfiles.sh`, `testcache.sh` and `test.sh` are unfinished and do
   not run; `lib/cache.sh` and `dots` do their jobs. `env/dotfiles/` holds
   older copies of the same files and has no commits, and `.viminfo` is
-  old editor history. Removing `~/env` and the link is the owner's call.
+  old editor history.
 - **F.4.d  ssh hosts that relied on agent-offered keys.**  Checked
   2026-10-13 and kept on. `IdentitiesOnly yes` in `~/.ssh/config` offers
   only keys named by `IdentityFile`, or the default key files when none
