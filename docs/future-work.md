@@ -356,7 +356,22 @@ handoff.
   `~/.config/git/ignore`.
 - **F.4.c  `~/env/` and `~/.bash_aliases`.**  The old configuration, kept
   as a backup. `~/.bash_aliases -> env/.bash_aliases` is still in `$HOME`
-  and nothing sources it. Both can go once nothing from them is missed.
+  and nothing sources it. Surveyed 2026-10-13; what is worth keeping is
+  now in linuxbin (`d78c13f` on its `claude` branch): `restic.sh`'s
+  `backup` as `bin/restic-backup`, and `colors.sh`'s palette display and
+  RGB conversion as `bin/palette`. The rest is dropped, each for a
+  reason. `pvar` as a script sees only exported variables, which `envg`
+  and `printenv` cover, and `declare -p` covers the rest. `.bash_profile`'s
+  `TIME_AT_LOGIN` and its exported `IsInteractiveShell`, `IsLoginShell`
+  and `IsTmuxSession` have no callers and are one-line tests. The `sp`
+  and `up` aliases point at `~/.bash_profile` and the old `update_ps1`.
+  `ps.sh` is that prompt, which the toolkit replaced. `.bashrc`,
+  `.bash_logout`, `.tmux.conf`, `.vimrc` and the other aliases are covered
+  here, and `vb` edits `~/.bashrc.local` on purpose. `__init_env__.sh`,
+  `installDotfiles.sh`, `testcache.sh` and `test.sh` are unfinished and do
+  not run; `lib/cache.sh` and `dots` do their jobs. `env/dotfiles/` holds
+  older copies of the same files and has no commits, and `.viminfo` is
+  old editor history. Removing `~/env` and the link is the owner's call.
 - **F.4.d  ssh hosts that relied on agent-offered keys.**  Checked
   2026-10-13 and kept on. `IdentitiesOnly yes` in `~/.ssh/config` offers
   only keys named by `IdentityFile`, or the default key files when none
