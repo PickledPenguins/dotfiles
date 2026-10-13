@@ -27,10 +27,17 @@ set expandtab
 set smarttab
 set shiftround
 
-" A new line keeps the previous line's indent, and adds a level after {
-" or a keyword in languages without an indent plugin.
+" A new line keeps the previous line's indent.
 set autoindent
-set smartindent
+
+" In filetypes without an indent plugin (conf, tmux, text, markdown, ini),
+" a new line also gets a level after a line ending in { or starting with a
+" 'cinwords' keyword (if, for, while, do, else, switch, case), and } takes
+" one away. Off because it costs more than it gives there: a line starting
+" with # goes to column 0, so comments lose their indent, and in prose a
+" line starting with "for" or "if" pushes the next one in. Filetypes with
+" an indent plugin ignore it.
+"set smartindent
 
 " A new line copies the previous line's exact mix of tabs and spaces.
 "set copyindent preserveindent

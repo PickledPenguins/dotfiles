@@ -1182,6 +1182,15 @@ def test_vim_strips_trailing_whitespace_on_write_except_in_a_binary_file(linked)
 
 
 @needs("vim")
+@needs("vim")
+@pytest.mark.parametrize("name, text, keys, expected", [
+    ("a.conf", "    x\n", r'exe "normal! o#y\<Esc>"', "    x\n    #y\n"),
+    ("a.txt", "for the record\n", r'exe "normal! oy\<Esc>"', "for the record\ny\n"),
+])
+def test_vim_new_lines_keep_the_indent_without_smartindent(linked, name, text, keys, expected):
+    assert vim_edit(linked, name, text, keys) == expected
+
+
 def test_vim_python_indents_two_and_tabs_show_their_width(linked):
     (linked / "a.py").write_text("x = 1\n")
     out = vim(linked, f"edit {linked}/a.py", "set shiftwidth?", "set tabstop?", "set softtabstop?",

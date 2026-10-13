@@ -165,13 +165,13 @@ here is scheduled; an item is cited by its label. Back to the
   `Makefile*` and `GNUmakefile` tabs, which `[*]`'s spaces would break.
 - **F.2.v  `gdefault` is on.**  Built 2026-10-12: `#set gdefault`, and
   `<leader>rw` and `<leader>ri` type the `/g` themselves.
-- **F.2.y  `smartindent` sends `#` lines to column 0.**
-  `dot_vim/rc/30-indent.vim:32`. Checked: in `conf` buffers (ssh config,
-  tmux.conf) `o#` lands at column 0; python, sh and yaml are unaffected,
-  their indent plugins override it. From the 2026-10-08 settings
-  creview. Future work because there are two shapes: drop `smartindent`
-  (`autoindent` and filetype indent cover the rest), or keep it with
-  `inoremap # X<C-h>#`.
+- **F.2.y  `smartindent` sent `#` lines to column 0.**  Built 2026-10-12.
+  In filetypes without an indent plugin (conf, tmux, text, markdown, ini)
+  `o#` landed at column 0, and in prose a line starting with "for" or
+  "if" indented the next one. `smartindent` is now an off setting in
+  `30-indent.vim` whose description says what it adds and costs;
+  `autoindent` and filetype indent cover the rest. `inoremap # X<C-h>#`
+  was not taken: it fixes `#` only and maps `#` in every buffer.
 - **F.2.z  `j`/`k` as `gj`/`gk` make counts move screen lines.**
   `dot_vim/rc/50-keys.vim:58`. With `wrap` on, `5j` moves five screen
   lines, not five buffer lines, against the off `relativenumber`
