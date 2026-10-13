@@ -287,16 +287,17 @@ here is scheduled; an item is cited by its label. Back to the
   mutant dropped, then a fourth test (`git hooks remove` keeping the
   dispatcher while another hook stays) for a `tidy` mutant added later.
   About 6 min, so not part of `all`.
-- **F.3.e  A toolkit test file named for a release.**
-  `prompt/toolkit/tests/test_v012_changes.bats` holds 31 tests of features
-  from v0.1.2 to v0.1.4 (cache, command timer, `term_utils`, `_ps_expand`,
-  collectors, `pbs_nodes`), whose subjects mostly have files already; a
-  reader looking for a feature's tests has to know which release added
-  it. From the 2026-10-08 ctesting audit. Future work because the move
-  has more than one shape: the cache and timer tests have no file to go
-  to, and moving a test that sources one library into a file whose
-  `setup` loads them all changes what it isolates. A toolkit-only commit
-  either way, with the README's test table updated.
+- **F.3.e  A toolkit test file was named for a release.**  Built
+  2026-10-13. `test_v012_changes.bats` held 31 tests of v0.1.2 to v0.1.4;
+  they now sit with their subjects, in the new `cache.bats` and
+  `cmd_timer.bats` and in `collectors.bats`, `git_info.bats`,
+  `prompt_segments.bats` and `term_utils.bats`. `cmd_timer.bats` also took
+  the trap tests from `collectors.bats`. Six went: two that checked for a
+  `DEBUG` trap right after sourcing, which no longer installs one, so they
+  passed whatever the skip variables did; two that repeated
+  `term_utils.bats`; and two merged into one. The `git_info` TTL test still
+  runs `git_info.sh` alone in a bare bash, so it still proves the library
+  loads `cache.sh` itself.
 - **F.3.f  `tests/hooks/pre-push` was a second copy of the packaged
   `test-push` hook.**  Built 2026-10-13. The repository's copy is gone;
   `./run-tests.sh hook` sets `hooks.test` to `./run-tests.sh fast` and runs

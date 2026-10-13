@@ -73,4 +73,4 @@ dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "$_GIT_CACHE_GIT_DIR/index
 dot_config/bash/prompt/toolkit/lib/git_info.sh ||| cache_stale git_info "$_GIT_CACHE_TTL" && return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
 dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "${d:-/}" -ef "$_GIT_CACHE_TOP" ]] || return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
 
-dot_config/bash/prompt/toolkit/prompt.sh ||| (( ttl > 0 )) && cache_touch "collector:$c" ||| : ||| dot_config/bash/prompt/toolkit/tests/test_v012_changes.bats
+dot_config/bash/prompt/toolkit/prompt.sh ||| (( ttl > 0 )) && cache_touch "collector:$c" ||| : ||| dot_config/bash/prompt/toolkit/tests/collectors.bats
