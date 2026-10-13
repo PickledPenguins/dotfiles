@@ -276,10 +276,12 @@ here is scheduled; an item is cited by its label. Back to the
   `breaks-it` on a copy of the checkout under `.build/mutate-shell`, and a
   FIND no longer in its file is reported stale and fails the gate. Each
   TESTS must pass unmutated first, so a `-k` that selects nothing cannot
-  pass for a caught mutant. 43
+  pass for a caught mutant. 47
   mutants over the packaged hooks and dispatcher, `git hooks`, the
-  `20-path.sh` and `40-functions.sh` helpers, `_title_arm`, `_venv_auto`,
-  `layout.sh` and the toolkit's git cache. The first run left 4 survivors:
+  `20-path.sh` helpers and `path_clash`, the `40-functions.sh` helpers,
+  `_title_arm`, `_venv_auto`, `layout.sh` and the toolkit's git cache
+  (43 at first; the `extract` and `swapname` mutants left with those
+  tools for linuxbin, F.2.ak). The first run left 4 survivors:
   three tests added (`path_prepend` of a missing directory, `extract`
   failing on a missing file alone, the git cache's TTL) and one equivalent
   mutant dropped, then a fourth test (`git hooks remove` keeping the
