@@ -4,6 +4,7 @@
 # are fastest when that output is saved once into
 # ~/.config/bash/completion.d/foo.bash, which is read below; running the
 # program at every shell start costs its start-up time each time.
+# 80-tools.sh loads kubectl's and gh's on the first Tab instead.
 #
 # Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add

@@ -124,17 +124,14 @@ here is scheduled; an item is cited by its label. Back to the
   module's header asks of a block that changes a familiar command; its
   description names the cat flags bat lacks and the refused binary files.
   The `bat`/`batcat` alias and `BAT_STYLE` stay on.
-- **F.2.r  Completion scripts generated at every shell start.**
-  `source <(kubectl completion bash)` (`rc.d/80-tools.sh:191`), `eval
-  "$(gh completion -s bash)"` (199) and `eval "$(uv
-  generate-shell-completion bash)"` (`75-python.sh:82`) each start the
-  program in every interactive shell where it is installed; kubectl alone
-  is about 50-100 ms. `50-completion.sh:3-6` tells the reader to save
-  such output into `completion.d/` once instead. From the 2026-10-08
-  creview. Future work because there are two shapes: write the file into
-  `completion.d/` on first run when it is missing (stale after an
-  upgrade until deleted), or make the three lines off settings that point
-  at the `completion.d` route (no completion until the user acts).
+- **F.2.r  Completion scripts generated at every shell start.**  Built
+  2026-10-12. kubectl's and gh's completion ran the program in every
+  interactive shell where it was installed, kubectl alone about 50-100 ms.
+  `80-tools.sh` now installs a stub completion for `kubectl`, `k` and `gh`
+  that loads the real one on the first Tab and returns 124 so bash retries
+  with it: no start-up cost, never stale after an upgrade, unlike a cached
+  file in `completion.d/`. uv's line was already off. A test checks
+  neither program runs before the first Tab.
 - **F.2.s  Opening a `/tmp` file switched backups and viminfo off for the
   session.**  Built 2026-10-12. `setlocal nobackup nowritebackup viminfo=`
   on the global options turned all three off for every later file after

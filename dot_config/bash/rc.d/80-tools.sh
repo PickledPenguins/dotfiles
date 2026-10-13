@@ -200,17 +200,28 @@ if command -v docker >/dev/null; then
 fi
 
 # kubectl: k as a short name, completing like kubectl.
-if command -v kubectl >/dev/null; then
-    alias k='kubectl'
-    source <(kubectl completion bash) && complete -o default -F __start_kubectl k
-fi
+command -v kubectl >/dev/null && alias k='kubectl'
 
 # aws and terraform: Tab completion.
 command -v aws_completer >/dev/null && complete -C aws_completer aws
 command -v terraform >/dev/null && complete -C terraform terraform
 
-# gh (GitHub CLI): Tab completion.
-command -v gh >/dev/null && eval "$(gh completion -s bash)"
+# kubectl (and k) and gh (GitHub CLI): Tab completion, loaded on the first
+# Tab after the command rather than at every shell start. The program then
+# prints its completion script, once per shell: kubectl takes 50-100 ms,
+# and the script is never stale after an upgrade. Returning 124 makes bash
+# retry the Tab with the completion just loaded. When loading fails, the
+# Tab falls back to file names.
+_dotfiles_lazy_completion() {
+    # shellcheck disable=SC1090
+    case $1 in
+        kubectl|k) source <(kubectl completion bash) && complete -o default -F __start_kubectl k ;;
+        gh) source <(gh completion -s bash) ;;
+    esac
+    return 124
+}
+command -v kubectl >/dev/null && complete -F _dotfiles_lazy_completion kubectl k
+command -v gh >/dev/null && complete -F _dotfiles_lazy_completion gh
 
 # lg: lazygit, a terminal UI for git.
 command -v lazygit >/dev/null && alias lg='lazygit'

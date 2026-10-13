@@ -540,6 +540,22 @@ def test_tools_module_leaves_cat_alone_when_bat_is_installed(linked, tmp_path):
     assert proc.stdout == "file\n"
 
 
+def test_tools_module_loads_kubectl_and_gh_completion_on_the_first_tab(linked, tmp_path):
+    script = 'echo "$0" >> ran; echo "__start_NAME() { :; }; complete -o default -F __start_NAME NAME"\n'
+    fake = stubs(tmp_path, kubectl=script.replace("NAME", "kubectl"), gh=script.replace("NAME", "gh"))
+    proc = bash(linked, "complete -p kubectl k gh; _dotfiles_lazy_completion k; echo $?; "
+                        "_dotfiles_lazy_completion gh; complete -p kubectl k gh; cat ran",
+                env={"PATH": f"{fake}:{os.environ['PATH']}"})
+    assert proc.stdout == ("complete -F _dotfiles_lazy_completion kubectl\n"
+                           "complete -F _dotfiles_lazy_completion k\n"
+                           "complete -F _dotfiles_lazy_completion gh\n"
+                           "124\n"
+                           "complete -o default -F __start_kubectl kubectl\n"
+                           "complete -o default -F __start_kubectl k\n"
+                           "complete -o default -F __start_gh gh\n"
+                           f"{fake}/kubectl\n{fake}/gh\n")
+
+
 def test_tools_module_tat_names_the_session_after_the_directory(linked, tmp_path):
     fake = stubs(tmp_path, tmux='echo "tmux $*"\n')
     proc = bash(linked, "command mkdir my.proj && cd my.proj && tat && tat other",
