@@ -111,7 +111,7 @@ setup() {
 }
 
 # An upstream without a remote repository: origin/main is a ref here, and
-# the branch tracks it.  Moving that ref is what a fetch does.
+# the branch tracks it. Moving that ref is what a fetch does.
 fake_upstream() {
     git update-ref refs/remotes/origin/main HEAD
     git config remote.origin.url "$BATS_TEST_TMPDIR/none.git"
@@ -120,7 +120,7 @@ fake_upstream() {
     git config branch.main.merge refs/heads/main
 }
 
-# The cache check fails.  A function, because bats ignores the status of
+# The cache check fails. A function, because bats ignores the status of
 # `! cmd` anywhere but on a test's last line.
 stale() { ! git_info_cache_valid; }
 

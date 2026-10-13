@@ -4,7 +4,7 @@
 # lib/git_info.sh — Cached git repository state for bash scripts
 #
 # Provides current branch, commit, remote tracking, ahead/behind counts,
-# and file-status counts in plain globals.  A cache avoids re-running git
+# and file-status counts in plain globals. A cache avoids re-running git
 # on every call; a hit starts no process at all — builtin reads and file
 # tests only.
 #
@@ -50,7 +50,7 @@
 # loose refs at all — there, only the index and the TTL catch a change.
 # The index is compared against a timestamp file this shell writes at each
 # refresh, created once per shell with mktemp in $XDG_RUNTIME_DIR (else
-# $TMPDIR or /tmp) and left there when the shell exits.  Without one the
+# $TMPDIR or /tmp) and left there when the shell exits. Without one the
 # check always fails and every prompt refreshes.
 #
 # Non-repo directories are cached by PWD alone: once confirmed as non-repo,
@@ -98,7 +98,7 @@ git_info_cache_ttl() { _GIT_CACHE_TTL="${1:-5}"; }
 
 # Set _GIT_REFS to the contents of HEAD, the branch's ref and the upstream's
 # ref, joined: a checkout changes the first, a commit the second, a fetch
-# the third.  Builtin reads only; a missing file reads as empty.
+# the third. Builtin reads only; a missing file reads as empty.
 _git_info_refs() {
     local head="" ref="" up=""
     { IFS= read -r head < "$_GIT_CACHE_GIT_DIR/HEAD"; } 2>/dev/null || true
@@ -113,7 +113,7 @@ _git_info_refs() {
 # Starts no process: builtin reads, file tests and string comparisons.
 git_info_cache_valid() {
     # Another directory: still fresh if the nearest .git above it is the
-    # cached work tree's.  -ef, so a symlinked path to the same tree counts.
+    # cached work tree's. -ef, so a symlinked path to the same tree counts.
     if [[ "$PWD" != "$_GIT_CACHE_DIR" ]]; then
         (( GIT_IN_REPO )) && [[ -n "$_GIT_CACHE_TOP" ]] || return 1
         local d="$PWD"
@@ -145,7 +145,7 @@ git_info_cache_valid() {
 
 # ── Refresh ───────────────────────────────────────────────────────────────
 
-# Collect all git state in one pass.  Call via:
+# Collect all git state in one pass. Call via:
 #   git_info_cache_valid || git_info_refresh
 git_info_refresh() {
     GIT_IN_REPO=0; GIT_BRANCH=""; GIT_REMOTE=""; GIT_SHA=""; GIT_REMOTE_SHA=""
@@ -157,7 +157,7 @@ git_info_refresh() {
     _GIT_CACHE_DIR="$PWD"
 
     # One call for the .git directory (per worktree), the common directory
-    # that holds the refs, and the top level.  Inside .git the top level
+    # that holds the refs, and the top level. Inside .git the top level
     # fails, and the call with it, after printing the other two.
     local -a dirs; mapfile -t dirs < <(git rev-parse --git-dir --git-common-dir --show-toplevel 2>/dev/null)
     [[ -n "${dirs[0]-}" ]] || return 1
@@ -179,7 +179,7 @@ git_info_refresh() {
     fi
 
     # Record the refs and the time before reading the state they describe,
-    # so a change made while this runs shows up as stale next time.  One
+    # so a change made while this runs shows up as stale next time. One
     # timestamp file per shell: a subshell gets its own.
     if [[ "$_GIT_CACHE_STAMP_PID" != "$BASHPID" ]]; then
         local tmp="${XDG_RUNTIME_DIR-}"

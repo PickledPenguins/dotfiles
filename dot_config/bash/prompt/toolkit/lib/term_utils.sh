@@ -4,7 +4,7 @@
 # lib/term_utils.sh — Terminal string utilities
 #
 # Utilities for measuring and constructing terminal strings that may contain
-# ANSI escape sequences or multi-byte Unicode characters.  All three
+# ANSI escape sequences or multi-byte Unicode characters. All three
 # functions were originally developed for the prompt builder but are fully
 # general — useful in any bash script that does terminal layout work.
 #

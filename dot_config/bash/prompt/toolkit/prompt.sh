@@ -402,12 +402,12 @@ prompt_row() {
 # Usage: prompt_layout [--box [style]] [--sides SPEC] [--closed] <row1> [row2…]
 #
 #   --box [style]   Draw a unicode box: the top, right and left edges.
-#                   Styles: rounded (default) | sharp | double | ascii.  The
+#                   Styles: rounded (default) | sharp | double | ascii. The
 #                   next word is the style only when it names one; otherwise
 #                   it is the first row.
 #   --sides SPEC    Draw only these edges: any of t (top), r (right),
 #                   b (bottom) and l (left), commas optional -- l, l,b, tl.
-#                   Turns the box on; --box still picks the style.  A rail
+#                   Turns the box on; --box still picks the style. A rail
 #                   ends in its corners (╭ ╰, ╮ ╯) whatever else is drawn.
 #   --closed        Add the bottom edge: the last row is filled out with ─
 #                   and the cursor goes on a new line below.
