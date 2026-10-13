@@ -1,19 +1,19 @@
 #!/bin/sh
 # The test suites and their gates.
 #
-#   ./run-tests.sh            fast: unit, interface, safety -- the pre-push gate (~2 s)
-#   ./run-tests.sh long       integration with the real programs + the example catalog
-#   ./run-tests.sh all        both
-#   ./run-tests.sh cov        fast with coverage of dots; fails below the floor in tests/coveragerc
-#   ./run-tests.sh mutate     every mutant in tests/mutants.txt must make the fast suite fail
-#   ./run-tests.sh mutate-shell  every mutant in tests/shell-mutants.txt must make its long tests or bats file fail
-#   ./run-tests.sh perf       shell startup and the prompt against this machine's baseline (tests/perf.py)
-#   ./run-tests.sh hook       install the packaged test-push and perf-push hooks running fast and perf, switched off
+#   tests/run-tests.sh            fast: unit, interface, safety -- the pre-push gate (~2 s)
+#   tests/run-tests.sh long       integration with the real programs + the example catalog
+#   tests/run-tests.sh all        both
+#   tests/run-tests.sh cov        fast with coverage of dots; fails below the floor in tests/coveragerc
+#   tests/run-tests.sh mutate     every mutant in tests/mutants.txt must make the fast suite fail
+#   tests/run-tests.sh mutate-shell  every mutant in tests/shell-mutants.txt must make its long tests or bats file fail
+#   tests/run-tests.sh perf       shell startup and the prompt against this machine's baseline (tests/perf.py)
+#   tests/run-tests.sh hook       install the packaged test-push and perf-push hooks running fast and perf, switched off
 #
 # Anything after the name is passed to pytest (to tests/perf.py for perf).
 # Generated files go to .build/.
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 mkdir -p .build
 export PYTHONDONTWRITEBYTECODE=1
 PYTEST="python3 -m pytest -q -p no:cacheprovider -p no:benchmark"
@@ -26,7 +26,7 @@ command=${1:-fast}
 # hook and perf need none.
 if [ "$command" != hook ] && [ "$command" != perf ] && ! python3 -c 'import pytest' 2>/dev/null; then
     if command -v in-env >/dev/null 2>&1 && in-env python3 -c 'import pytest' 2>/dev/null; then
-        exec in-env ./run-tests.sh "$command" "$@"
+        exec in-env tests/run-tests.sh "$command" "$@"
     fi
     echo "run-tests.sh: python3 ($(command -v python3)) has no pytest: install it, or put in-env on PATH" >&2
     exit 2
@@ -112,8 +112,13 @@ case "$command" in
         for old in "$hooks/pre-push" "$hooks/pre-push.off" "$hooks/pre-push.d/pre-push" "$hooks/pre-push.d/pre-push.off"; do
             case $(readlink "$old" || :) in */tests/hooks/pre-push) rm -f "$old" ;; esac
         done
-        git config hooks.test "./run-tests.sh fast"
-        git config hooks.perf "./run-tests.sh perf"
+        # Each pushed commit is tested in a checkout of its own, and commits
+        # from before 2026-10-13 have the runner in the root. sh expands $r
+        # when the hook runs.
+        # shellcheck disable=SC2016
+        runner='r=tests/run-tests.sh; [ -e "$r" ] || r=./run-tests.sh; "$r"'
+        git config hooks.test "$runner fast"
+        git config hooks.perf "$runner perf"
         git hooks install test-push perf-push
         echo "switch them on with: git hooks on test-push perf-push"
         ;;

@@ -6,24 +6,24 @@ Back to the [README](../README.md).
 
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
-| `./run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (the packaged `test-push` hook, installed switched off by `./run-tests.sh hook`; `git hooks on test-push` switches it on) | ~2 s |
-| `./run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~130 s |
-| `./run-tests.sh all` | both | | ~130 s |
-| `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
-| `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
-| `./run-tests.sh mutate-shell` | every mutant in `tests/shell-mutants.txt` applied to a copy of the checkout under `.build/mutate-shell` with `breaks-it`, each checked by its own long-test subset or toolkit bats file; **fails if any survives, or if its line is no longer in the file (stale)**; exits 2 first if a TESTS fails with no mutant applied (a `-k` selecting nothing, bats missing), which would read as every mutant caught | on a change to a hook, a bash module, `layout.sh` or the toolkit's git cache | ~6 min |
-| `./run-tests.sh perf` | `tests/perf.py`: the median of 15 interactive bash starts and of a warm `prompt_build` at the top of the checkout, outside tmux and inside it with a stub `tmux`, in a temporary linked home; **fails more than 25% over this machine's baseline**. Needs no pytest | on a module or prompt change; before each push once the packaged `perf-push` hook is switched on (`./run-tests.sh hook` installs it off; `git hooks on perf-push`) | ~6 s |
+| `tests/run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (the packaged `test-push` hook, installed switched off by `tests/run-tests.sh hook`; `git hooks on test-push` switches it on) | ~2 s |
+| `tests/run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~130 s |
+| `tests/run-tests.sh all` | both | | ~130 s |
+| `tests/run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
+| `tests/run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
+| `tests/run-tests.sh mutate-shell` | every mutant in `tests/shell-mutants.txt` applied to a copy of the checkout under `.build/mutate-shell` with `breaks-it`, each checked by its own long-test subset or toolkit bats file; **fails if any survives, or if its line is no longer in the file (stale)**; exits 2 first if a TESTS fails with no mutant applied (a `-k` selecting nothing, bats missing), which would read as every mutant caught | on a change to a hook, a bash module, `layout.sh` or the toolkit's git cache | ~6 min |
+| `tests/run-tests.sh perf` | `tests/perf.py`: the median of 15 interactive bash starts and of a warm `prompt_build` at the top of the checkout, outside tmux and inside it with a stub `tmux`, in a temporary linked home; **fails more than 25% over this machine's baseline**. Needs no pytest | on a module or prompt change; before each push once the packaged `perf-push` hook is switched on (`tests/run-tests.sh hook` installs it off; `git hooks on perf-push`) | ~6 s |
 
-`./run-tests.sh perf` keeps one baseline per host name in
+`tests/run-tests.sh perf` keeps one baseline per host name in
 `perf-baseline.json` in the git directory (`.git/`, shared by every
 worktree, so the hook's temporary checkout finds it). The first run on a
-host records it, as does `./run-tests.sh perf --rebaseline` after a
+host records it, as does `tests/run-tests.sh perf --rebaseline` after a
 slowdown that is accepted, and a measure the host's baseline lacks is
 recorded on its own; `--runs N` and `--baseline FILE` change the
 count and the file. A failure names the measure over its limit;
 `DOTFILES_DEBUG=1 bash -i -c true` then times each module.
 
-Anything after the suite name goes to pytest (`./run-tests.sh fast -k add`).
+Anything after the suite name goes to pytest (`tests/run-tests.sh fast -k add`).
 pytest comes from `python3` on `PATH`; where that one has none (the
 system Python, as in a commit from a shell with no conda environment
 active), the runner reruns itself under `in-env` from the skills tools,
@@ -72,7 +72,7 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
 | `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags, systemd (long) | fast + long |
 | `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order, failure and stdin rules; each packaged hook refusing and passing; the template matching what install leaves; `git ctags` on top | long |
-| `tests/test_runner.py` | `run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` and `perf` need none | fast |
+| `tests/test_runner.py` | `tests/run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` and `perf` need none | fast |
 | `tests/perf.py`, `tests/test_perf.py` | the `perf` gate; its baseline and verdict with the timing replaced (fast), one real measurement (long) | fast + long |
 | `tests/test_examples.py` | the example catalog: 51 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |

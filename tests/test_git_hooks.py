@@ -9,6 +9,7 @@ import pytest
 
 from conftest import REPO
 from test_config_integration import fake_ctags, git_script
+from test_runner import RUNNER
 
 pytestmark = pytest.mark.long
 
@@ -38,14 +39,16 @@ def packaged():
 
 @pytest.mark.parametrize("before", ["", "use protect && "], ids=["alone", "beside-a-dispatcher"])
 def test_run_tests_hook_installs_test_push_and_perf_push_off_and_drops_the_old_copy(linked, before):
-    proc = hooks(linked, f"cp {REPO}/run-tests.sh . && git config hooks.protect main && "
+    proc = hooks(linked, f"mkdir -p tests && cp {REPO}/tests/run-tests.sh tests/ && "
+                         "git config hooks.protect main && "
                          "ln -s ../../tests/hooks/pre-push .git/hooks/pre-push.off && "
-                         f"{before}./run-tests.sh hook && git config hooks.test && git config hooks.perf && "
+                         f"{before}tests/run-tests.sh hook && git config hooks.test && git config hooks.perf && "
                          "git hooks on test-push perf-push && ls .git/hooks/pre-push.d && "
                          "ls .git/hooks | grep -v sample")
     assert (proc.stdout, proc.stderr) == (
         "test-push installed, off\nperf-push installed, off\n"
-        "switch them on with: git hooks on test-push perf-push\n./run-tests.sh fast\n./run-tests.sh perf\n"
+        "switch them on with: git hooks on test-push perf-push\n"
+        f"{RUNNER} fast\n{RUNNER} perf\n"
         "test-push on\nperf-push on\nperf-push\n" + ("protect\n" if before else "")
         + "test-push\npre-push\npre-push.d\n", "")
 

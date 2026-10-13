@@ -7,7 +7,7 @@
 # hooks.perf is the command, run by sh at the top of a temporary worktree
 # checked out at each commit pushed. It fails when the commit is slower
 # than the baseline it keeps. In the dotfiles repository:
-#     git config hooks.perf "./run-tests.sh perf"
+#     git config hooks.perf "tests/run-tests.sh perf"
 # It is test-push for a check too slow or too noisy for every push: install
 # it off and switch it on where timing matters. The first failure stops the
 # push. git push --no-verify skips every pre-push hook, and

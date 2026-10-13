@@ -6,7 +6,7 @@
 #
 # hooks.test is the command, run by sh at the top of the work tree, which
 # holds the merged result at that point:
-#     git config hooks.test "./run-tests.sh fast"
+#     git config hooks.test "tests/run-tests.sh fast"
 # A failure stops the merge with the result staged; fix it and commit, or
 # skip the hook with git merge --no-verify. git runs this only for a merge
 # it commits itself: a fast-forward, a merge stopped by a conflict, and

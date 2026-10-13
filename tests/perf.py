@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The startup-time gate: ./run-tests.sh perf
+"""The startup-time gate: tests/run-tests.sh perf
 
 Applies this checkout into a temporary HOME and times what a user waits
 for: an interactive bash start (`bash -i -c exit`, every new terminal and
@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
     print("\n".join(lines))
     if over:
         print(f"perf: more than {SLACK:.0%} over the baseline; DOTFILES_DEBUG=1 bash -i -c true "
-              "times each module, ./run-tests.sh perf --rebaseline accepts the new times",
+              "times each module, tests/run-tests.sh perf --rebaseline accepts the new times",
               file=sys.stderr)
     return int(over)
 

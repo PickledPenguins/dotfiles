@@ -49,7 +49,7 @@ def test_within_the_slack_passes_and_over_it_fails_naming_the_slow_one(timed, ca
     out, err = capsys.readouterr()
     assert out.splitlines()[1] == "perf: prompt 50.1 ms, baseline 40.0, limit 50.0  SLOWER"
     assert err == ("perf: more than 25% over the baseline; DOTFILES_DEBUG=1 bash -i -c true times each "
-                   "module, ./run-tests.sh perf --rebaseline accepts the new times\n")
+                   "module, tests/run-tests.sh perf --rebaseline accepts the new times\n")
 
 
 def test_a_measure_the_baseline_lacks_is_recorded_and_the_rest_judged(timed, capsys):

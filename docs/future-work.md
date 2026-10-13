@@ -63,7 +63,7 @@ here is scheduled; an item is cited by its label. Back to the
 
 - **F.2.a  A `dots doctor`** that runs the integration checks against the
   live `$HOME` (bash loads, vim loads, tmux parses, git includes resolve).
-  Not built: `./run-tests.sh long` does it against a copy, and a broken
+  Not built: `tests/run-tests.sh long` does it against a copy, and a broken
   live shell is noticed immediately.
 - **F.2.b  zsh.**  Not planned; the author uses bash on every machine, and
   the module layout would have to be duplicated rather than shared.
@@ -239,13 +239,13 @@ here is scheduled; an item is cited by its label. Back to the
   compare a golden frame). The toolkit's bats suite covers it;
   here only "each layout builds" is asserted.
 - **F.3.c  A gate on shell startup time.**  Built 2026-10-13, opt-in.
-  `./run-tests.sh perf` (`tests/perf.py`, no pytest) times 15
+  `tests/run-tests.sh perf` (`tests/perf.py`, no pytest) times 15
   interactive starts and a warm `prompt_build` in a temporary linked home
   and fails more than 25% over this host's baseline, kept in
   `.git/perf-baseline.json` so every worktree shares it; the first run or
   `--rebaseline` records it. It is in neither `all` nor `test-push`: the
   packaged `perf-push` hook runs it on each pushed commit, installed off
-  by `./run-tests.sh hook` and switched on with `git hooks on perf-push`.
+  by `tests/run-tests.sh hook` and switched on with `git hooks on perf-push`.
   The entry's 0.3 ms for `prompt_build` was the git cache alone; the
   whole call was 40 ms, now 13.5 ms (F.3.h); the gate also times it
   inside tmux, with a stub `tmux`.
@@ -285,7 +285,7 @@ here is scheduled; an item is cited by its label. Back to the
     one `tmux display-message` a prompt inside tmux (6.5 ms), and a
     renamed session or a new window then shows up to the TTL (5 s) late.
 - **F.3.d  Mutation of the shell code.**  Built 2026-10-13 as
-  `./run-tests.sh mutate-shell`: `tests/shell-mutants.txt` holds
+  `tests/run-tests.sh mutate-shell`: `tests/shell-mutants.txt` holds
   `FILE ||| FIND ||| WITH ||| TESTS` per line, TESTS a `-k` expression over
   the long suite or a toolkit `.bats` file; each mutant runs through
   `breaks-it` on a copy of the checkout under `.build/mutate-shell`, and a
@@ -315,7 +315,7 @@ here is scheduled; an item is cited by its label. Back to the
   loads `cache.sh` itself.
 - **F.3.f  `tests/hooks/pre-push` was a second copy of the packaged
   `test-push` hook.**  Built 2026-10-13. The repository's copy is gone;
-  `./run-tests.sh hook` sets `hooks.test` to `./run-tests.sh fast` and runs
+  `tests/run-tests.sh hook` sets `hooks.test` to run the fast suite and runs
   `git hooks install test-push`, which installs it switched off, after
   removing any link to the old copy. `git hooks on test-push` switches it
   on. Every git hook stays in this repository, in the git-hooks catalog.
@@ -383,11 +383,19 @@ handoff.
   `docs/lifecycle.md#ssh` give the fixes in `~/.ssh/config.local`.
 - **F.4.e  Agent files and generated paths in the root.**  The
   workspace layout standard puts `CLAUDE.md` in `.claude/`, `HANDOFF.md`
-  and `reviews/` in `.agent/`, and the test runner under `tests/`. Here
-  they sit in the root, as this repository's `CLAUDE.md` lists them. From
-  the 2026-10-07 creview (the `.benchmarks/` half was fixed:
-  `run-tests.sh` passes `-p no:benchmark`). Future work because each move
-  changes a documented path: `.dotsignore`, the `CLAUDE.md` root list,
-  `docs/testing.md` and the pre-push hook all name `run-tests.sh` and
-  `reviews/`. `dots` stays in the root, since `dot_local/bin/dots` and the
-  README use `~/.dotfiles/dots`.
+  and `reviews/` in `.agent/`, and the test runner under `tests/`. From
+  the 2026-10-07 creview. The runner moved to `tests/run-tests.sh` on
+  2026-10-13. `hook` sets `hooks.test` and `hooks.perf` to a command that
+  falls back to `./run-tests.sh`, because the push hooks test each pushed
+  commit in its own checkout and commits from before the move have the
+  runner in the root. Open: the agent files move on disk only, after the
+  owner merges `claude` into `main` (until then `main` tracks them, and
+  the merge removes the root copies; `agent-files restore` puts them back
+  first). `CLAUDE.md`'s root list and test commands change in the same
+  step. `.dotsignore` keeps `CLAUDE.md`, `HANDOFF.md` and `reviews`: `dots`
+  never links a hidden directory, but a stray root `CLAUDE.md` would become
+  `~/CLAUDE.md`, which Claude Code loads in every session under `$HOME`.
+  `dots` stays in the root, since `dot_local/bin/dots` and the README use
+  `~/.dotfiles/dots`. A pytest run outside the runner still leaves
+  `.pytest_cache/` and `.benchmarks/` in the root; the runner turns both
+  off.

@@ -7,7 +7,7 @@ Changing the project. Back to the [README](../README.md);
 
 | Kind of change | Where | Then |
 |----------------|-------|------|
-| a setting someone may want | the module or file for its tool, in the [options format](configuration.md#the-options-format): description above, off unless it only adds a name | `./run-tests.sh long -k options` switches it on and loads it |
+| a setting someone may want | the module or file for its tool, in the [options format](configuration.md#the-options-format): description above, off unless it only adds a name | `tests/run-tests.sh long -k options` switches it on and loads it |
 | a shell behavior | one module in `dot_config/bash/rc.d/`; a new concern is a new numbered file | its row and knobs in `docs/configuration.md`; an integration assertion |
 | a new command | by [the rule below](#alias-function-or-program): an alias or function in a module, or a program in linuxbin's `bin/` | a program gets its README and tests in linuxbin, not here |
 | a per-machine difference | not in the repository: a knob (for a value) or a line in a hook file | document the knob in the module header and `docs/configuration.md` |
@@ -48,13 +48,13 @@ the names it shares with something else.
 | `tests/test_options.py` (fast) | a configuration file lacks the header that mentions `dots options`; a setting has no description above it |
 | `tests/test_options.py` (long) | a setting that is off does not load in its program once switched on |
 | `tests/test_docs.py` (fast) | a flag, exit code, knob, module, hook file, packaged git hook or top-level target is missing from its document; a packaged git hook's header is malformed or names a setting it does not read; a README example drifts from its catalog case; README over 150 lines; a `docs/` file unlinked; a dead link |
-| `run-tests.sh cov` | `dots` coverage below 100% line or branch |
-| `run-tests.sh mutate` | a mutant in `tests/mutants.txt` survives the fast suite |
-| `run-tests.sh mutate-shell` | a mutant in `tests/shell-mutants.txt` survives its long tests or bats file, or its line has changed (stale: update the line) |
+| `tests/run-tests.sh cov` | `dots` coverage below 100% line or branch |
+| `tests/run-tests.sh mutate` | a mutant in `tests/mutants.txt` survives the fast suite |
+| `tests/run-tests.sh mutate-shell` | a mutant in `tests/shell-mutants.txt` survives its long tests or bats file, or its line has changed (stale: update the line) |
 | `test_catalog_has_enough_variety` (long) | fewer than 15/12/6/8 cases per level |
 | `test_bashrc_loads_every_module_in_order` (long) | a module added, removed or renamed without updating `BASH_MODULES` |
-| `.git/hooks/pre-push.d/test-push` | the fast suite fails on a commit being pushed, run in a clean checkout of it: the packaged `test-push` hook with `hooks.test` set to `./run-tests.sh fast` (`./run-tests.sh hook` installs it switched off; `git hooks on test-push` switches it on; `git push --no-verify` or `HOOKS_SKIP=test-push` skips it) |
-| `.git/hooks/pre-push.d/perf-push` | shell startup or the prompt of a commit being pushed is more than 25% slower than this machine's baseline: the packaged `perf-push` hook with `hooks.perf` set to `./run-tests.sh perf` (`./run-tests.sh hook` installs it switched off; `git hooks on perf-push` switches it on; `HOOKS_SKIP=perf-push` skips it) |
+| `.git/hooks/pre-push.d/test-push` | the fast suite fails on a commit being pushed, run in a clean checkout of it: the packaged `test-push` hook with `hooks.test` set to `tests/run-tests.sh fast` (`tests/run-tests.sh hook` installs it switched off; `git hooks on test-push` switches it on; `git push --no-verify` or `HOOKS_SKIP=test-push` skips it) |
+| `.git/hooks/pre-push.d/perf-push` | shell startup or the prompt of a commit being pushed is more than 25% slower than this machine's baseline: the packaged `perf-push` hook with `hooks.perf` set to `tests/run-tests.sh perf` (`tests/run-tests.sh hook` installs it switched off; `git hooks on perf-push` switches it on; `HOOKS_SKIP=perf-push` skips it) |
 | `.dotsignore` | a new root file that is not a target must be listed, or `dots apply` links it into `$HOME` |
 
 ## Recipes
@@ -71,7 +71,7 @@ the comment character directly in front of its code:
 
 A setting that needs a program adds `# Needs: PROGRAM` to its description;
 the switch-on test skips it where the program is missing. Then
-`./run-tests.sh long -k options`, and `dots options nocasematch` shows it.
+`tests/run-tests.sh long -k options`, and `dots options nocasematch` shows it.
 
 **Add a bash module** `dot_config/bash/rc.d/NN-name.sh`, in the same format:
 
@@ -94,12 +94,12 @@ eval "$(direnv hook bash)"
 
 Then: `BASH_MODULES` in `tests/test_config_integration.py` gets `direnv`
 after `conda`; a test asserts `type -t _direnv_hook`; `docs/configuration.md`
-gets the module row; `./run-tests.sh all`.
+gets the module row; `tests/run-tests.sh all`.
 
 **Add a `dots` flag**: the `add_argument` in `main`, the behavior in the
 `cmd_*`, a CLI test asserting output and exit code, a line in
 `tests/mutants.txt` for the new branch, the flag's row in `docs/cli.md`,
-and `./run-tests.sh cov mutate`.
+and `tests/run-tests.sh cov mutate`.
 
 **Record a changed catalog output**: `python3 tests/test_examples.py
 --write LEVEL/NAME`, read the diff, commit it with the change that caused it.
@@ -111,7 +111,7 @@ and `./run-tests.sh cov mutate`.
 as a git subtree (squashed). A plain clone has it; nothing to initialize.
 Edit it here, in a commit that touches only that directory, so it splits
 cleanly. The toolkit's own tests run with `bats tests/` from inside it;
-`./run-tests.sh long` runs them too.
+`tests/run-tests.sh long` runs them too.
 
 ```sh
 # Send toolkit commits made here to the toolkit repository.

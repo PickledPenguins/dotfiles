@@ -16,7 +16,6 @@ character directly in front.
 
 ```
 dots                            the linker (python3, stdlib, no .py suffix)
-run-tests.sh                    test runner and gates
 
 .dotsignore                     targets dots never links (README.md, dots, tests, docs ...)
 dot_bashrc  dot_bash_profile  dot_bash_logout  dot_profile      bash entry points (loaders)
@@ -33,6 +32,7 @@ private_dot_ssh/config          ~/.ssh/config (600) and ~/.ssh/sockets/ for Cont
 dot_local/bin/dots              -> ../../dots: apply puts dots on PATH; unlink takes it off
 dot_local/share/bash-completion/completions/dots   Tab completion for dots
 tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, shell-mutants.txt, coveragerc
+tests/run-tests.sh              test runner and gates
 docs/                           this set
 reviews/                        friction logs and review reports (caddressreview works through them)
 CLAUDE.md                       instructions for the coding agent
@@ -131,7 +131,7 @@ load it with `SourceFileLoader` (`tests/conftest.py`).
 - **A setting**: its description directly above it (first sentence: what
   it is; then what it does and costs; `Needs:` for prerequisites), off
   written as the comment character directly followed by the code, a blank
-  line after. `./run-tests.sh long -k options` switches it on and loads it.
+  line after. `tests/run-tests.sh long -k options` switches it on and loads it.
 - **A new dotfile**: create it under its attribute name with the standard
   header lines (they mention `dots options`); give its program a loader in
   `LOADERS` in `tests/test_options.py`; add an integration test that makes

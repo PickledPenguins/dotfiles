@@ -279,7 +279,7 @@ settings and the settings it needs; `git hooks show NAME` prints it.
 ```sh
 git hooks available          # each packaged hook: state here, name, summary
 git hooks install            # all of them, switched off (or install NAME...)
-git config hooks.test "./run-tests.sh fast"
+git config hooks.test "tests/run-tests.sh fast"
 git hooks on test-push       # refused until a hook's required setting is made
 git hooks                    # this repository's hooks: state, event, name, file
 git hooks off                # everything that is on
@@ -334,6 +334,6 @@ In the source root. One glob per line, `#` comments, matched with
 `fnmatch` against the target-relative path and every leading directory of
 it: `README.md` matches only at the top; `tests` skips everything under
 `tests/`; `*.local` matches at any depth because `*` crosses `/`. The
-shipped file lists `README.md CLAUDE.md HANDOFF.md LICENSE dots
-run-tests.sh tests docs reviews __pycache__`. To not link a file you do
+shipped file lists `README.md CLAUDE.md HANDOFF.md LICENSE dots tests
+docs reviews __pycache__`. To not link a file you do
 not want on any machine, add its target path here.

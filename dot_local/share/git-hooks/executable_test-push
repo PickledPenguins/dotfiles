@@ -6,7 +6,7 @@
 #
 # hooks.test is the command, run by sh at the top of a temporary worktree
 # checked out at each commit pushed:
-#     git config hooks.test "./run-tests.sh fast"
+#     git config hooks.test "tests/run-tests.sh fast"
 # Neither uncommitted edits nor untracked files decide the result, and the
 # tests are the ones the pushed commit has. The first failure stops the
 # push; git push --no-verify skips every pre-push hook, and

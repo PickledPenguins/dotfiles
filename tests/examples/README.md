@@ -24,7 +24,7 @@ Levels:
 Run them:
 
 ```sh
-./run-tests.sh long                         # all cases through pytest
+tests/run-tests.sh long                         # all cases through pytest
 python3 tests/test_examples.py simple/04-dry-run   # print one case's output
 python3 tests/test_examples.py --write NAME # re-record expected.txt after an intended change
 ```
