@@ -227,9 +227,8 @@ here is scheduled; an item is cited by its label. Back to the
   `path_prepend`/`path_append` typed at the prompt print them. Bugs fixed
   on the way, in the linuxbin commit: `targz .` wrote `..tar.gz`;
   `genpass` and `bigfiles` returned 141 under `pipefail`; `psg` printed
-  its header with no match; `port` printed a header with no match. Still
-  open: linuxbin's older scripts at its root could move into `bin/` too,
-  and linuxbin has no `README.md` index of its tools.
+  its header with no match; `port` printed a header with no match. What
+  is still open there is in linuxbin's `docs/future-work.md` (F.1.a-c).
 
 ## F.3 tests
 
