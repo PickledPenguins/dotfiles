@@ -222,3 +222,39 @@ setup() {
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
+
+@test "pwd and tmux sanitize their text with no tr or other program on PATH" {
+    dir="$BATS_TEST_TMPDIR/a$(printf '\x07')b$(printf '\033[31m')c─d"
+    mkdir -p "$dir" 2>/dev/null || skip "filesystem rejected control bytes in a filename"
+    printf '#!/bin/sh\nprintf "s\\033[1m\\007x:1.0"\n' > "$BATS_TEST_TMPDIR/tmux"
+    chmod +x "$BATS_TEST_TMPDIR/tmux"
+    cd "$dir"
+    run bash -c '
+        source "$1/prompt.sh"
+        stub=$2/tmux
+        tmux() { "$stub" "$@"; }   # the only program: PATH has nothing
+        PATH=/nonexistent TMUX=/tmp/t,1,0
+        printf "%s|%s" "$(_ps_seg_pwd)" "$(_ps_seg_tmux)"
+    ' _ "$DOTFILES_ROOT" "$BATS_TEST_TMPDIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"/abc─d|⧉ sx:1.0" ]]
+}
+
+@test "tmux segment prints nothing outside tmux or when the server does not answer" {
+    unset TMUX
+    [ -z "$(_ps_seg_tmux)" ]
+    tmux() { return 1; }
+    TMUX=/tmp/t,1,0
+    [ -z "$(_ps_seg_tmux)" ]
+    ! _ps_tmux_into v
+    [ -z "${v-}" ]
+}
+
+@test "venv segment shows the last path component, a trailing slash or not" {
+    VIRTUAL_ENV=/x/y/env
+    [ "$(_ps_seg_venv)" = "(env)" ]
+    VIRTUAL_ENV=/x/y/env/
+    [ "$(_ps_seg_venv)" = "(env)" ]
+    unset VIRTUAL_ENV
+    [ -z "$(_ps_seg_venv)" ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.12
+# Toolkit version: 0.1.13
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1
@@ -70,6 +70,17 @@ _ps_escape_into() {
     v=${v//\$/"$dollar"}
     v=${v//\`/"$tick"}
     printf -v "$1" '%s' "$v"
+}
+
+# _ps_sanitize_into VAR: remove ANSI escapes and control bytes from VAR in
+# place, for text someone else names: a directory, a tmux session. Under
+# LC_ALL=C the byte ranges cannot touch a UTF-8 character's bytes, all of
+# them 0x80 and above. It does what `tr -d '\000-\037\177'` did, without
+# the fork.
+_ps_sanitize_into() {
+    local LC_ALL=C
+    strip_ansi -v "$1" "${!1}"
+    printf -v "$1" '%s' "${!1//[$'\001'-$'\037'$'\177']/}"
 }
 
 # _ps_unescape_into VAR — undo _ps_escape_into, to measure escaped text.
@@ -214,7 +225,7 @@ _ps_expand_into() {
             result+="$shown"
             # Skip the strip_ansi call when the segment returned plain text.
             # Readline markers start with \001; their absence means no ANSI.
-            [[ "$val" == *$'\001'* ]] && chunk=$(strip_ansi "$val") || chunk=$val
+            [[ "$val" == *$'\001'* ]] && strip_ansi -v chunk "$val" || chunk=$val
             plain+="$chunk"
             named=1; [[ -n "$chunk" ]] && visible=1
             rest="${rest#"@${name}"}"
@@ -233,8 +244,11 @@ _ps_expand_into() {
         # Measure text flanking @fill in the stripped copy.
         # str_width gives code-point count so ─ counts as 1, not 3 bytes.
         local pre="${plain%%"$fill"*}" post="${plain##*"$fill"}"
-        local fill_len=$(( tw - $(str_width "$pre") - $(str_width "$post") ))
-        result="${result//"$fill"/$(str_repeat "${_PS_CHARS[${_PS_STYLE}_h]:-─}" "$fill_len")}"
+        local pre_w post_w bar
+        str_width -v pre_w "$pre"
+        str_width -v post_w "$post"
+        str_repeat -v bar "${_PS_CHARS[${_PS_STYLE}_h]:-─}" $(( tw - pre_w - post_w ))
+        result="${result//"$fill"/$bar}"
     fi
 
     _PS_EXPANDED=$result
@@ -579,8 +593,11 @@ prompt_build() {
         if (( ! has_fill )) && [[ -n "$fill_char" ]]; then
             local plain=$content
             _ps_unescape_into plain
-            plain=$(strip_ansi "$plain")
-            content+=$(str_repeat "$fill_char" $(( budget - $(str_width "$plain") )))
+            local plain_w pad
+            strip_ansi -v plain "$plain"
+            str_width -v plain_w "$plain"
+            str_repeat -v pad "$fill_char" $(( budget - plain_w ))
+            content+=$pad
         fi
 
         # A rail ends in its corners: the first row takes the top ones (a

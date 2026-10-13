@@ -67,3 +67,27 @@ setup() {
     [ "$status" -eq 0 ]
     [ "$output" = "red===" ]
 }
+
+@test "-v VAR assigns the result instead of printing it" {
+    strip_ansi -v a $'\033[31mred\033[0m'
+    str_width -v b 'café'
+    str_width -v c 'hello'
+    str_repeat -v d '─' 3
+    [ "$a|$b|$c|$d" = "red|4|5|───" ]
+    [ -z "$(strip_ansi -v e x; str_width -v e x; str_repeat -v e x 2)" ]
+}
+
+@test "-v VAR reaches a variable named like the functions' own locals" {
+    local s out re n pad esc
+    strip_ansi -v s $'\033[1mx\033[0m'
+    strip_ansi -v out 'y'
+    str_width -v n 'abc'
+    str_repeat -v pad '=' 2
+    [ "$s|$out|$n|$pad" = "x|y|3|==" ]
+}
+
+@test "str_repeat -v with a count of 0 empties the variable" {
+    v=stale
+    str_repeat -v v '-' 0
+    [ -z "$v" ]
+}

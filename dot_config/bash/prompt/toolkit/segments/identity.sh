@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.12
+# Toolkit version: 0.1.13
 # ════════════════════════════════════════════════════════════════════════════
 # segments/identity.sh — who and where: user, host, root marker, directory
 #
@@ -36,9 +36,8 @@ _ps_seg_pwd() {
     if [[ -n "$HOME" && "$PWD" == "$HOME" ]]; then p='~'
     elif [[ -n "$HOME" && "$PWD" == "$HOME"/* ]]; then p="~${PWD#"$HOME"}"
     fi
-    p=$(strip_ansi "$p")
-    p=$(tr -d '\000-\037\177' <<< "$p")
-    local w; w=$(str_width "$p")
+    _ps_sanitize_into p
+    local w; str_width -v w "$p"
     if (( w > 35 )); then
         local LC_ALL=C
         for (( i = w - 32; i > 0; i-- )); do

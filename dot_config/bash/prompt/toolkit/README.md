@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.12
+**Version:** 0.1.13
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -172,7 +172,7 @@ cheap function call, not a blank space.
 | `_ps_seg_git_full_state` | `(+N ~N ?N ⚑N ⚠N)`, the nonzero ones; `(✓)` when all are zero | outside a git repo |
 | `_ps_seg_git_sha` | Short SHA of HEAD | before the first commit |
 | `_ps_seg_git_remote_sha` | Short SHA of the upstream branch | no upstream configured |
-| `_ps_seg_tmux` | `⧉ session:win.pane` | not inside tmux |
+| `_ps_seg_tmux` | `⧉ session:win.pane` | not inside tmux, or the server does not answer |
 | `_ps_seg_display` | `$DISPLAY` value | unset |
 | `_ps_seg_ssh` | `⇄ ssh` | local session |
 | `_ps_seg_venv` | Active virtualenv name | not activated |
@@ -313,9 +313,9 @@ executable, and takes one optional positional argument.
 
 | Function | Arguments | Purpose |
 |---|---|---|
-| `strip_ansi` | `<string>` | Remove ANSI escapes and readline `\001..\002` markers. |
-| `str_width` | `<string>` | Visible column count, locale- and Unicode-safe. |
-| `str_repeat` | `<char> <n>` | Repeat a character `n` times, multi-byte safe. |
+| `strip_ansi` | `[-v VAR] <string>` | Remove ANSI escapes and readline `\001..\002` markers. |
+| `str_width` | `[-v VAR] <string>` | Visible column count, locale- and Unicode-safe. |
+| `str_repeat` | `[-v VAR] <char> <n>` | Repeat a character `n` times, multi-byte safe. |
 | `colors_init` | `[prompt\|raw]` | (Re)initialize `C_*`/`PS_*` color variables in the given mode. |
 | `c_fg` / `c_bg` | `<0-255>` | 256-color foreground/background escape, mode-aware. |
 | `cache_stale` | `<key> [ttl]` | Whether `<key>` has gone stale (returns 0 if stale). |
@@ -368,9 +368,7 @@ under the user's own control.
   `PS_SKIP_DEBUG_TRAP=1` and lose only that segment.
 - **Disk usage uses `df`, not real quotas.** Quota semantics vary too
   much across NFS/Lustre/GPFS to handle generically.
-- **`str_width` forks `wc` for non-ASCII input.** A pure-bash codepoint
-  counter was judged a net maintainability loss against one fork per
-  colored segment.
+
 - **Row templates have no token end-delimiter.** Avoid a segment name
   that is a literal prefix of adjacent template text.
 
@@ -383,8 +381,9 @@ under the user's own control.
 - Verify or explicitly drop BSD/macOS support — currently untested.
 - A `prompt_layout --preview` mode to render a layout once without
   installing it into `PROMPT_COMMAND`, for faster iteration.
-- Reduce the remaining per-render forks, mostly `tr` in `_ps_seg_pwd`'s
-  control-byte sanitizer and `wc` in `str_width`.
+- Cache the `@tmux` pane under a TTL: the one `tmux display-message` a
+  prompt inside tmux (about 6.5 ms) against a renamed session showing up
+  to the TTL late.
 ## Environment variables
 
 | Variable | Effect |
@@ -469,7 +468,7 @@ cache.
 | File | Purpose |
 |---|---|
 | `lib/colors.sh` | `C_*`/`PS_*` ANSI color variables; raw mode (scripts) and readline-safe `\001..\002`-wrapped prompt mode |
-| `lib/term_utils.sh` | `strip_ansi`, `str_width` (locale-safe code-point count), `str_repeat` — fork-free as of v0.1.2 except `str_width` on non-ASCII input |
+| `lib/term_utils.sh` | `strip_ansi`, `str_width` (locale-safe code-point count), `str_repeat` — fork-free, and with `-v VAR` free of a subshell too |
 | `lib/cache.sh` | Generic TTL bookkeeping (`cache_stale`/`cache_touch`/`cache_age`) — shared by `git_info.sh` and the collector TTLs (key `collector:<name>`) |
 | `lib/git_info.sh` | Cached git branch/SHA/status/ahead-behind/conflicts/stash state |
 | `lib/cmd_timer.sh` | Command-duration tracking via the `DEBUG` trap, behind `@cmd_time` — general-purpose, not prompt-specific |
@@ -491,7 +490,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**164 tests across 10 files**, all passing against v0.1.12:
+**170 tests across 10 files**, all passing against v0.1.13:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -502,9 +501,9 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 | `git_info.bats` | 28 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 27 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
-| `prompt_segments.bats` | 30 | pwd truncation/sanitizing, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df`, PBS node count; registration, `_ps_expand` token scanning, `PS_DEBUG_SEGMENTS` |
+| `prompt_segments.bats` | 33 | pwd and tmux sanitizing with no program on `PATH`, tmux silent outside tmux or with no server, venv name, pwd truncation, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df`, PBS node count; registration, `_ps_expand` token scanning, `PS_DEBUG_SEGMENTS` |
 | `security.bats` | 8 | segment text shown as typed (`$(...)`, backticks, `\w`, `@fill`, `$` for root), `promptvars` left on for `PS0`, `CDPATH` |
-| `term_utils.bats` | 13 | ANSI stripping, width (with no UTF-8 locale), repeat (multi-byte, `&`, count 0 or below), no `sed` or `awk` forked |
+| `term_utils.bats` | 16 | ANSI stripping, width (with no UTF-8 locale), repeat (multi-byte, `&`, count 0 or below), no `sed` or `awk` forked, `-v VAR` (any name; count 0 empties it) |
 
 `tests/test_helper.bash` provides `$DOTFILES_ROOT`, `load_prompt_lib`,
 `make_git_repo`, and `plain`, and sets `CMD_TIMER_SKIP_TRAP=1` so the
@@ -553,6 +552,23 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.13
+
+**Changed:** `@pwd`, `@tmux` and `@venv` fork nothing but `tmux`
+itself; a prompt at the top of a git repository takes 13.5 ms where it
+took 22, 16 where it took 28 inside tmux (with a stub `tmux`).
+`strip_ansi`, `str_width` and `str_repeat` take `-v VAR` to assign the
+result, as `printf -v` does, in place of a `$(...)` subshell; `prompt.sh`
+and the segments pass it. Control bytes in a directory or tmux session
+name are deleted in bash under `LC_ALL=C`, where `tr -d` did, and
+`@venv` takes the last path component with an expansion, not
+`basename`.
+
+**Added:** `_ps_tmux_into VAR`, the `@tmux` text into VAR; it fails
+outside tmux or when the server does not answer, so a layout can space
+the pane only when there is one. Six tests in `term_utils.bats` and
+`prompt_segments.bats`.
 
 ### v0.1.12
 

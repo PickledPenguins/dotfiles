@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.12
+# Toolkit version: 0.1.13
 # ════════════════════════════════════════════════════════════════════════════
 # lib/cmd_timer.sh — Command-duration tracking via the DEBUG trap
 #
