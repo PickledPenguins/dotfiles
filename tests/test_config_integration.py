@@ -1635,13 +1635,19 @@ def test_prompt_shows_a_failed_command_even_with_the_title_module(linked):
     assert "✗ 1" in screen
 
 
+def test_prompt_sets_no_debug_trap_and_keeps_the_space_before_the_dollar(linked):
+    screen = pty_session(linked, ["echo T[$(trap -p DEBUG)]"])
+    assert "T[]" in screen
+    assert "✓\x1b[0m $ " in screen
+
+
 def test_title_shows_the_running_command_when_switched_on(linked):
     line = next(l for l in (REPO / "dot_config/bash/rc.d/65-title.sh").read_text().splitlines()
                 if l.startswith("#PROMPT_COMMAND="))
     screen = pty_session(linked, ["sleep 0.2", "trap -p DEBUG", "false"],
-                         local=line[1:] + "\n")
+                         local="trap ': kept' DEBUG\n" + line[1:] + "\n")
     assert "\x1b]0;sleep 0.2\x07" in screen
-    assert "_cmd_timer_preexec; _title_command" in screen   # the prompt's timer trap is kept
+    assert ": kept; _title_command" in screen       # a DEBUG trap already set is kept
     assert "✗ 1" in screen                          # and the exit status still reaches the prompt
 
 

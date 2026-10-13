@@ -35,14 +35,7 @@ _user_host_seg() {
 # @exit: ✓, or ✗ and the exit status of the last command.
 prompt_segment exit             _ps_seg_exit
 
-# @cmd_time: how long the last command ran, when 2 s or more, and a space
-# after it, so a fast command leaves one space before the $.
-_cmd_time_seg() {
-    local t=$(_ps_seg_cmd_time)
-    [[ -n "$t" ]] && printf '%s ' "$t"
-}
-prompt_segment cmd_time _cmd_time_seg
-prompt_segment_needs _cmd_time_seg cmd_time
+
 
 # ── Tuning ────────────────────────────────────────────────────────────────
 
@@ -50,8 +43,7 @@ prompt_segment_needs _cmd_time_seg cmd_time
 # Lower is fresher, higher is faster in big repositories.
 #prompt_cache_ttl 5
 
-# Seconds a command must run before @cmd_time shows it (default 2).
-#prompt_cmd_time_threshold 2
+
 
 # ── Rows ──────────────────────────────────────────────────────────────────
 # Single quotes, so \$ reaches PS1 as the prompt character ($, or # for root).
@@ -120,7 +112,7 @@ prompt_segment_needs _git_seg git
 prompt_row git ' @git_seg'
 
 # cmd: the line you type on, after the last command's result.
-prompt_row cmd      ' @exit @cmd_time\$ '
+prompt_row cmd      ' @exit \$ '
 
 # The rows in order, with a rail down the left side only.
 prompt_layout --sides l top git env cmd

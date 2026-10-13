@@ -81,10 +81,7 @@ valid links, broken links elsewhere, files -- is untouched.
    (`prompt/layout.sh`) goes in right after `prompt_build` and puts a blank
    line above the prompt it built.
    Anything ahead of `prompt_build` must return the `$?` it found, since
-   the prompt shows that status. The toolkit arms its command timer in
-   `prompt_build`, and `history -a` after it starts the timer early, so
-   `@cmd_time` currently includes the time spent at the prompt
-   ([F.2.i](future-work.md)).
+   the prompt shows that status.
 
 ## vim
 

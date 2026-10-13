@@ -116,22 +116,16 @@ here is scheduled; an item is cited by its label. Back to the
   that read stdin or need a tty. About 30-40 lines of bash; it belongs in
   `linuxbin` as a standalone script rather than here as a function, since a
   function in `40-functions.sh` exists only in interactive shells.
-- **F.2.i  `@cmd_time` counts the time spent at the prompt.**  The default
-  `PROMPT_COMMAND` is `_title_prompt;prompt_build;_prompt_gap;history -a`.
-  `prompt_build` arms the toolkit's timer, and the DEBUG trap fires for
-  `_prompt_gap` while `PROMPT_COMMAND` is still running, so the start time
-  is when the prompt was drawn (`prompt/toolkit/lib/cmd_timer.sh:50`).
-  Wait 3.5 s, run `true`, and the next prompt shows `[✓] 3s`; the box
-  layout shows `@cmd_time` on every prompt. From the 2026-10-07 creview,
-  ctesting and creadme reports (the description in `layout.sh` is right
-  for the intended behavior). Not fixed yet: the fix has more than one
-  shape. Either arm from an entry the toolkit appends at the very end of
-  `PROMPT_COMMAND`, or ignore DEBUG while `PROMPT_COMMAND` runs; fixed in
-  the toolkit subtree and split upstream, with a bats test there and a pty
-  test here that idles before a fast command and expects no duration. A
-  local stopgap is to append `cmd_timer_arm` as the last `PROMPT_COMMAND`
-  entry in `90-local.sh`. What changes for a user: the shown durations get
-  shorter and true.
+- **F.2.i  `@cmd_time` counts the time spent at the prompt.**  Removed
+  from `layout.sh` on 2026-10-12 rather than fixed: the owner does not use
+  it. The bug stays in the toolkit: `prompt_build` arms the timer and the
+  DEBUG trap fires for `_prompt_gap` while `PROMPT_COMMAND` still runs
+  (`prompt/toolkit/lib/cmd_timer.sh:50`), so a duration includes the time
+  at the prompt. To bring it back, fix the timer first: record the start
+  in `PS0`, which bash 4.4+ expands after Enter and before the command, as
+  `${_z:$((_CMD_TIMER_START=EPOCHSECONDS,0)):0}` with `_z` set (an unset
+  `_z` skips the arithmetic), keeping the DEBUG trap only for older bash;
+  `15-tmux-env.sh` also appends to `PS0`. A toolkit commit, sent upstream.
 - **F.2.q  `cat` runs bat when bat is installed.**  `rc.d/80-tools.sh:76`
   aliases `cat='bat --paging=never'`, against the module's own header
   (lines 3-5: a block that would change a familiar command is off).
