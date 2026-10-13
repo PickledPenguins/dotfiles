@@ -147,18 +147,16 @@ here is scheduled; an item is cited by its label. Back to the
   `completion.d/` on first run when it is missing (stale after an
   upgrade until deleted), or make the three lines off settings that point
   at the `completion.d` route (no completion until the user acts).
-- **F.2.s  Opening a `/tmp` file switches viminfo off for the session.**
-  `dot_vim/rc/40-files.vim:46` runs `setlocal viminfo=` for `/tmp/*`,
-  `/dev/shm/*` and the secret patterns, but `viminfo` is global, so after
-  bash's `fc` or `crontab -e` opens a file under `/tmp` the session saves
-  no marks, history or registers on exit. Checked: after `setlocal
-  viminfo=` and `:enew`, `set viminfo?` prints `viminfo=`. The comment
-  says only "no viminfo for secrets and temporary files". From the
-  2026-10-08 creview. Future work because there are two shapes for the
-  temporary files: drop `viminfo=` from the `/tmp/*` and `/dev/shm/*`
-  case, or keep their marks out with `set viminfo+=r/tmp,r/dev/shm`. For
-  the secret patterns the session-wide effect is the point (no register
-  holding a secret is saved), and the comment should say so.
+- **F.2.s  Opening a `/tmp` file switched backups and viminfo off for the
+  session.**  Built 2026-10-12. `setlocal nobackup nowritebackup viminfo=`
+  on the global options turned all three off for every later file after
+  bash's `fc` or `crontab -e` opened one under `/tmp`, so a failed write
+  could truncate a file and nothing was saved to viminfo. Now
+  `backupskip` covers the secret patterns and `/dev/shm` (it also skips
+  the write copy), `viminfo+=r/tmp,r/dev/shm` keeps their marks out, swap
+  and undo stay off per buffer, and only a secret switches viminfo off for
+  the session, as the comment says. `$TMPDIR` paths are in vim's default
+  `backupskip` but not in the swap/undo autocmd.
 - **F.2.t  vim inside tmux gets no drag, wide clicks or focus events.**
   `dot_config/tmux/conf.d/00-options.conf:12` sets `default-terminal
   tmux-256color`; under that TERM vim 9.1 picks `ttymouse=xterm` (it picks

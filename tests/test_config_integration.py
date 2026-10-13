@@ -1138,6 +1138,23 @@ def test_vim_comma_ww_strips_trailing_whitespace_and_tabs_but_not_in_make(linked
 
 
 @needs("vim")
+def test_vim_tmp_and_secret_files_leave_the_next_files_options_alone(linked):
+    # linked is under /tmp; /dotfiles-nowhere/a.txt is a new file outside it
+    (linked / "t.txt").write_text("")
+    probe = "set backup? writebackup? swapfile? undofile? viminfo?"
+    out = vim(linked, f"edit {linked}/t.txt", probe, "edit /dotfiles-nowhere/a.txt", probe,
+              f"edit {linked}/k.gpg", probe, "set backupskip?")
+    # -es runs the answers together: "writebackupnoswapfile"
+    before, skip = out.split("backupskip=")
+    viminfo = "viminfo='100,<50,s10,h,r/tmp,r/dev/shm"
+    assert re.findall(r"(?:no)?(?:backup|writebackup|swapfile|undofile)|viminfo=\S*", before) == [
+        "backup", "writebackup", "noswapfile", "noundofile", viminfo,
+        "backup", "writebackup", "swapfile", "undofile", viminfo,
+        "backup", "writebackup", "noswapfile", "noundofile", "viminfo="]
+    assert skip.endswith("/tmp/*,/dev/shm/*,*.gpg,*.asc,*/.ssh/*,*/pass.*/*")
+
+
+@needs("vim")
 def test_vim_filetype_module_maps_pbs_scripts_to_sh(linked):
     (linked / "job.pbs").write_text("#!/bin/bash\n")
     assert vim(linked, f"edit {linked}/job.pbs", "set filetype?").endswith("filetype=sh")

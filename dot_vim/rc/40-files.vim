@@ -38,12 +38,24 @@ if has('persistent_undo')
   set undolevels=1000
 endif
 
-" No backup, undo or swap files and no viminfo for secrets and temporary
-" files: /tmp, /dev/shm, gpg files, ~/.ssh, pass stores.
+" No backup copy, not even while writing, for secrets and temporary files:
+" /dev/shm, gpg files, ~/.ssh, pass stores (vim already skips /tmp).
+" Every other file keeps both.
+set backupskip+=/dev/shm/*,*.gpg,*.asc,*/.ssh/*,*/pass.*/*
+
+" No marks saved in viminfo for files under /tmp and /dev/shm; history and
+" registers are still saved.
+set viminfo+=r/tmp,r/dev/shm
+
+" No undo or swap files for secrets and temporary files: /tmp, /dev/shm, gpg
+" files, ~/.ssh, pass stores. Opening a secret also switches viminfo off for
+" the rest of the session, on purpose: no register or history line that may
+" hold a secret is saved.
 augroup dotfiles_nobackup
   autocmd!
   autocmd BufNewFile,BufRead /tmp/*,/dev/shm/*,*.gpg,*.asc,*/.ssh/*,*/pass.*/*
-        \ setlocal nobackup nowritebackup noundofile noswapfile viminfo=
+        \ setlocal noundofile noswapfile
+  autocmd BufNewFile,BufRead *.gpg,*.asc,*/.ssh/*,*/pass.*/* set viminfo=
 augroup END
 
 " ── Reading ─────────────────────────────────────────────────────────────
