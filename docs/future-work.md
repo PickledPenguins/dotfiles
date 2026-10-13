@@ -103,12 +103,22 @@ here is scheduled; an item is cited by its label. Back to the
   when a key was last refreshed, in one shell's memory, so nothing outside
   that shell sees it. Promoting it to its own module, or moving it out of
   the toolkit subtree (which forks the toolkit, since `git_info.sh` sources
-  it from its own directory), was considered and rejected. Open before
-  building: whether `$PWD` is part of the key, whether a failed run is
-  replayed or rerun, pruning of the cache directory, and refusing commands
-  that read stdin or need a tty. About 30-40 lines of bash; it belongs in
-  `linuxbin` as a standalone script rather than here as a function, since a
-  function in `40-functions.sh` exists only in interactive shells.
+  it from its own directory), was considered and rejected; the prompt
+  would not call `cached` either, since a bash start alone is 1.6 ms of a
+  13.5 ms prompt. It belongs in `linuxbin` as a standalone script rather
+  than here as a function, since a function in `40-functions.sh` exists
+  only in interactive shells. Not built until a slow command repeats in
+  real work: nothing calls it today (hpcmon polls at its own interval,
+  `qtail` runs `qstat -f` once), and stale scheduler state shown as
+  current is its main risk. Decided 2026-10-13 for when it is built: the
+  key is the command line and `$PWD`, with `--global` dropping `$PWD` for
+  commands like `squeue`; a failed run is not stored, so a scheduler
+  timeout is not replayed for a whole TTL; each write replaces its entry
+  through a temporary file and a rename, entries untouched for a day are
+  deleted, and the directory is mode 700; CMD reads `/dev/null` and
+  writes to files, so one that needs a terminal fails visibly; stderr is
+  stored and replayed with stdout; the TTL defaults to 60 s. About 40-50
+  lines of bash, a README and tests.
 - **F.2.i  `@cmd_time` counts the time spent at the prompt.**  Removed
   from `layout.sh` on 2026-10-12 rather than fixed: the owner does not use
   it. The bug stays in the toolkit: `prompt_build` arms the timer and the
