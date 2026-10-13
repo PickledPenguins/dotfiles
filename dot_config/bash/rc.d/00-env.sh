@@ -51,8 +51,12 @@ export LESS="$LESS --mouse --wheel-lines=3"
 # less keeps no history file (~/.lesshst) of searches and commands.
 export LESSHISTFILE=-
 
-# journalctl and systemctl page with the same less options.
-export SYSTEMD_LESS="$LESS"
+# journalctl and systemctl page with the same less options, plus systemd's
+# own: -S chops long lines, -M shows the long prompt, -K quits on Ctrl-C.
+# systemd's default is FRSXMK, and setting SYSTEMD_LESS replaces it rather
+# than adding to it, so S, M and K are put back here. Without K journalctl
+# ignores Ctrl-C and less only uses it to interrupt a search.
+export SYSTEMD_LESS="$LESS -SMK"
 
 # man pages through bat: syntax-colored sections and options.
 # Needs: bat

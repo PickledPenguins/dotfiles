@@ -183,11 +183,11 @@ here is scheduled; an item is cited by its label. Back to the
   movement key. Fix: `nnoremap <expr> j v:count ? 'j' : 'gj'`, likewise
   `k`.
 
-- **F.2.ab  `SYSTEMD_LESS="$LESS"` drops systemd's `-S` and `-K`.**
-  `dot_config/bash/rc.d/00-env.sh:55`. journalctl then wraps long lines
-  and Ctrl-C no longer quits less. From the 2026-10-08 settings creview.
-  Future work because it changes how journalctl pages. Fix:
-  `SYSTEMD_LESS="$LESS -SK"`, with the description saying why.
+- **F.2.ab  `SYSTEMD_LESS="$LESS"` dropped systemd's `-S`, `-M` and `-K`.**
+  Built 2026-10-12. Setting the variable replaces systemd's default
+  `FRSXMK` rather than adding to it, so journalctl wrapped long lines and
+  ignored Ctrl-C. `00-env.sh` now sets `SYSTEMD_LESS="$LESS -SMK"`, with
+  the description saying why, and a test checks the value.
 - **F.2.ac  The toolkit's `prompt_build` guard misses `;prompt_build`.**
   `dot_config/bash/prompt/toolkit/prompt.sh:455` skips the prepend only
   when `PROMPT_COMMAND` starts with `prompt_build` or holds `;

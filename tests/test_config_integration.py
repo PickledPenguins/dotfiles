@@ -152,7 +152,13 @@ def test_before_sets_knobs_and_local_overrides(linked):
 
 def test_env_module_sets_editor_pager_and_xdg(linked):
     proc = bash(linked, 'echo "$EDITOR $PAGER $LESS $XDG_CONFIG_HOME $RIPGREP_CONFIG_PATH"')
-    assert proc.stdout == f"vim less -FRXi {linked}/.config {linked}/.config/ripgrep/config\n"
+    assert proc.stdout == (f"vim less -FRXi --mouse --wheel-lines=3 {linked}/.config"
+                           f" {linked}/.config/ripgrep/config\n")
+
+
+def test_env_module_keeps_systemds_own_less_options(linked):
+    proc = bash(linked, 'echo "$SYSTEMD_LESS"')
+    assert proc.stdout == "-FRXi --mouse --wheel-lines=3 -SMK\n"
 
 
 def test_env_module_editor_knob(linked):
