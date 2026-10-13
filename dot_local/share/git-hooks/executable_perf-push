@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# perf-push: run a timing check on each commit being pushed, in a clean checkout.
+# events: pre-push
+# config: hooks.perf
+# requires: hooks.perf
+#
+# hooks.perf is the command, run by sh at the top of a temporary worktree
+# checked out at each commit pushed. It fails when the commit is slower
+# than the baseline it keeps. In the dotfiles repository:
+#     git config hooks.perf "./run-tests.sh perf"
+# It is test-push for a check too slow or too noisy for every push: install
+# it off and switch it on where timing matters. The first failure stops the
+# push. git push --no-verify skips every pre-push hook, and
+# HOOKS_SKIP=perf-push git push skips this one. A deleted branch is not
+# timed. Only the tip of each branch pushed is.
+set -euo pipefail
+
+cmd=$(git config hooks.perf) || { echo "perf-push: set git config hooks.perf CMD" >&2; exit 1; }
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+tmp=$(mktemp -d)
+trap 'git worktree remove --force "$tmp/w" >/dev/null 2>&1 || :; command rm -rf "$tmp"' EXIT
+while read -r _ sha _ _; do
+    [[ $sha == *[!0]* ]] || continue
+    git worktree add -q --detach "$tmp/w" "$sha"
+    if ! (cd "$tmp/w" && sh -c "$cmd" </dev/null); then
+        echo "perf-push: slower at $sha; push stopped" >&2
+        exit 1
+    fi
+    git worktree remove --force "$tmp/w"
+done

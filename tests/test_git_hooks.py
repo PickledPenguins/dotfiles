@@ -37,14 +37,17 @@ def packaged():
 
 
 @pytest.mark.parametrize("before", ["", "use protect && "], ids=["alone", "beside-a-dispatcher"])
-def test_run_tests_hook_installs_test_push_off_and_drops_the_old_copy(linked, before):
+def test_run_tests_hook_installs_test_push_and_perf_push_off_and_drops_the_old_copy(linked, before):
     proc = hooks(linked, f"cp {REPO}/run-tests.sh . && git config hooks.protect main && "
                          "ln -s ../../tests/hooks/pre-push .git/hooks/pre-push.off && "
-                         f"{before}./run-tests.sh hook && git config hooks.test && "
-                         "git hooks on test-push && ls .git/hooks/pre-push.d && ls .git/hooks | grep -v sample")
+                         f"{before}./run-tests.sh hook && git config hooks.test && git config hooks.perf && "
+                         "git hooks on test-push perf-push && ls .git/hooks/pre-push.d && "
+                         "ls .git/hooks | grep -v sample")
     assert (proc.stdout, proc.stderr) == (
-        "test-push installed, off\nswitch it on with: git hooks on test-push\n./run-tests.sh fast\n"
-        "test-push on\n" + ("protect\n" if before else "") + "test-push\npre-push\npre-push.d\n", "")
+        "test-push installed, off\nperf-push installed, off\n"
+        "switch them on with: git hooks on test-push perf-push\n./run-tests.sh fast\n./run-tests.sh perf\n"
+        "test-push on\nperf-push on\nperf-push\n" + ("protect\n" if before else "")
+        + "test-push\npre-push\npre-push.d\n", "")
 
 
 def test_install_moves_the_existing_hook_aside_lists_switches_and_remove_puts_it_back(linked):
@@ -283,6 +286,15 @@ def test_test_push_message(linked):
     assert proc.stdout == "test-push: tests fail at SHA; push stopped\n"
 
 
+def test_perf_push_times_the_pushed_commit_and_stops_a_slower_one(linked):
+    proc = hooks(linked, with_origin("git config hooks.perf 'test ! -e slow' && use perf-push && "
+                                     "touch slow && git add slow && git commit -qm slow && git push -q 2>&1 | "
+                                     "sed 's/at [0-9a-f]*/at SHA/'; git rm -q slow && git commit -qm fixed && "
+                                     "touch slow && git push -q 2>/dev/null && echo pushed && git worktree list | wc -l"))
+    assert proc.stdout == ("perf-push: slower at SHA; push stopped\n"
+                           "error: failed to push some refs to '../origin.git'\npushed\n1\n")
+
+
 def test_protect_refuses_a_force_push_and_a_delete_of_a_protected_branch(linked):
     proc = hooks(linked, with_origin("use protect && git commit -q --allow-empty -m two && git push -q && "
                                      "git reset -q --hard HEAD~ && git commit -q --allow-empty -m other && "
@@ -354,7 +366,7 @@ def test_template_holds_what_install_leaves(linked):
                          f"git init -q --template={linked}/.config/git/template ../t && cd ../t && "
                          "tree .git/hooks >../templated && diff ../installed ../templated && grep -c . ../templated && "
                          "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")
-    assert (proc.stdout, proc.stderr) == (f"{1 + 10 * 2 + 26}\nwhitespace on\n1\n", "")
+    assert (proc.stdout, proc.stderr) == (f"{1 + 10 * 2 + 27}\nwhitespace on\n1\n", "")
 
 
 # ── git ctags ─────────────────────────────────────────────────────────────

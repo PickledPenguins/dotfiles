@@ -11,6 +11,15 @@ Back to the [README](../README.md).
 | `./run-tests.sh all` | both | | ~130 s |
 | `./run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `./run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
+| `./run-tests.sh perf` | `tests/perf.py`: the median of 15 interactive bash starts and of a warm `prompt_build` at the top of the checkout, in a temporary linked home; **fails more than 25% over this machine's baseline**. Needs no pytest | on a module or prompt change; before each push once the packaged `perf-push` hook is switched on (`./run-tests.sh hook` installs it off; `git hooks on perf-push`) | ~6 s |
+
+`./run-tests.sh perf` keeps one baseline per host name in
+`perf-baseline.json` in the git directory (`.git/`, shared by every
+worktree, so the hook's temporary checkout finds it). The first run on a
+host records it, as does `./run-tests.sh perf --rebaseline` after a
+slowdown that is accepted; `--runs N` and `--baseline FILE` change the
+count and the file. A failure names the measure over its limit;
+`DOTFILES_DEBUG=1 bash -i -c true` then times each module.
 
 Anything after the suite name goes to pytest (`./run-tests.sh fast -k add`).
 pytest comes from `python3` on `PATH`; where that one has none (the
@@ -37,8 +46,10 @@ temporary `HOME` through the `home` fixture.
   branches, every exit code, the `add` attribute inference, path
   selection, and the options parser and filters. A new branch in `dots`
   needs a line there.
-- performance: not gated. `dots apply` on this repository (76 targets)
-  is ~60 ms; no path is worth a timing baseline yet.
+- performance (2026-10-13, 4 cores, load 0.5): an interactive start 70 ms
+  median (68 to 74 over 15), a warm `prompt_build` 40 ms in this
+  repository and 32 ms outside git; `perf` takes ~6 s. `dots apply` on
+  this repository (76 targets) is ~60 ms, not gated.
 
 ## Layout
 
@@ -52,7 +63,8 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
 | `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags, systemd (long) | fast + long |
 | `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order, failure and stdin rules; each packaged hook refusing and passing; the template matching what install leaves; `git ctags` on top | long |
-| `tests/test_runner.py` | `run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` needs none | fast |
+| `tests/test_runner.py` | `run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` and `perf` need none | fast |
+| `tests/perf.py`, `tests/test_perf.py` | the `perf` gate; its baseline and verdict with the timing replaced (fast), one real measurement (long) | fast + long |
 | `tests/test_examples.py` | the example catalog: 51 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
 | `tests/mutants.txt`, `tests/coveragerc` | the gates | |

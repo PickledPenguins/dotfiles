@@ -233,18 +233,28 @@ here is scheduled; an item is cited by its label. Back to the
 - **F.3.b  Visual check of the prompt** (render `PS1` through bash and
   compare a golden frame). The toolkit's bats suite covers it;
   here only "each layout builds" is asserted.
-- **F.3.c  A gate on shell startup time.**  Every new terminal pays for
-  `~/.bashrc`, and nothing fails when a module adds 200 ms. Measured on
-  2026-10-07 in a throwaway home: `bash -i -c exit` 70-76 ms over 7 runs,
-  median 72 ms. Fix: a `perf` command in `run-tests.sh` that times 15
-  starts in a temporary linked home and fails above a baseline median
-  stored in `.build/` plus 25%, with the baseline and machine recorded in
-  `docs/testing.md`. From the 2026-10-07 ctesting audit. Future work
-  because it is a new gate with a threshold to choose, and a timing gate
-  is noisy on a shared login node. The 2026-10-08 ctesting audit asks
-  for a second median in the same gate: `prompt_build` in a git
-  repository with a warm cache, which the toolkit's v0.1.9 cache work
-  brought from about 6 ms to 0.3 ms.
+- **F.3.c  A gate on shell startup time.**  Built 2026-10-13, opt-in.
+  `./run-tests.sh perf` (`tests/perf.py`, no pytest) times 15
+  interactive starts and a warm `prompt_build` in a temporary linked home
+  and fails more than 25% over this host's baseline, kept in
+  `.git/perf-baseline.json` so every worktree shares it; the first run or
+  `--rebaseline` records it. It is in neither `all` nor `test-push`: the
+  packaged `perf-push` hook runs it on each pushed commit, installed off
+  by `./run-tests.sh hook` and switched on with `git hooks on perf-push`.
+  The entry's 0.3 ms for `prompt_build` was the git cache alone; the
+  whole call is 40 ms (F.3.h).
+- **F.3.h  `prompt_build` takes 40 ms a prompt.**  Measured 2026-10-13
+  in a temporary linked home: 40 ms at the top of this repository, 32 ms
+  in `/tmp`, steady to 0.3 ms across runs. A trace puts 12 ms in
+  `_top_seg` and 6 ms in `_env_seg` (`dot_config/bash/prompt/layout.sh`),
+  each a command substitution that runs four or five more
+  (`$(_ps_seg_shlvl)`, `$(_ps_seg_jobs)` ...), and 2 ms in `tput cols`;
+  each fork of an interactive bash costs one to three ms. Every prompt
+  pays it, after every command. Fix: segments that set a variable
+  instead of printing, called without `$( )`, in `layout.sh` and where
+  the toolkit's own segments do the same, and `$COLUMNS` for
+  `tput cols`. Not built: it changes the segment interface the toolkit
+  documents, and the perf gate now catches it growing.
 - **F.3.d  Mutation of the shell code.**  `./run-tests.sh mutate` covers
   `dots` only. The bash modules carry branches the long suite asserts
   (`_venv_auto`, `_title_arm`, the `20-path.sh` helpers, `bd`, `swap`,

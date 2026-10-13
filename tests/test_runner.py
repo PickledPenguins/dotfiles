@@ -10,13 +10,13 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def runner(tmp_path, *args, in_env=None, git=None):
-    """Run a copy of run-tests.sh whose python3 has no pytest; IN_ENV and GIT,
-    when given, are the bodies of stub in-env and git beside it."""
+def runner(tmp_path, *args, in_env=None, git=None, python3="exit 1\n"):
+    """Run a copy of run-tests.sh whose python3 has no pytest; IN_ENV, GIT and
+    PYTHON3, when given, are the bodies of stub programs beside it."""
     shutil.copy(ROOT / "run-tests.sh", tmp_path / "run-tests.sh")
     fake = tmp_path / "fakebin"
     fake.mkdir()
-    stubs = {"python3": "exit 1\n"}
+    stubs = {"python3": python3}
     if in_env is not None:
         stubs["in-env"] = in_env
     if git is not None:
@@ -45,5 +45,10 @@ def test_without_pytest_anywhere_the_runner_names_the_interpreter_and_exits_2(tm
 def test_installing_the_hook_needs_no_pytest(tmp_path):
     proc = runner(tmp_path, "hook", git='[ "$1" = rev-parse ] && echo .git/hooks && exit 0\necho "git $*"\n')
     assert (proc.returncode, proc.stdout, proc.stderr) == (
-        0, "git config hooks.test ./run-tests.sh fast\ngit hooks install test-push\n"
-           "switch it on with: git hooks on test-push\n", "")
+        0, "git config hooks.test ./run-tests.sh fast\ngit config hooks.perf ./run-tests.sh perf\n"
+           "git hooks install test-push perf-push\nswitch them on with: git hooks on test-push perf-push\n", "")
+
+
+def test_perf_needs_no_pytest_and_passes_its_arguments_on(tmp_path):
+    proc = runner(tmp_path, "perf", "--runs", "3", python3='[ "$1" = -c ] && exit 1\necho "python3 $*"\n')
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, "python3 tests/perf.py --runs 3\n", "")

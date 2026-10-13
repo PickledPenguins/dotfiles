@@ -6,9 +6,11 @@
 #   ./run-tests.sh all        both
 #   ./run-tests.sh cov        fast with coverage of dots; fails below the floor in tests/coveragerc
 #   ./run-tests.sh mutate     every mutant in tests/mutants.txt must make the fast suite fail
-#   ./run-tests.sh hook       install the packaged test-push hook running the fast suite, switched off
+#   ./run-tests.sh perf       shell startup and the prompt against this machine's baseline (tests/perf.py)
+#   ./run-tests.sh hook       install the packaged test-push and perf-push hooks running fast and perf, switched off
 #
-# Anything after the name is passed to pytest. Generated files go to .build/.
+# Anything after the name is passed to pytest (to tests/perf.py for perf).
+# Generated files go to .build/.
 set -e
 cd "$(dirname "$0")"
 mkdir -p .build
@@ -20,7 +22,8 @@ command=${1:-fast}
 
 # pytest comes from python3 on PATH; where that one lacks it, from the
 # pytesting conda environment through in-env (the skills tools) when on PATH.
-if [ "$command" != hook ] && ! python3 -c 'import pytest' 2>/dev/null; then
+# hook and perf need none.
+if [ "$command" != hook ] && [ "$command" != perf ] && ! python3 -c 'import pytest' 2>/dev/null; then
     if command -v in-env >/dev/null 2>&1 && in-env python3 -c 'import pytest' 2>/dev/null; then
         exec in-env ./run-tests.sh "$command" "$@"
     fi
@@ -59,20 +62,23 @@ case "$command" in
         echo "$((total - failed))/$total mutants caught"
         [ "$failed" -eq 0 ]
         ;;
+    perf) exec python3 tests/perf.py "$@" ;;
     hook)
-        # The pre-push gate is the packaged test-push hook (git hooks, from
-        # ~/.local/share/git-hooks) running the fast suite. A link to the
-        # repository's former copy, tests/hooks/pre-push, goes first.
+        # The pre-push gates are the packaged test-push and perf-push hooks
+        # (git hooks, from ~/.local/share/git-hooks) running the fast suite
+        # and perf. A link to the repository's former copy of test-push,
+        # tests/hooks/pre-push, goes first.
         hooks=$(git rev-parse --git-path hooks)
         for old in "$hooks/pre-push" "$hooks/pre-push.off" "$hooks/pre-push.d/pre-push" "$hooks/pre-push.d/pre-push.off"; do
             case $(readlink "$old" || :) in */tests/hooks/pre-push) rm -f "$old" ;; esac
         done
         git config hooks.test "./run-tests.sh fast"
-        git hooks install test-push
-        echo "switch it on with: git hooks on test-push"
+        git config hooks.perf "./run-tests.sh perf"
+        git hooks install test-push perf-push
+        echo "switch them on with: git hooks on test-push perf-push"
         ;;
     *)
-        echo "usage: $0 [fast|long|all|cov|mutate|hook] [pytest arguments]" >&2
+        echo "usage: $0 [fast|long|all|cov|mutate|perf|hook] [arguments]" >&2
         exit 2
         ;;
 esac
