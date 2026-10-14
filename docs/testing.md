@@ -65,7 +65,7 @@ temporary `HOME` through the `home` fixture.
 
 | File | Covers | Suite |
 |------|--------|-------|
-| `tests/conftest.py` | loads `dots` by path; `home`, `src`, `run`, `linked` (this checkout applied) fixtures; `run_subprocess` | |
+| `tests/conftest.py` | loads `dots` by path; `home`, `src`, `run`, `linked` (this checkout applied) fixtures; `run_subprocess`; umask 022 for every test, whatever the caller's | |
 | `tests/test_dots_unit.py` | every function in `dots` called directly, including a seeded 500-case round-trip property test for the naming | fast |
 | `tests/test_dots_cli.py` | every subcommand's exact output, state change and exit code; argparse behavior as a subprocess | fast |
 | `tests/test_dots_safety.py` | destructive paths (`--force`, `unlink`, `forget`), escapes from `$HOME`, names that map to `~`, modes, odd names, unreadable ignore file, backup collisions | fast |

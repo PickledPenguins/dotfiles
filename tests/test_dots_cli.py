@@ -225,6 +225,13 @@ def test_add_moves_files_and_infers_attributes(run, src, home):
     assert code == 1 and out.endswith("missing: 4  ok: 3\n")
 
 
+def test_add_infers_private_under_a_umask_closed_to_others(run, src, home):
+    # under umask 027 a new file is rw-r-----: no bits for others, so private_
+    os.umask(0o027)
+    (home / ".token").write_text("t\n")
+    assert run("add", str(home / ".token")) == (0, "add       .token  ->  private_dot_token\n", "")
+
+
 def test_add_under_a_private_directory_goes_into_that_source_directory(run, src, home):
     # ~/.ssh is private_dot_ssh/ in the source; a new dot_ssh/ beside it
     # would be a second source directory for the same target

@@ -30,6 +30,15 @@ def load_dots():
     return module
 
 
+@pytest.fixture(autouse=True)
+def umask_022():
+    """New files 644: `add` infers private_ from the mode, so the caller's umask
+    (the shipped 027 among them) would otherwise change what the tests see."""
+    old = os.umask(0o022)
+    yield
+    os.umask(old)
+
+
 @pytest.fixture(scope="session")
 def dots():
     return load_dots()
