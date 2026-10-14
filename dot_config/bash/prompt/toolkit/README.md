@@ -377,9 +377,6 @@ under the user's own control.
 - Verify or explicitly drop BSD/macOS support — currently untested.
 - A `prompt_layout --preview` mode to render a layout once without
   installing it into `PROMPT_COMMAND`, for faster iteration.
-- Cache the `@tmux` pane under a TTL: the one `tmux display-message` a
-  prompt inside tmux (about 6.5 ms) against a renamed session showing up
-  to the TTL late.
 ## Environment variables
 
 | Variable | Effect |

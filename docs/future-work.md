@@ -311,9 +311,13 @@ here is scheduled; an item is cited by its label. Back to the
     segment in the shell itself, where a stray `exit` closes the shell
     and a `cd` or a variable leaks into it. The perf gate catches that
     cost growing.
-  - B, a tmux collector with a TTL: open, the owner's call. It saves the
-    one `tmux display-message` a prompt inside tmux (6.5 ms), and a
-    renamed session or a new window then shows up to the TTL (5 s) late.
+  - B, a tmux collector with a TTL: rejected 2026-10-14. It would save
+    the one `tmux display-message` a prompt inside tmux (6.43 ms a call,
+    measured on a private server), below what a prompt's wait is noticed
+    at, and a renamed session, a renumbered window or a moved pane would
+    then show the old label for up to the TTL (5 s) as if current: a
+    wrong pane next to the input line. `$TMUX_PANE` (`%12`) would cost no
+    process and never go stale, but is an id, not `session:window.pane`.
 - **F.3.d  Mutation of the shell code.**  Built 2026-10-13 as
   `tests/run-tests.sh mutate-shell`: `tests/shell-mutants.txt` holds
   `FILE ||| FIND ||| WITH ||| TESTS` per line, TESTS a `-k` expression over
