@@ -34,8 +34,7 @@ dot_local/share/bash-completion/completions/dots   Tab completion for dots
 tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, shell-mutants.txt, coveragerc
 tests/run-tests.sh              test runner and gates
 docs/                           this set
-reviews/                        friction logs and review reports (caddressreview works through them)
-CLAUDE.md                       instructions for the coding agent
+.claude/  .agent/               the coding agent's instructions, handoff and review reports; untracked
 ```
 
 ## `dots`

@@ -415,18 +415,19 @@ handoff.
   where a key is only in the agent (a login node reached with
   `ForwardAgent`) can lose it; the setting's description and
   `docs/lifecycle.md#ssh` give the fixes in `~/.ssh/config.local`.
-- **F.4.e  Agent files and generated paths in the root.**  The
+- **F.4.e  Agent files and generated paths in the root.**  Closed
+  2026-10-14. The
   workspace layout standard puts `CLAUDE.md` in `.claude/`, `HANDOFF.md`
   and `reviews/` in `.agent/`, and the test runner under `tests/`. From
   the 2026-10-07 creview. The runner moved to `tests/run-tests.sh` on
   2026-10-13. `hook` sets `hooks.test` and `hooks.perf` to a command that
   falls back to `./run-tests.sh`, because the push hooks test each pushed
   commit in its own checkout and commits from before the move have the
-  runner in the root. Open: the agent files move on disk only, after the
-  owner merges `claude` into `main` (until then `main` tracks them, and
-  the merge removes the root copies; `agent-files restore` puts them back
-  first). `CLAUDE.md`'s root list and test commands change in the same
-  step. `.dotsignore` keeps `CLAUDE.md`, `HANDOFF.md` and `reviews`: `dots`
+  runner in the root. The agent files moved on 2026-10-14, on disk only
+  since no branch tracks them: `CLAUDE.md` to `.claude/`, `HANDOFF.md`
+  and `reviews/` to `.agent/`, with `CLAUDE.md`'s root list and test
+  commands brought up to date. The README's link to `CLAUDE.md`, dead on
+  GitHub since the file is untracked, went. `.dotsignore` keeps `CLAUDE.md`, `HANDOFF.md` and `reviews`: `dots`
   never links a hidden directory, but a stray root `CLAUDE.md` would become
   `~/CLAUDE.md`, which Claude Code loads in every session under `$HOME`.
   `dots` stays in the root, since `dot_local/bin/dots` and the README use

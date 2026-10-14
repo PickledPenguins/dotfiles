@@ -130,6 +130,5 @@ DOTFILES_DEBUG=1 bash -i -c true               # each module and its load time
 - [docs/contributing.md](docs/contributing.md) -- where a change goes, what enforces what, recipes
 - [docs/future-work.md](docs/future-work.md) -- known gaps and what was deliberately not built
 - [tests/examples/README.md](tests/examples/README.md) -- the example catalog: 51 runnable cases
-- [CLAUDE.md](CLAUDE.md) -- instructions for the coding agent
 
 No changelog: the git log is the record.
