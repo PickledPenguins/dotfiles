@@ -58,13 +58,10 @@
 
     # git init and git clone copy this template: every packaged hook
     # installed, switched off, as git hooks install would leave it. Switch
-    # one on with git hooks on NAME. The copied hooks point into this
-    # checkout by absolute path: after moving it, run dots apply, then in
-    # each repository made from the template
-    # find .git/hooks -xtype l -delete && git init
-    # (a hook switched on there comes back off). git hooks install does
-    # not repair them.
-    #templateDir = ~/.config/git/template
+    # one on with git hooks on NAME. Write it with git hooks template
+    # first, and again after dots apply brings new or changed packaged
+    # hooks.
+    #templateDir = ~/.local/share/git-template
 
 [push]
     # git push pushes the current branch to the branch of the same name,

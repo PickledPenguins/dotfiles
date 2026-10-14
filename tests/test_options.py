@@ -48,7 +48,6 @@ NOT_IN_THE_FORMAT = {
     ".local/bin/git-hooks": "the git hooks command, linked onto PATH; code, not options",
     ".config/tmux/client-env": "the script the tmux client hooks run; code, not options",
     ".local/share/git-hooks/*": "the packaged git hooks and their dispatcher; code, not options",
-    ".config/git/template/*": "links to the packaged git hooks, copied by git init; code, not options",
 }
 
 #: Code lines that are structure rather than a setting, so need no description.

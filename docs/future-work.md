@@ -212,19 +212,37 @@ here is scheduled; an item is cited by its label. Back to the
   would guess. An action after a push stays a wrapper (`git ps && ...`).
   `git hooks -h` says so too.
 - **F.2.ae  Repositories made from the git template depend on the
-  checkout's path.**  Documented 2026-10-13. `dots` links each file of
-  `~/.config/git/template/hooks/` to the source tree by absolute path, and
-  `git init` copies a symlink as it is, so after moving the checkout every
-  repository made from the template has dangling hooks, which git skips
-  without a word. `git hooks install` does not repair them: it counts a
-  dangling `NAME.off` as installed. The `templateDir` description and the
-  template row of `configuration.md` now give the tested repair,
-  `find .git/hooks -xtype l -delete && git init` after `dots apply`, and
-  say a hook switched on comes back off. Only matters once
-  `init.templateDir` is switched on. Not built: a template whose hooks
-  resolve through `~/.local/share/git-hooks`, which needs a `dots`
-  attribute making a symlink with a given target (chezmoi's `symlink_`);
-  the route if `templateDir` goes on for good.
+  checkout's path.**  Built 2026-10-13. `dots` linked each file of the
+  tracked `~/.config/git/template/hooks/` to the source tree by absolute
+  path, and `git init` copies a symlink as it is, so after moving the
+  checkout every repository made from the template had dangling hooks,
+  which git skips without a word (a blocking `pre-commit` stopped a commit
+  before the move and let it through after). The tracked template is gone:
+  `git hooks template` writes `~/.local/share/git-template/hooks` with
+  `install`'s own code, its links going through `~/.local/share/git-hooks`
+  as `install`'s do, and `templateDir` names it, still off. The cost: the
+  template is per-machine state, written once before `templateDir` goes on
+  and again after an update brings new or changed hooks. A `dots`
+  attribute making a symlink with a given target (chezmoi's `symlink_`) was
+  the other route; not needed now. A repository made from the old
+  template keeps its links into the checkout's deleted
+  `dot_config/git/template`: `find .git/hooks -xtype l -delete && git
+  hooks install` there. `templateDir` was never switched on on the
+  owner's machine.
+- **F.2.al  Bringing installed hooks up to date.**  Built 2026-10-13.
+  After `dots apply` brought changed packaged hooks, `git hooks install`
+  left three gaps, each checked in a throwaway home: a hook that gained
+  an event was installed there off while still on for its old event, and
+  `install` said only `installed, off`; `git hooks remove NAME` refused a
+  hook gone from the catalog (`no packaged hook`), leaving a dangling link
+  the dispatcher skips without a word; and nothing removed a hook from an
+  event it no longer has, so it kept running there. Now `install` adds a
+  gained event in the state the hook is in and says so, `remove` takes any
+  hook installed here, and `git hooks update` does all three in one call.
+  `update` refuses while a file in `~/.local/share/git-hooks` is a broken
+  link (the checkout moved, `dots apply` not yet run), since it would take
+  every hook for gone. A packaged hook not installed in a repository stays
+  out of it; `update` never installs one.
 - **F.2.ak  What is an alias, a function, or a program on PATH.**  Built
   2026-10-13. The rule is in [contributing.md](contributing.md#where-a-change-goes).
   Every alias and function in `rc.d/` was sorted by it: 44 became scripts

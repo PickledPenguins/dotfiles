@@ -43,11 +43,11 @@ _git_ctags() { __gitcomp "off"; }
 # `git hooks` (~/.local/bin/git-hooks) completes its subcommands, then the
 # packaged hooks' names.
 _git_hooks() {
-    local subcommands="available show install remove on off" subcommand
+    local subcommands="available show install remove on off update template" subcommand
     subcommand=$(__git_find_on_cmdline "$subcommands")
     if [[ -z $subcommand ]]; then
         __gitcomp "$subcommands"
-    elif [[ $subcommand != available ]]; then
+    elif [[ $subcommand != @(available|update|template) ]]; then
         __gitcomp "$(git hooks available 2>/dev/null | awk '{print $2}')"
     fi
 }

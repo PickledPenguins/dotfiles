@@ -100,18 +100,47 @@ def test_on_needs_the_required_setting_and_off_alone_leaves_dispatchers(linked):
 
 def test_refusals_and_usage(linked):
     proc = hooks(linked, "git hooks on; echo $?; git hooks install nope; echo $?; git hooks off nope; echo $?; "
-                         "git hooks show; echo $?; git hooks of; echo $?; "
+                         "git hooks show; echo $?; git hooks of; echo $?; git hooks update x; echo $?; "
                          "ln -s x .git/hooks/pre-push && ln -s x .git/hooks/pre-push.off && "
                          "git hooks install protect; echo $?; ls .git/hooks | grep -v sample")
-    assert proc.stdout == "2\n1\n1\n2\n2\n1\npre-push\npre-push.off\n"
+    assert proc.stdout == "2\n1\n1\n2\n2\n2\n1\npre-push\npre-push.off\n"
     assert proc.stderr.replace(str(linked), "H") == (
         "usage: git hooks on NAME... (git hooks available lists them)\n"
         "git hooks: no packaged hook nope (git hooks available)\n"
         "git hooks: no hook nope in H/r/.git/hooks (git hooks install nope)\n"
         "usage: git hooks show NAME\n"
         "usage: git hooks [available | show NAME | install [NAME...] | remove [NAME...] | on NAME... "
-        "| off [NAME...] | -h]\n"
+        "| off [NAME...] | update | template | -h]\n"
+        "usage: git hooks update\n"
         "git hooks: both pre-push and pre-push.off exist in H/r/.git/hooks; remove one\n")
+
+
+def test_update_removes_dropped_hooks_and_events_and_adds_gained_events_in_the_hooks_state(linked):
+    proc = hooks(linked, "C=$HOME/.local/share/git-hooks; "
+                         "git hooks install protect lint >/dev/null && git hooks on protect >/dev/null && "
+                         'cp --remove-destination "$(realpath $C/protect)" $C/protect && '
+                         "sed -i 's/^# events: pre-push$/# events: pre-push pre-commit/' $C/protect && rm $C/lint && "
+                         "git hooks update && git hooks | awk '{print $1, $2, $3}' && "
+                         "sed -i 's/^# events: pre-push pre-commit$/# events: pre-commit/' $C/protect && "
+                         "git hooks update && git hooks update && git hooks remove && ls .git/hooks | grep -v sample; "
+                         "echo $?")
+    assert (proc.stdout, proc.stderr) == (
+        "lint removed from pre-commit: no longer packaged\nprotect added to pre-commit, on\n"
+        "on pre-commit protect\non pre-push protect\n"
+        "protect removed from pre-push: no longer one of its events\nprotect removed\n1\n", "")
+
+
+def test_remove_takes_a_hook_no_longer_packaged(linked):
+    proc = hooks(linked, "git hooks install lint >/dev/null && rm $HOME/.local/share/git-hooks/lint && "
+                         "git hooks remove lint && git hooks remove lint; echo $?")
+    assert (proc.stdout, proc.stderr) == ("lint removed\n1\n", "git hooks: no packaged hook lint (git hooks available)\n")
+
+
+def test_update_refuses_while_the_catalog_has_a_broken_link(linked):
+    proc = hooks(linked, "git hooks install protect >/dev/null && ln -sfn /nowhere $HOME/.local/share/git-hooks/protect && "
+                         "git hooks update; echo $?; git hooks | awk '{print $3}'")
+    assert (proc.stdout, proc.stderr) == (
+        "1\nprotect\n", f"git hooks: {linked}/.local/share/git-hooks/protect is a broken link; run dots apply first\n")
 
 
 def test_available_and_show_work_outside_a_repository(linked):
@@ -369,14 +398,18 @@ def test_submodules_follow_a_switch(linked):
     assert proc.stdout == "l1\n"
 
 
-def test_template_holds_what_install_leaves(linked):
+def test_template_holds_what_install_leaves_linked_through_the_home(linked):
     proc = hooks(linked, "tree() { (cd \"$1\" && find . ! -name '*.sample' | sort | "
                          "while read -r p; do echo \"$p $(test -L \"$p\" && realpath \"$p\")\"; done); }; "
                          "git hooks install >/dev/null && tree .git/hooks >../installed && "
-                         f"git init -q --template={linked}/.config/git/template ../t && cd ../t && "
+                         "git hooks template >/dev/null && git hooks template && "
+                         "git init -q --template=$HOME/.local/share/git-template ../t && cd ../t && "
                          "tree .git/hooks >../templated && diff ../installed ../templated && grep -c . ../templated && "
+                         "readlink .git/hooks/pre-push .git/hooks/pre-push.d/protect.off && "
                          "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")
-    assert (proc.stdout, proc.stderr) == (f"{1 + 10 * 2 + 27}\nwhitespace on\n1\n", "")
+    catalog = f"{linked}/.local/share/git-hooks"
+    assert (proc.stdout, proc.stderr) == (
+        f"{1 + 10 * 2 + 27}\n{catalog}/dispatch\n{catalog}/protect\nwhitespace on\n1\n", "")
 
 
 # ── git ctags ─────────────────────────────────────────────────────────────

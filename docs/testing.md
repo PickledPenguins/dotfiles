@@ -48,7 +48,8 @@ temporary `HOME` through the `home` fixture.
   branches, every exit code, the `add` attribute inference, path
   selection, and the options parser and filters. A new branch in `dots`
   needs a line there.
-- shell mutation: 47 mutants, 47 caught, 0 survivors, 0 stale: the git
+- shell mutation: 54 mutants, 54 caught, 0 survivors, 0 stale (the 7 for
+  `git hooks update` and `template` run on their own, 2026-10-13): the git
   hooks and the dispatcher, `git hooks`, the `20-path.sh` helpers and
   `path_clash`, `up`, `bd`, `cdg`, `retry`, `_title_arm`, `_venv_auto`, the
   prompt rows in `layout.sh`, and the toolkit's git cache and collector
@@ -71,7 +72,7 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_docs.py` | the documentation against the code, both directions (see below) | fast |
 | `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
 | `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags, systemd (long) | fast + long |
-| `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order, failure and stdin rules; each packaged hook refusing and passing; the template matching what install leaves; `git ctags` on top | long |
+| `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order, failure and stdin rules; each packaged hook refusing and passing; `update` following the packaged hooks as they change; the template `git hooks template` writes matching what install leaves; `git ctags` on top | long |
 | `tests/test_runner.py` | `tests/run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` and `perf` need none | fast |
 | `tests/perf.py`, `tests/test_perf.py` | the `perf` gate; its baseline and verdict with the timing replaced (fast), one real measurement (long) | fast + long |
 | `tests/test_examples.py` | the example catalog: 51 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |

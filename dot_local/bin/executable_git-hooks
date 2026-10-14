@@ -8,6 +8,8 @@
 #   git hooks remove [NAME...]  remove installed packaged hooks (default: all)
 #   git hooks on NAME...        switch hooks on
 #   git hooks off [NAME...]     switch hooks off (default: every hook that is on)
+#   git hooks update            bring the installed hooks in line with the packaged ones
+#   git hooks template          write the template init.templateDir names: every hook, off
 #
 # The packaged hooks live in ~/.local/share/git-hooks, each describing itself
 # in its header. git runs one file per event, so install links
@@ -21,12 +23,22 @@
 # hooks directory, by its event name. The hooks directory is shared by
 # every worktree of the repository.
 #
+# After dots apply brings new or changed packaged hooks, update removes each
+# installed hook missing from the catalog, and each link on an event its
+# header does not list. It installs an event a hook gained in the state the
+# hook is in, as install does. template keeps
+# ~/.local/share/git-template/hooks as install leaves a repository, every
+# packaged hook off, its links going through ~/.local/share/git-hooks as
+# install's do. A repository git init makes from it keeps working after the
+# checkout moves, once dots apply runs. Run it again after an update.
+#
 # git has no event after a push completes, so there is no post-push hook.
 set -euo pipefail
 shopt -s nullglob
 
 catalog=$HOME/.local/share/git-hooks
 dispatch=$catalog/dispatch
+template=$HOME/.local/share/git-template
 dir=''
 
 in_repo() { git rev-parse --git-dir >/dev/null 2>&1; }
@@ -38,6 +50,20 @@ hooks_dir() {
 exists() { [[ -e $1 || -L $1 ]]; }
 
 is_dispatch() { [[ -L $1 && $(realpath -m -- "$1") == "$(realpath -m -- "$dispatch")" ]]; }
+
+# ours PATH NAME: PATH is install's link to the packaged hook NAME, even one
+# since dropped from the catalog.
+ours() { [[ -L $1 && $(realpath -m -- "$1") == "$(realpath -m -- "$catalog/$2")" ]]; }
+
+# Each packaged hook installed here, by name, once each
+installed() {
+    local path name
+    for path in "$dir"/*.d/*; do
+        name=${path##*/}
+        name=${name%.off}
+        ours "$path" "$name" && echo "$name"
+    done | sort -u
+}
 
 # Each packaged hook's name: the catalog files with an "events:" line.
 packaged() {
@@ -118,18 +144,27 @@ tidy() {
     rmdir -- "$hook.d"
 }
 
+# install NAME...: link each hook on each of its events, off. An event added
+# to a hook already installed takes the state the hook is in. quiet=1 leaves
+# out the hooks already installed.
 install() {
-    local name event added link
+    local name event added link was
     for name; do
         added=''
+        was=$(state "$name")
         for event in $(field "$name" events); do
             link=$dir/$event.d/$name
             exists "$link" || exists "$link.off" && continue
             ensure_dispatch "$event"
-            ln -s "$catalog/$name" "$link.off"
+            if [[ $was == on ]]; then ln -s "$catalog/$name" "$link"; else ln -s "$catalog/$name" "$link.off"; fi
+            [[ $was == - ]] || echo "$name added to $event, $was"
             added=1
         done
-        if [[ -n $added ]]; then echo "$name installed, off"; else echo "$name is already installed"; fi
+        if [[ $was == - ]]; then
+            echo "$name installed, off"
+        elif [[ -z $added && -z ${quiet-} ]]; then
+            echo "$name is already installed"
+        fi
     done
 }
 
@@ -144,6 +179,36 @@ remove() {
         done
         if [[ -n $removed ]]; then echo "$name removed"; else echo "$name is not installed"; fi
     done
+    for path in "$dir"/*.d; do
+        event=${path##*/}
+        tidy "${event%.d}"
+    done
+}
+
+# update: remove each installed hook missing from the catalog, and each link
+# on an event its header does not list. Install the events a hook gained.
+update() {
+    local path name event
+    for path in "$catalog"/*; do
+        [[ -e $path ]] && continue
+        echo "git hooks: $path is a broken link; run dots apply first" >&2
+        exit 1
+    done
+    for path in "$dir"/*.d/*; do
+        name=${path##*/}
+        name=${name%.off}
+        ours "$path" "$name" || continue
+        event=${path%.d/*}
+        event=${event##*/}
+        if [[ ! -f $catalog/$name ]] || ! grep -q '^# events: ' "$catalog/$name"; then
+            command rm -f -- "$path"
+            echo "$name removed from $event: no longer packaged"
+        elif [[ " $(field "$name" events) " != *" $event "* ]]; then
+            command rm -f -- "$path"
+            echo "$name removed from $event: no longer one of its events"
+        fi
+    done
+    quiet=1 install $(installed)
     for path in "$dir"/*.d; do
         event=${path##*/}
         tidy "${event%.d}"
@@ -227,13 +292,34 @@ case ${1-} in
             echo "here: not in a git repository"
         fi
         ;;
-    install | remove)
-        command=$1
+    install)
         shift
         hooks_dir
         (($#)) || set -- $(packaged)
         check_packaged "$@"
-        "$command" "$@"
+        install "$@"
+        ;;
+    remove)
+        shift
+        hooks_dir
+        (($#)) || set -- $(installed)
+        here=" $(installed | tr '\n' ' ')"
+        for name; do
+            [[ $here == *" $name "* ]] || check_packaged "$name"
+        done
+        remove "$@"
+        ;;
+    update)
+        (($# == 1)) || { echo "usage: git hooks update" >&2; exit 2; }
+        hooks_dir
+        update
+        ;;
+    template)
+        (($# == 1)) || { echo "usage: git hooks template" >&2; exit 2; }
+        dir=$template/hooks
+        command mkdir -p "$dir"
+        update
+        quiet=1 install $(packaged)
         ;;
     on)
         (($# > 1)) || { echo "usage: git hooks on NAME... (git hooks available lists them)" >&2; exit 2; }
@@ -264,7 +350,7 @@ case ${1-} in
         sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"
         ;;
     *)
-        echo "usage: git hooks [available | show NAME | install [NAME...] | remove [NAME...] | on NAME... | off [NAME...] | -h]" >&2
+        echo "usage: git hooks [available | show NAME | install [NAME...] | remove [NAME...] | on NAME... | off [NAME...] | update | template | -h]" >&2
         exit 2
         ;;
 esac

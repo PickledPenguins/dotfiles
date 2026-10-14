@@ -24,6 +24,15 @@ dot_local/bin/executable_git-hooks ||| if [[ $target == ../* ]]; then ||| if fal
 dot_local/bin/executable_git-hooks ||| [[ ${path##*/} == "$1" || ${path##*/} == "$1.off" ]] || return 0 ||| : ||| remove_keeps
 dot_local/bin/executable_git-hooks ||| exists "$link" || exists "$link.off" && continue ||| false && continue ||| install_moves
 dot_local/bin/executable_git-hooks ||| [[ $path == "$from" ]] || continue ||| : ||| install_moves or on_needs
+
+# git hooks: update and template following the packaged hooks
+dot_local/bin/executable_git-hooks ||| if [[ $was == on ]]; then ||| if false; then ||| update_removes
+dot_local/bin/executable_git-hooks |||         (($#)) || set -- $(installed) |||         (($#)) || set -- $(packaged) ||| update_removes
+dot_local/bin/executable_git-hooks ||| [[ $here == *" $name "* ]] || check_packaged "$name" ||| check_packaged "$name" ||| remove_takes
+dot_local/bin/executable_git-hooks |||         [[ -e $path ]] && continue |||         continue ||| update_refuses
+dot_local/bin/executable_git-hooks |||         elif [[ " $(field "$name" events) " != *" $event "* ]]; then |||         elif false; then ||| update_removes
+dot_local/bin/executable_git-hooks |||     quiet=1 install $(installed) |||     : ||| update_removes
+dot_local/bin/executable_git-hooks |||         quiet=1 install $(packaged) |||         : ||| template_holds
 dot_local/bin/executable_git-hooks ||| [[ ! -d $path && $name != *.off && $name != *.sample ]] ||| [[ ! -d $path && $name != *.sample ]] ||| install_moves
 
 # the dispatcher: order, failure, stdin, .off and HOOKS_SKIP
