@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install.sh — copy the toolkit to a target directory and print the
-# .bashrc lines to add. Toolkit version: 0.1.13
+# .bashrc lines to add. Toolkit version: 0.1.14
 #
 # Usage: ./install.sh [target_dir]
 #   target_dir defaults to ~/.local/share/bash-prompt-toolkit

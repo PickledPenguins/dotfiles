@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.12
+# Toolkit version: 0.1.14
 # ════════════════════════════════════════════════════════════════════════════
 # tests/test_helper.bash — shared setup for the bats suite
 #
@@ -17,19 +17,6 @@
 DOTFILES_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export DOTFILES_ROOT
 
-# bats-core installs its own DEBUG trap for internal test tracking and
-# does call-stack introspection with hardcoded frame-depth assumptions;
-# cmd_timer.sh replacing that trap corrupts it. This is the documented
-# opt-out (see lib/cmd_timer.sh). Only @cmd_time is affected; the trap
-# tests in collectors.bats unset it and run in their own bash.
-#
-# Set at file scope rather than inside load_prompt_lib: nounset.bats and
-# the subshell-based tests in colors.bats / prompt_segments.bats source
-# prompt.sh directly without going through load_prompt_lib, and would
-# otherwise claim the DEBUG trap. PS_SKIP_DEBUG_TRAP is equivalent —
-# prompt.sh forwards it to this variable — but this is the canonical name
-# as of v0.1.2.
-export CMD_TIMER_SKIP_TRAP=1
 
 # Source every library module plus the prompt engine, with colors in
 # prompt mode (readline-safe \001..\002 markers) — the state a real

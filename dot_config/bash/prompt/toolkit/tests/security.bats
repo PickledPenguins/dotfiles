@@ -108,7 +108,7 @@ INPUT
 @test "sourcing prompt.sh by a relative path ignores CDPATH" {
     mkdir -p "$BATS_TEST_TMPDIR/cdp/${DOTFILES_ROOT##*/}"
     cd "${DOTFILES_ROOT%/*}"
-    run env CDPATH="$BATS_TEST_TMPDIR/cdp" PS_SKIP_DEBUG_TRAP=1 bash -c \
+    run env CDPATH="$BATS_TEST_TMPDIR/cdp" bash -c \
         'source "$1/prompt.sh" && printf "%s|%s" "$(type -t _ps_seg_pwd)" "$(type -t git_info_refresh)"' _ "${DOTFILES_ROOT##*/}"
     [ "$output" = "function|function" ]
 }

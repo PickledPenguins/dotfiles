@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.13
+**Version:** 0.1.14
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -36,7 +36,7 @@ inside a tmux session over SSH:
 │  ⬇2  ⇄ ssh  ⧉ proj:2.1  :0  (py311)  ⚙ 2                              │
 │  ⎇  feature/auth  →  origin/feature/auth  ↑3 ↓1                       │
 │     +2 ~5 ?3  ⚑1                                                       │
-╰─[✓] 5s $
+╰─[✓] $
 ```
 
 Every field is optional and every one is silent when it doesn't apply —
@@ -91,7 +91,7 @@ to just the identity row and the prompt character.
 | Field | Token | Meaning | Shown when |
 |---|---|---|---|
 | `✓` / `✗ 127` | `@exit` | Last command's exit status | Always |
-| `5s` | `@cmd_time` | Duration of the last command | Ran ≥ 2s (configurable) |
+
 | `14:32` | `@time` | Wall clock, `HH:MM` | Only in layouts that use it |
 
 ### HPC row (not shown above — silent off-cluster)
@@ -127,8 +127,8 @@ source ~/dotfiles/prompt_example.sh
 ```
 
 `prompt.sh` auto-sources `lib/cache.sh`, `lib/term_utils.sh` and
-`lib/colors.sh`, then every built-in segment file in `segments/` (which
-source `lib/git_info.sh` and `lib/cmd_timer.sh`), relative to its own
+`lib/colors.sh`, then every built-in segment file in `segments/` (`git.sh`
+sources `lib/git_info.sh`), relative to its own
 location — keep `lib/` and `segments/` alongside it. The segment files
 define and declare the built-in segments; `prompt_example.sh` registers
 the ones it shows.
@@ -139,7 +139,7 @@ copied and customized, not left as a black box.
 ## Requirements
 
 - **bash 4.0+** — associative arrays (`declare -A`), used throughout.
-- **bash 5.0+ recommended** — `lib/cache.sh` and `lib/cmd_timer.sh` use
+- **bash 5.0+ recommended** — `lib/cache.sh` uses
   `EPOCHSECONDS` when available for TTL bookkeeping that can't be
   disrupted by an unrelated `SECONDS=0` elsewhere in the shell. Bash
   4.x still works via a `$SECONDS`-based fallback with its own (weaker)
@@ -180,7 +180,7 @@ cheap function call, not a blank space.
 | `_ps_seg_jobs` | `⚙ N` background jobs | none |
 | `_ps_seg_exit` | `✓` or `✗ N` | never (always shows last exit state) |
 | `_ps_seg_time` | `HH:MM` | never |
-| `_ps_seg_cmd_time` | Last command's duration | faster than the threshold (default 2s) |
+
 | `_ps_seg_shlvl` | `⬇N` nesting depth | top-level shell |
 | `_ps_seg_modules` | `⊞N` loaded HPC modules | `$LOADEDMODULES` unset |
 | `_ps_seg_load` | `⚖N.NN` 1-min load average | load ≤ core count |
@@ -238,7 +238,7 @@ prompt_segment_needs _my_branch git
 prompt_segment mybranch _my_branch
 ```
 
-Built-in collectors: `cmd_time`, `git`, `load`, `disk`, `gpu`.
+Built-in collectors: `git`, `load`, `disk`, `gpu`.
 `prompt_segment_needs` may come before or after `prompt_segment`, but the
 collector must already be registered. Skipping this step means the
 collector never runs for that segment and it renders blank forever.
@@ -247,7 +247,6 @@ collector never runs for that segment and it renders blank forever.
 
 ```bash
 prompt_cache_ttl 5             # seconds before forcing a git refresh (default 5)
-prompt_cmd_time_threshold 2    # minimum seconds before @cmd_time appears (default 2)
 ```
 
 **Row templates** use single quotes so `\$` survives as the literal
@@ -301,13 +300,13 @@ executable, and takes one optional positional argument.
 |---|---|---|
 | `prompt_segment` | `<name> <function>` | Register `<function>` as the `@name` token usable in row templates. |
 | `prompt_collector` | `<name> <ttl_seconds> <function>` | Register a data collector. `prompt_build` runs it in the shell's own process while a shown row needs it: every prompt at TTL `0`, at most once per TTL seconds otherwise. Re-registering a name replaces its TTL and function and keeps its place in the run order. Returns 1 on a name that is not an identifier, a TTL that is not a whole number, or an undefined function. |
-| `prompt_segment_needs` | `<function> <collector>…` | Declare the collectors a segment function reads from (`cmd_time`, `git`, `load`, `disk`, `gpu`, or your own). Order relative to `prompt_segment` does not matter; the collectors must already be registered. Built-in segments are pre-declared. |
+| `prompt_segment_needs` | `<function> <collector>…` | Declare the collectors a segment function reads from (`git`, `load`, `disk`, `gpu`, or your own). Order relative to `prompt_segment` does not matter; the collectors must already be registered. Built-in segments are pre-declared. |
 | `prompt_row` | `<name> <template>` | Define a named row template: literal text, `@segment` tokens, and at most one `@fill`. A row whose segments all print nothing is left out of the prompt, unless it is the last row. |
 | `prompt_layout` | `[--box [style]] [--sides SPEC] [--closed] [--no-box] <row>…` | Set the ordered row list and box decoration, and wire `prompt_build` into `PROMPT_COMMAND`. Idempotent. `--sides` draws only the edges in SPEC (`t`, `r`, `b`, `l`); returns 1 on any other letter. |
 | `prompt_build` | none | Rebuild `PS1`. Called automatically via `PROMPT_COMMAND`; rarely called directly. |
 | `prompt_debug` | none | Print the layout, rows, segments with their needs, and each collector's TTL, whether a shown row needs it, and its age, to stderr. |
 | `prompt_cache_ttl` | `<seconds>` | Set the git-state staleness window (default 5). |
-| `prompt_cmd_time_threshold` | `<seconds>` | Set the minimum command duration before `@cmd_time` displays (default 2). |
+
 
 ### Library functions (usable standalone)
 
@@ -324,9 +323,7 @@ executable, and takes one optional positional argument.
 | `git_info_refresh` | none | Populate the `GIT_*` globals. |
 | `git_info_cache_valid` | none | Whether the cached git state is still fresh. |
 | `git_info_cache_ttl` | `<seconds>` | Set the git TTL. |
-| `cmd_timer_install` | none | Claim the `DEBUG` trap for the timer, unless `CMD_TIMER_SKIP_TRAP` is set. Once per shell; later calls do nothing. Sourcing `cmd_timer.sh` no longer installs it. |
-| `cmd_timer_arm` | none | Arm the command timer (call after displaying a prompt). |
-| `cmd_timer_elapsed` | none | Compute `$_CMD_TIMER_ELAPSED` for the last command. |
+
 
 ### install.sh
 
@@ -364,8 +361,7 @@ under the user's own control.
 - **The git cache reads loose refs.** A packed branch ref reads as empty
   until the next commit writes it loose again; under git's reftable
   backend no ref is loose, and only the index and the TTL catch a change.
-- **`@cmd_time` requires the `DEBUG` trap.** If another tool owns it, set
-  `PS_SKIP_DEBUG_TRAP=1` and lose only that segment.
+
 - **Disk usage uses `df`, not real quotas.** Quota semantics vary too
   much across NFS/Lustre/GPFS to handle generically.
 
@@ -389,7 +385,7 @@ under the user's own control.
 | Variable | Effect |
 |---|---|
 | `NO_COLOR` | Disables all color output (both raw and prompt mode) — [no-color.org](https://no-color.org) convention |
-| `PS_SKIP_DEBUG_TRAP` | Set to `1` before sourcing `prompt.sh` to never claim the `DEBUG` trap — use when combining with another DEBUG-trap tool (bats, bash-preexec). Sacrifices `@cmd_time`; nothing else is affected. A compatibility alias for `lib/cmd_timer.sh`'s own `CMD_TIMER_SKIP_TRAP`, which may be set any time before the first prompt. The trap is claimed at the first prompt whose layout shows a segment needing `cmd_time`, never at source time. See the [version history](#version-history) for why automatic detection was abandoned in favor of this. |
+
 | `PS_DEBUG_SEGMENTS` | Set to `1` to surface a failing segment's stderr and a `segment "<name>" exited <code>` message instead of silently rendering it as empty. Off by default — one broken custom segment still can't take down the whole prompt. |
 
 Raw-mode color also auto-disables when stdout isn't a terminal (e.g.
@@ -415,7 +411,7 @@ Segment → Row → Layout → PS1
   box (`--box <style>`), open or `--closed`, or in only some of its
   edges (`--sides l,b`).
 - **Collector** — a function that gathers data for segments into globals
-  (git state, load, disk, GPU, command duration), registered with a TTL.
+  (git state, load, disk, GPU), registered with a TTL.
   Segments declare which collectors they read with
   `prompt_segment_needs`.
 
@@ -428,7 +424,7 @@ its collectors and their needs declarations.
 │  ⬇2  ⇄ ssh  ⧉ proj:2.1  :0  (py311)  ⚙ 2                              │
 │  ⎇  feature/auth  →  origin/feature/auth  ↑3 ↓1                       │
 │     +2 ~5 ?3  ⚑1                                                       │
-╰─[✓] 5s $
+╰─[✓] $
 ```
 (see [What it looks like](#what-it-looks-like) for a field-by-field
 breakdown of that render)
@@ -440,8 +436,7 @@ the active layout needs — those declared by a segment some shown row
 uses — in registration order, honoring each one's TTL, and only then
 expands the rows. Which collectors are needed is worked out again only
 after a segment, row, layout, collector or needs declaration changes, so
-the per-prompt planning cost is one integer test. A layout that never
-shows `@cmd_time` never claims the `DEBUG` trap.
+the per-prompt planning cost is one integer test.
 
 Row expansion invokes each segment as `val=$(segfunc)`, which is a
 **subshell**. That's the single most important fact about this
@@ -471,16 +466,16 @@ cache.
 | `lib/term_utils.sh` | `strip_ansi`, `str_width` (locale-safe code-point count), `str_repeat` — fork-free, and with `-v VAR` free of a subshell too |
 | `lib/cache.sh` | Generic TTL bookkeeping (`cache_stale`/`cache_touch`/`cache_age`) — shared by `git_info.sh` and the collector TTLs (key `collector:<name>`) |
 | `lib/git_info.sh` | Cached git branch/SHA/status/ahead-behind/conflicts/stash state |
-| `lib/cmd_timer.sh` | Command-duration tracking via the `DEBUG` trap, behind `@cmd_time` — general-purpose, not prompt-specific |
+
 | `prompt.sh` | The segment/row/layout/collector engine itself; sources `segments/` at the end |
 | `segments/identity.sh` | User, host, user@host, root marker, working directory |
-| `segments/command.sh` | Exit status, command duration and its `cmd_time` collector, clock |
+| `segments/command.sh` | Exit status, clock |
 | `segments/git.sh` | Branch, upstream, SHAs, ahead/behind, working tree, stash, conflicts; the `git` collector |
 | `segments/shell.sh` | tmux, display, ssh, venv, conda, jobs, shell level |
 | `segments/system.sh` | Load, disk, GPU and their collectors |
 | `segments/hpc.sh` | Environment modules, PBS and Slurm jobs |
 | `prompt_example.sh` | Working configuration — segments registered, rows defined, one active layout |
-| `tests/` | Bats test suite — 10 `.bats` files plus `test_helper.bash` (see [Testing](#testing)) |
+| `tests/` | Bats test suite — 9 `.bats` files plus `test_helper.bash` (see [Testing](#testing)) |
 | `install.sh` | Copies the toolkit to a target directory and prints the `.bashrc` lines to add — see [Installation](#installation) |
 
 ## Testing
@@ -490,12 +485,12 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**170 tests across 10 files**, all passing against v0.1.13:
+**162 tests across 9 files**, all passing against v0.1.14:
 
 | File | Tests | Covers |
 |---|---|---|
 | `cache.bats` | 5 | stale and fresh keys, TTL elapsing, `cache_age`, a clock set back |
-| `cmd_timer.bats` | 8 | elapsed and arm, `DEBUG` trap claimed only when `@cmd_time` is shown, the skip variables, a second install |
+
 | `collectors.bats` | 27 | collector planning by layout, built-in segments under other names, declared needs, TTLs, run order, argument checks, collected data reaching the parent shell, `install.sh` copying `segments/` |
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
 | `git_info.bats` | 28 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
@@ -506,8 +501,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 | `term_utils.bats` | 16 | ANSI stripping, width (with no UTF-8 locale), repeat (multi-byte, `&`, count 0 or below), no `sed` or `awk` forked, `-v VAR` (any name; count 0 empties it) |
 
 `tests/test_helper.bash` provides `$DOTFILES_ROOT`, `load_prompt_lib`,
-`make_git_repo`, and `plain`, and sets `CMD_TIMER_SKIP_TRAP=1` so the
-toolkit's `DEBUG` trap doesn't collide with bats-core's own.
+`make_git_repo`, and `plain`.
 
 Tests carrying `[SECURITY]` or `[nounset]` labels document
 previously-open vulnerabilities and gaps that are now **fixed** — they
@@ -552,6 +546,17 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.14
+
+**Removed:** `@cmd_time`, its `cmd_time` collector,
+`prompt_cmd_time_threshold`, `lib/cmd_timer.sh` (`cmd_timer_install`,
+`cmd_timer_arm`, `cmd_timer_elapsed`) and the `CMD_TIMER_SKIP_TRAP` and
+`PS_SKIP_DEBUG_TRAP` variables. The duration was wrong: the timer was
+armed inside `prompt_build`, so the DEBUG trap recorded the start at the
+next command of `PROMPT_COMMAND`, and a duration included the time spent
+at the prompt (`true` after 4 s idle showed `4s`). The toolkit no longer
+claims the `DEBUG` trap. `tests/cmd_timer.bats` (8 tests) went with it.
 
 ### v0.1.13
 

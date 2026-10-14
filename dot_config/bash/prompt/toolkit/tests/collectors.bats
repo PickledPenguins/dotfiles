@@ -212,7 +212,7 @@ _counting_collector() {
     _seg() { :; }
     run prompt_segment_needs _seg later
     [ "$status" -eq 1 ]
-    [[ "$output" == *'unknown collector "later" (registered: cmd_time git load disk gpu)'* ]]
+    [[ "$output" == *'unknown collector "later" (registered: git load disk gpu)'* ]]
 }
 
 @test "prompt_segment_needs: needs at least one collector" {
@@ -226,7 +226,7 @@ _counting_collector() {
 
 @test "sourcing prompt.sh registers the built-in collectors in run order" {
     source "$ROOT/prompt.sh"
-    [ "${_PS_COLLECTOR_ORDER[*]}" = "cmd_time git load disk gpu" ]
+    [ "${_PS_COLLECTOR_ORDER[*]}" = "git load disk gpu" ]
     [ "${_PS_COLLECTOR_TTL[load]}" -eq 10 ]
     [ "${_PS_COLLECTOR_TTL[disk]}" -eq 30 ]
     [ "${_PS_COLLECTOR_TTL[gpu]}" -eq 10 ]

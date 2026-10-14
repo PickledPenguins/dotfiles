@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.13
+# Toolkit version: 0.1.14
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.example.sh — Prompt configuration using prompt.sh
 #
@@ -53,7 +53,7 @@ prompt_segment pbs_nodes        _ps_seg_pbs_nodes          # N nodes
 prompt_segment slurm_job        _ps_seg_slurm_job          # SLURM JOBID
 prompt_segment slurm_queue      _ps_seg_slurm_queue        # Slurm partition
 prompt_segment slurm_nodes      _ps_seg_slurm_nodes        # N nodes
-prompt_segment cmd_time         _ps_seg_cmd_time           # last command duration (≥2 s)
+
 prompt_segment conda            _ps_seg_conda              # active conda env (not "base")
 prompt_segment shlvl            _ps_seg_shlvl              # ⬇N when shell is nested
 prompt_segment modules          _ps_seg_modules            # ⊞N HPC loaded-module count
@@ -63,7 +63,6 @@ prompt_segment gpu              _ps_seg_gpu                # GPU N% — TTL-cach
 
 # ── Tune defaults (optional) ──────────────────────────────────────────────
 # prompt_cache_ttl 5            # seconds before forcing a git refresh (default 5)
-# prompt_cmd_time_threshold 2   # minimum seconds before duration appears (default 2)
 
 # ── Row definitions ───────────────────────────────────────────────────────
 # Rows are reused across layout definitions. Define once, reference anywhere.
@@ -87,8 +86,7 @@ prompt_row status   '     @git_status  @git_stash  @git_conflicts'
 prompt_row hpc      '  @pbs_job  @pbs_queue  @pbs_nodes  @slurm_job  @slurm_queue  @slurm_nodes  @modules  @gpu'
 
 # Bottom rows — pick one per layout.
-# @cmd_time is silent for fast commands (threshold tunable via prompt_cmd_time_threshold).
-prompt_row cmd       '─[@exit] @cmd_time \$ '         # open: ╰─[✓] 5s $
+prompt_row cmd       '─[@exit] \$ '                   # open: ╰─[✓] $
 prompt_row cmd_clock '─[@exit]@fill[ @time ]─\$ '     # open with right-aligned wall clock
 prompt_row footer    '─[@exit]@fill[ @time ]─'        # closed box bottom (use with --closed)
 
@@ -137,5 +135,5 @@ prompt_layout --box rounded  top  env  git  status  cmd
 # ── Layout F: minimal, no box ─────────────────────────────────────────────
 #
 # prompt_row line1  '[ @user_host ] ⎇ @git_branch @git_ahead_behind @pwd'
-# prompt_row line2  '[@exit] @cmd_time \$ '
+# prompt_row line2  '[@exit] \$ '
 # prompt_layout  line1  line2

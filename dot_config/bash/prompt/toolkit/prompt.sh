@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.13
+# Toolkit version: 0.1.14
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1
@@ -18,7 +18,7 @@
 #            Closed (--closed): last row gets ╯, cursor drops to new line.
 #
 #   Collector  Named function that gathers data for segments (git state,
-#            load average, command duration) into globals, in the shell's
+#            load average, disk, GPU) into globals, in the shell's
 #            own process. Runs in prompt_build only while a row the
 #            layout shows uses a segment that needs it; TTL 0 runs it
 #            every prompt, TTL N at most once per N seconds.
@@ -28,7 +28,7 @@
 # their needs declarations; all of them are sourced at the end of this
 # file:
 #   segments/identity.sh — user, host, root marker, directory
-#   segments/command.sh  — exit status, command duration, clock
+#   segments/command.sh  — exit status, clock
 #   segments/git.sh      — branch, upstream, ahead/behind, status, stash
 #   segments/shell.sh    — tmux, display, ssh, venv, conda, jobs, shlvl
 #   segments/system.sh   — load, disk, gpu
@@ -39,7 +39,6 @@
 #   lib/colors.sh      — C_* and PS_* color variables, c_fg/c_bg helpers
 #   lib/cache.sh       — generic TTL bookkeeping (collector TTLs, git_info.sh)
 #   lib/git_info.sh    — git state + mtime/TTL cache (sourced by segments/git.sh)
-#   lib/cmd_timer.sh   — command duration (sourced by segments/command.sh)
 #
 # Setup — add to .bashrc:
 #   source ~/.local/share/bash-prompt-toolkit/prompt.sh
@@ -315,8 +314,8 @@ prompt_collector() {
 #   _my_branch() { printf '⎇ %s' "$GIT_BRANCH"; }
 #   prompt_segment_needs _my_branch git
 #   prompt_segment mybranch _my_branch
-# $1  function name   $2…  registered collector names (git, cmd_time,
-#                          load, disk, gpu, or your own)
+# $1  function name   $2…  registered collector names (git, load, disk,
+#                          gpu, or your own)
 prompt_segment_needs() {
     (( $# >= 2 )) || {
         printf 'prompt_segment_needs: usage: <function> <collector>...\n' >&2
@@ -627,8 +626,7 @@ prompt_build() {
 
 # ── Built-in segments ──────────────────────────────────────────────────────
 # Each file registers its collectors and needs through the API above, so
-# they are sourced after it. Order is collector run order: command first,
-# so @cmd_time's reading is taken before git or anything else spends time.
+# they are sourced after it, in collector run order.
 for _ps_topic in identity command git shell system hpc; do
     # Each topic file is checked on its own: shellcheck segments/*.sh
     # shellcheck source=/dev/null
