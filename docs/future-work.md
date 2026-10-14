@@ -119,16 +119,18 @@ here is scheduled; an item is cited by its label. Back to the
   writes to files, so one that needs a terminal fails visibly; stderr is
   stored and replayed with stdout; the TTL defaults to 60 s. About 40-50
   lines of bash, a README and tests.
-- **F.2.i  `@cmd_time` counts the time spent at the prompt.**  Removed
-  from `layout.sh` on 2026-10-12 rather than fixed: the owner does not use
-  it. The bug stays in the toolkit: `prompt_build` arms the timer and the
-  DEBUG trap fires for `_prompt_gap` while `PROMPT_COMMAND` still runs
-  (`prompt/toolkit/lib/cmd_timer.sh:50`), so a duration includes the time
-  at the prompt. To bring it back, fix the timer first: record the start
-  in `PS0`, which bash 4.4+ expands after Enter and before the command, as
-  `${_z:$((_CMD_TIMER_START=EPOCHSECONDS,0)):0}` with `_z` set (an unset
-  `_z` skips the arithmetic), keeping the DEBUG trap only for older bash;
-  `15-tmux-env.sh` also appends to `PS0`. A toolkit commit, sent upstream.
+- **F.2.i  `@cmd_time` counted the time spent at the prompt.**  Removed
+  from `layout.sh` on 2026-10-12, and from the toolkit on 2026-10-13
+  (v0.1.14) rather than fixed: the owner does not use it. `prompt_build`
+  armed the timer and the DEBUG trap fired for the next command of
+  `PROMPT_COMMAND`, so `true` after 4 s at the prompt showed `4s`. The
+  segment, its collector, `lib/cmd_timer.sh` and the `CMD_TIMER_SKIP_TRAP`
+  and `PS_SKIP_DEBUG_TRAP` variables are gone, and the toolkit claims no
+  DEBUG trap. To bring it back, record the start in `PS0`, which bash
+  4.4+ expands after Enter and before the command, as
+  `${_z:$((_CMD_TIMER_START=EPOCHSECONDS,0)):0}` with `_z` set, keeping
+  the DEBUG trap only for older bash; `15-tmux-env.sh` also appends to
+  `PS0`.
 - **F.2.q  `cat` ran bat when bat was installed.**  Built 2026-10-12:
   the alias in `rc.d/80-tools.sh` is an off setting (`Needs: bat`), as the
   module's header asks of a block that changes a familiar command; its

@@ -33,8 +33,7 @@ _title_prompt() {
 [[ "${PROMPT_COMMAND-}" == *_title_prompt* ]] || PROMPT_COMMAND="_title_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 # The functions for the setting below: the title shows a running command,
-# through a DEBUG trap added after any trap already there (the prompt's
-# command timer claims one during the first prompt_build).
+# through a DEBUG trap added after any trap already there.
 _title_command() {
     case "$BASH_COMMAND" in _title_*|prompt_build*|_prompt_gap*|history*|_hist_*|_venv_auto*) return ;; esac
     printf '\e]0;%s\a' "${BASH_COMMAND:0:60}"
