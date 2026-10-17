@@ -47,7 +47,7 @@ marks()  {
 jump()   { cd -P -- "$DOTFILES_MARKS_DIR/${1:?jump NAME}" || return; }
 
 # Tab after jump or unmark completes bookmark names.
-_jump_complete() { mapfile -t COMPREPLY < <(compgen -W "$(command ls "$DOTFILES_MARKS_DIR" 2>/dev/null)" -- "${COMP_WORDS[1]}"); }
+_jump_complete() { mapfile -t COMPREPLY < <(compgen -W "$(command ls "$DOTFILES_MARKS_DIR" 2>/dev/null)" -- "${COMP_WORDS[COMP_CWORD]}"); }
 complete -F _jump_complete jump unmark
 
 # ── CDPATH ────────────────────────────────────────────────────────────────

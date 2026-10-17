@@ -251,7 +251,7 @@ hgrep() {
 # by the next pane as the header describes, so panes never mix their
 # commands. Costs one tmux call when a shell starts. Shells outside tmux
 # keep the shared file.
-# Needs: tmux.
+# Needs: tmux
 #_hist_pane_start
 
 # Every command, from every shell, with its time, host, tmux session and

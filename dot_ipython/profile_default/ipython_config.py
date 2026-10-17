@@ -31,7 +31,7 @@ c = get_config()  # noqa: F821 -- provided by IPython when it reads this file
 # Leave with Ctrl-D or exit without "Do you really want to exit?".
 #c.TerminalInteractiveShell.confirm_exit = False
 
-# Grey suggestions from history as you type; Right accepts them.
+# Gray suggestions from history as you type; Right accepts them.
 #c.TerminalInteractiveShell.autosuggestions_provider = "NavigableAutoSuggestFromHistory"
 
 # The editor %edit opens.

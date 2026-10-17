@@ -24,8 +24,10 @@ mention it: a comment directly above a setting describes it, and a setting
 whose comment character is followed directly by code ("#shopt -s x") is off.
 
 Exit status: 0 on success; 1 when apply leaves conflicts, status finds
-anything not ok, forget names an unmanaged path or one it refuses, or
-options matches nothing; 2 for usage errors and a missing source directory.
+anything not ok, apply, status or unlink names a path that selects nothing,
+forget names an unmanaged path or one it refuses, or options matches
+nothing; 2 for usage errors, a missing source directory and two source
+files with one target.
 """
 
 import argparse
@@ -124,6 +126,14 @@ def managed_entries(src, home):
                 continue
             if not ignored(entry.rel, patterns):
                 entries.append(entry)
+    first = {}
+    for entry in entries:
+        other = first.setdefault(entry.rel, entry)
+        if other is not entry:
+            # each apply would relink the target to the other one
+            print(f"dots: {other.source.relative_to(src)} and {entry.source.relative_to(src)} "
+                  f"both map to {entry.rel}; remove one", file=sys.stderr)
+            raise SystemExit(2)
     return sorted(entries, key=lambda e: e.rel)
 
 
@@ -185,8 +195,10 @@ def backup(path, rel, backup_root):
 
 def cmd_apply(args, src, home):
     every = managed_entries(src, home)
-    entries = [e for e in every if selected(e, args.paths, home)]
+    entries = [e for e in every if selected(e, args.paths)]
     backup_root = home / ".dotfiles-backup" / time.strftime("%Y%m%d-%H%M%S")
+    for entry in entries:
+        entry.source.stat()             # a broken link in the source stops apply here, before any change
     changed = conflicts = 0
     for entry in entries:
         current = state(entry, src)
@@ -214,7 +226,7 @@ def cmd_apply(args, src, home):
         entry.target.parent.mkdir(parents=True, exist_ok=True)
         os.symlink(entry.source, entry.target)
         set_mode(entry)
-    missed = skip_unmanaged(every, args.paths, home)
+    missed = skip_unmanaged(every, args.paths)
     print(f"{changed} change(s){' (dry run)' if args.dry_run else ''}"
           + (f", {conflicts} conflict(s) left" if conflicts else ""))
     return 1 if conflicts or missed else 0
@@ -222,14 +234,14 @@ def cmd_apply(args, src, home):
 
 def cmd_status(args, src, home):
     every = managed_entries(src, home)
-    entries = [e for e in every if selected(e, args.paths, home)]
+    entries = [e for e in every if selected(e, args.paths)]
     counts = {}
     for entry in entries:
         current = state(entry, src)
         counts[current] = counts.get(current, 0) + 1
         if current != "ok" or args.all:
             print(f"{current:<11} {entry.rel}")
-    missed = skip_unmanaged(every, args.paths, home)
+    missed = skip_unmanaged(every, args.paths)
     print("  ".join(f"{k}: {v}" for k, v in sorted(counts.items())) or "nothing managed")
     return 0 if set(counts) <= {"ok"} and not missed else 1
 
@@ -242,7 +254,7 @@ def cmd_managed(args, src, home):
 
 def cmd_unlink(args, src, home):
     every = managed_entries(src, home)
-    entries = [e for e in every if selected(e, args.paths, home)]
+    entries = [e for e in every if selected(e, args.paths)]
     removed = 0
     for entry in entries:
         if state(entry, src) == "ok":
@@ -250,16 +262,16 @@ def cmd_unlink(args, src, home):
             removed += 1
             if not args.dry_run:
                 entry.target.unlink()
-    missed = skip_unmanaged(every, args.paths, home)
+    missed = skip_unmanaged(every, args.paths)
     print(f"{removed} link(s) removed{' (dry run)' if args.dry_run else ''}")
     return 1 if missed else 0
 
 
 def cmd_prune(args, src, home):
-    """Remove symlinks into the source tree whose file no longer exists.
+    """Remove symlinks into the source tree whose file is missing.
 
     A moved or deleted source path leaves its old link behind, and that link
-    is no longer a target, so apply and unlink never see it. Only links that
+    is not a target, so apply and unlink never see it. Only links that
     point inside the source tree AND are broken are removed; a link into the
     tree that still resolves is someone's deliberate choice and stays.
     """
@@ -475,7 +487,7 @@ def cmd_forget(args, src, home):
     return 1 if wanted or refused else 0
 
 
-def selected(entry, paths, home):
+def selected(entry, paths):
     """Restrict a command to targets under any of the given paths (all when none given)."""
     if not paths:
         return True
@@ -486,9 +498,9 @@ def selected(entry, paths, home):
     return False
 
 
-def skip_unmanaged(entries, paths, home):
+def skip_unmanaged(entries, paths):
     """Print a skip line for each path that selects none of entries and return how many"""
-    missed = [p for p in paths if not any(selected(e, [p], home) for e in entries)]
+    missed = [p for p in paths if not any(selected(e, [p]) for e in entries)]
     for raw in missed:
         print(f"skip      {Path(os.path.abspath(os.path.expanduser(raw)))}: not managed")
     return len(missed)

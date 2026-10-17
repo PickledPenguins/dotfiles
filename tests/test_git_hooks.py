@@ -34,7 +34,9 @@ def packaged():
     return sorted(p.name[len("executable_"):] for p in CATALOG.iterdir() if p.name != "executable_dispatch")
 
 
-# ── git hooks ─────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# git hooks
+# ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("before", ["", "use protect && "], ids=["alone", "beside-a-dispatcher"])
@@ -77,11 +79,26 @@ def test_install_moves_the_existing_hook_aside_lists_switches_and_remove_puts_it
         "../../tests/pre-push\npost-commit.off\npre-push.off\n", "")
 
 
-def test_remove_keeps_the_dispatcher_while_another_hook_is_installed(linked):
+# perf-push sorts before the moved pre-push and test-push after it: the old
+# hook is the last entry in pre-push.d with the one and not with the other.
+@pytest.mark.parametrize("other", ["test-push", "perf-push"])
+def test_remove_keeps_the_dispatcher_while_another_hook_is_installed(linked, other):
     proc = hooks(linked, "printf '#!/bin/sh\\n' >.git/hooks/pre-push && chmod +x .git/hooks/pre-push && "
-                         "git hooks install protect test-push >/dev/null && git hooks remove protect && "
+                         f"git hooks install protect {other} >/dev/null && git hooks remove protect && "
                          "ls .git/hooks/pre-push.d && git hooks | awk '{print $1, $3}'")
-    assert (proc.stdout, proc.stderr) == ("protect removed\npre-push\ntest-push.off\non pre-push\noff test-push\n", "")
+    entries = sorted([("pre-push", "on pre-push"), (f"{other}.off", f"off {other}")])
+    assert (proc.stdout, proc.stderr) == (
+        "protect removed\n" + "".join(f"{e}\n" for e, _ in entries) + "".join(f"{s}\n" for _, s in entries), "")
+
+
+def test_remove_puts_back_an_existing_hook_that_sorts_last_in_the_event_directory(linked):
+    proc = hooks(linked, "printf '#!/bin/sh\\n' >.git/hooks/pre-push && chmod +x .git/hooks/pre-push && "
+                         "git hooks install perf-push && ls .git/hooks/pre-push.d && git hooks remove perf-push; "
+                         "echo $?; git hooks install perf-push >/dev/null && git hooks remove; echo $?; "
+                         "ls .git/hooks | grep -v sample")
+    assert (proc.stdout, proc.stderr) == (
+        "pre-push: the hook that was there moved to pre-push.d/pre-push\nperf-push installed, off\n"
+        "perf-push.off\npre-push\nperf-push removed\n0\nperf-push removed\n0\npre-push\n", "")
 
 
 def test_install_without_names_installs_every_packaged_hook_off(linked):
@@ -167,7 +184,9 @@ def test_help_is_the_header(linked):
     assert proc.stdout == ("git-hooks: install the packaged git hooks in a repository, switch them on and off.\n\n")
 
 
-# ── the dispatcher ────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# the dispatcher
+# ----------------------------------------------------------------------
 
 
 def test_dispatch_runs_in_name_order_stops_a_pre_event_at_the_first_failure_and_honors_hooks_skip(linked):
@@ -187,7 +206,9 @@ def test_dispatch_runs_every_post_hook_and_gives_each_the_whole_stdin(linked):
     assert proc.stdout == "1\n1\n0\n"
 
 
-# ── the packaged hooks ────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# the packaged hooks
+# ----------------------------------------------------------------------
 
 
 def test_whitespace_refuses_trailing_spaces(linked):
@@ -208,7 +229,8 @@ def test_big_file_refuses_a_file_over_the_limit(linked):
 
 
 def test_secrets_refuses_tokens_assignments_and_key_files_unless_allowed(linked):
-    proc = hooks(linked, "use secrets && echo 'key = AKIAABCDEFGHIJKLMNOP' >a && "
+    # diff.noprefix drops the b/ the file names are read after
+    proc = hooks(linked, "git config diff.noprefix true && use secrets && echo 'key = AKIAABCDEFGHIJKLMNOP' >a && "
                          "echo 'PASSWORD = \"hunter22\"' >b && touch id_rsa && git add a b id_rsa && "
                          "git commit -qm f; echo $?; git reset -q && rm id_rsa && "
                          "echo 'PASSWORD = \"x1234567\"  # hooks:allow-secret' >b && "
@@ -220,7 +242,8 @@ def test_secrets_refuses_tokens_assignments_and_key_files_unless_allowed(linked)
 
 
 def test_debug_left_refuses_a_debugger_call(linked):
-    proc = hooks(linked, "use debug-left && printf 'x = 1\\nbreakpoint()\\n' >a.py && git add a.py && "
+    proc = hooks(linked, "git config diff.noprefix true && use debug-left && printf 'x = 1\\nbreakpoint()\\n' >a.py && "
+                         "git add a.py && "
                          "git commit -qm f; echo $?; printf 'import pdb  # hooks:allow-debug\\n' >a.py && "
                          "git add a.py && git commit -qm f && echo committed")
     assert proc.stdout == "1\ncommitted\n"
@@ -346,7 +369,8 @@ def test_protect_refuses_a_force_push_and_a_delete_of_a_protected_branch(linked)
 
 
 def test_wip_guard_refuses_wip_commits_to_a_protected_branch(linked):
-    proc = hooks(linked, with_origin("use wip-guard && git commit -q --allow-empty -m wip && "
+    proc = hooks(linked, with_origin("use wip-guard && git commit -q --allow-empty -m 'wipe the cache' && "
+                                     "git commit -q --allow-empty -m wip && "
                                      "git push -q origin HEAD:feat && git push -q 2>&1 | sed 's/^wip-guard: [0-9a-f]* /wip-guard: SHA /'"))
     assert proc.stdout == ("wip-guard: SHA wip\n"
                            "wip-guard: not pushing these to main; squash them, or push with --no-verify\n"
@@ -412,7 +436,9 @@ def test_template_holds_what_install_leaves_linked_through_the_home(linked):
         f"{1 + 10 * 2 + 27}\n{catalog}/dispatch\n{catalog}/protect\nwhitespace on\n1\n", "")
 
 
-# ── git ctags ─────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# git ctags
+# ----------------------------------------------------------------------
 
 
 def test_git_ctags_builds_switches_its_hook_on_and_rebuilds_on_switch_and_worktree_add(linked):

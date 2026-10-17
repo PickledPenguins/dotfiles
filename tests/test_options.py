@@ -37,7 +37,7 @@ from conftest import REPO, load_dots, run_subprocess
 
 dots = load_dots()
 
-#: Managed files that are not written in the options format, and why.
+# Managed files that are not written in the options format, and why.
 NOT_IN_THE_FORMAT = {
     ".dircolors": "dircolors -p output: a table of file types and colors, not options",
     ".config/bash/prompt/toolkit/*": "bash-prompt-toolkit subtree; a library, not a configuration file",
@@ -50,7 +50,7 @@ NOT_IN_THE_FORMAT = {
     ".local/share/git-hooks/*": "the packaged git hooks and their dispatcher; code, not options",
 }
 
-#: Code lines that are structure rather than a setting, so need no description.
+# Code lines that are structure rather than a setting, so need no description.
 STRUCTURE = re.compile(r"""^(
       \[.*\]                                   # [section] in git, ini, editorconfig, pip
     | (Host|Match)\s.*                         # ssh blocks
@@ -80,7 +80,9 @@ def parse(rel, source):
     return dots.parse_options(source.read_text(), dots.comment_marker(rel))
 
 
-# ── the format itself (fast) ──────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# the format itself (fast)
+# ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("rel, source", CATALOG, ids=IDS)
@@ -101,6 +103,19 @@ def test_every_setting_has_a_description(rel, source):
             if not all(STRUCTURE.match(line) for line in code):
                 problems.append(f"line {option.line}: setting without a description: {code[0]}")
     assert not problems, f"~/{rel}\n" + "\n".join(problems)
+
+
+# A Needs: item: a program or a path, then the oldest version that works
+NEEDS_ITEM = re.compile(r"(~?/\S+|[\w.+-]+)( \d[\w.]*\+?( or later)?)?")
+
+
+@pytest.mark.parametrize("rel, source", CATALOG, ids=IDS)
+def test_every_needs_line_names_programs_or_paths(rel, source):
+    # anything else would read as a program that is missing, and the
+    # switch-on test would skip the setting for good
+    bad = [f"line {option.line}: {item}" for option in parse(rel, source)
+           for item in needs(option) if not NEEDS_ITEM.fullmatch(item)]
+    assert not bad, f"~/{rel}: Needs: items that are neither PROGRAM [VERSION] nor a path\n" + "\n".join(bad)
 
 
 def test_the_exemptions_still_exist():
@@ -124,23 +139,26 @@ def test_switch_on_deletes_only_the_marker_after_the_indentation():
     assert switch_on(text, option) == "# f\nf() {\n    echo hi\n}\n"
 
 
-# ── switching every option on (long) ──────────────────────────────────────
+# ----------------------------------------------------------------------
+# switching every option on (long)
+# ----------------------------------------------------------------------
+
+
+def needs(option):
+    """The items of an option's Needs: lines, each a trailing period dropped."""
+    return [item.strip().removesuffix(".") for line in option.doc if line.startswith("Needs:")
+            for item in line[len("Needs:"):].split(",") if item.strip()]
 
 
 def missing_needs(option):
     """What an option's Needs: lines name that this machine lacks."""
     missing = []
-    for line in option.doc:
-        if not line.startswith("Needs:"):
-            continue
-        for item in line[len("Needs:"):].split(","):
-            name = item.split()[0] if item.split() else ""
-            if not name:
-                continue
-            present = (os.path.exists(os.path.expanduser(name)) if name[0] in "~/"
-                       else shutil.which(name) is not None)
-            if not present:
-                missing.append(name)
+    for item in needs(option):
+        name = item.split()[0]
+        present = (os.path.exists(os.path.expanduser(name)) if name[0] in "~/"
+                   else shutil.which(name) is not None)
+        if not present:
+            missing.append(name)
     return missing
 
 
@@ -452,7 +470,7 @@ def systemd_unit(home, path):
     return "\n".join(l for l in problems(proc).splitlines() if "is not executable" not in l)
 
 
-#: target pattern -> (program that must be installed, loader)
+# target pattern -> (program that must be installed, loader)
 LOADERS = [
     (".config/bash/rc.d/*", "bash", bash_modules),
     (".config/bash/prompt/layout.sh", "bash", bash_modules),
@@ -509,8 +527,14 @@ def linked(home):
     return home
 
 
+# The files with something to switch on: a file with nothing off is not a
+# case, so a skip always means something did not run.
+SWITCHABLE = [(rel, source) for rel, source in CATALOG
+              if source.name.endswith(".off") or any(o.state == "off" for o in parse(rel, source))]
+
+
 @pytest.mark.long
-@pytest.mark.parametrize("rel, source", CATALOG, ids=IDS)
+@pytest.mark.parametrize("rel, source", SWITCHABLE, ids=[rel for rel, _ in SWITCHABLE])
 def test_every_option_loads_when_switched_on(rel, source, linked, tmp_path):
     program, load = loader_for(rel)
     if load is None:
@@ -538,7 +562,7 @@ def test_every_option_loads_when_switched_on(rel, source, linked, tmp_path):
         options.append("the module itself, renamed on")
         copies.append(copy)
     if not copies:
-        pytest.skip("; ".join(skipped) or f"no switched-off options in ~/{rel}")
+        pytest.skip("; ".join(skipped))
     if getattr(load, "batched", False):
         all_on = tmp_path / "copies" / f"all-{source.name}"
         switched = text

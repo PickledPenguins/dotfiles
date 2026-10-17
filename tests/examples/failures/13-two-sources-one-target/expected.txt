@@ -1,0 +1,5 @@
+dots: dot_bashrc and private_dot_bashrc both map to .bashrc; remove one
+exit 2
+dots: dot_bashrc and private_dot_bashrc both map to .bashrc; remove one
+exit 2
+0

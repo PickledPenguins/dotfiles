@@ -76,7 +76,9 @@ def stubs(tmp_path, **scripts):
     return fake
 
 
-# ── bash ──────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# bash
+# ----------------------------------------------------------------------
 
 
 def test_bashrc_loads_every_module_in_order(linked):
@@ -325,6 +327,12 @@ def test_functions_man_falls_back_to_help_for_one_program_without_a_page(linked,
 def test_dirs_module_marks(linked):
     proc = bash(linked, "command mkdir -p p/q; cd p/q; mark pq; cd; marks; jump pq; pwd; unmark pq; marks | wc -l")
     assert proc.stdout == f"pq               -> {linked}/p/q\n{linked}/p/q\n0\n"
+
+
+def test_dirs_module_completes_the_word_under_the_cursor(linked):
+    proc = bash(linked, "mark ab; mark cd; COMP_WORDS=(jump ab c); COMP_CWORD=2; _jump_complete jump c ab; "
+                        'echo "${COMPREPLY[*]}"')
+    assert (proc.stdout, proc.stderr) == ("cd\n", "")
 
 
 def test_dirs_module_mark_asks_before_moving_a_bookmark(linked):
@@ -674,7 +682,9 @@ def test_bash_logout_leaves_the_console_alone_in_a_batch_job(linked, tmp_path):
     assert (logout(GITLAB_CI="true"), logout()) == ("", "clear_console -q\n")
 
 
-# ── history (12-history.sh) ───────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# history (12-history.sh)
+# ----------------------------------------------------------------------
 
 HISTORY_ON = "_hist_pane_start\n_hist_log_start\n"
 
@@ -925,7 +935,11 @@ def test_history_unset_or_null_histfile_keeps_commands_out_of_everything(linked)
                         "HISTFILE=/dev/null; history -s secret2; _hist_record; "
                         'grep -rsh secret ~/.hist "$_hist_shared"; echo end', local="_hist_log_start\n")
     assert (proc.stdout, proc.stderr) == ("end\n", "")
-# ── vim ───────────────────────────────────────────────────────────────────
+
+
+# ----------------------------------------------------------------------
+# vim
+# ----------------------------------------------------------------------
 
 
 def vim(home, *commands, before=None):
@@ -1234,7 +1248,9 @@ def test_vim_filetype_module_maps_pbs_scripts_to_sh(linked):
     assert vim(linked, f"edit {linked}/job.pbs", "set filetype?").endswith("filetype=sh")
 
 
-# ── tmux ──────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# tmux
+# ----------------------------------------------------------------------
 
 
 def tmux(home, *args):
@@ -1391,7 +1407,9 @@ def test_tmux_env_follows_the_client_typed_on_last(linked, tmp_path):
             agent.close()
 
 
-# ── git ───────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# git
+# ----------------------------------------------------------------------
 
 
 def git_config(home, *args):
@@ -1519,7 +1537,9 @@ def test_git_global_ignore_and_attributes_are_read(linked, tmp_path):
     assert out == "x.py: diff: python\n"
 
 
-# ── the rest ──────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# the rest
+# ----------------------------------------------------------------------
 
 
 def test_inputrc_is_read_by_readline(linked):
@@ -1680,7 +1700,9 @@ def test_nanorc_has_no_unknown_options(linked):
     assert "Unknown" not in proc.stderr and "Error" not in proc.stderr
 
 
-# ── on a real terminal ────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# on a real terminal
+# ----------------------------------------------------------------------
 
 
 def pty_session(home, typed, before="", local="", seconds=3.0, argv=None):

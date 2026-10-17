@@ -1,8 +1,8 @@
 # Usage
 
-Workflows past the quick start. Every sequence here is a case in
-`tests/examples/` and runs in the long suite. Back to the
-[README](../README.md).
+Workflows past the quick start. A section that names a case in
+`tests/examples/` shows that case, which runs in the long suite. Back to
+the [README](../README.md).
 
 ## A machine that already has dotfiles
 
@@ -35,7 +35,9 @@ dots forget ~/.netrc                    # second thoughts: back to a plain file
 
 `add` takes files, not directories; for a whole tree:
 `find ~/.config/app -type f | xargs dots add`. Modes decide the prefixes:
-600 files become `private_`, executables `executable_`. Check with
+a file with no permission bits for others becomes `private_` (and 600,
+or 700 if executable, after apply: the group bits go too), an executable
+`executable_`. Check with
 `dots managed --show-source` before committing.
 
 ## Trying one tool's configuration first
@@ -147,4 +149,6 @@ Each of these is a case in `tests/examples/failures/`, with the exact text.
 | `dots: ignoring dot_: maps to '.'` on stderr | a source file named only by a prefix | rename it; it would target `~` itself |
 | `dots: error: the following arguments are required: cmd`, exit 2 | no subcommand | `dots --help` |
 | `PermissionError: ... '.dotsignore'`, exit 1 | unreadable ignore file | `chmod 644 .dotsignore`; dots never guesses the ignore list |
+| `dots: dot_bashrc and private_dot_bashrc both map to .bashrc; remove one`, exit 2 | two source files with one target, from any command | `git rm` one of them |
+| `FileNotFoundError: ... 'SRC/dot_vimrc'`, exit 1 | `apply` found a source file that is a symlink to nothing; nothing was linked | fix or remove the link in the source |
 | a `~/.config/app/x` link pointing nowhere | the source was moved or deleted | `dots prune` |

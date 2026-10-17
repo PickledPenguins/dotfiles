@@ -17,9 +17,12 @@ are off, each with its description directly above it.
 
 - **The description** is the comment lines directly above a setting: its
   first sentence says what it is, the rest what it does, what it costs and
-  when you would not want it. A `Needs: PROGRAM` line names what must be
-  installed first, with the oldest version that works where that matters
-  (`Needs: git 2.35+`).
+  when you would not want it. A `Needs: PROGRAM, ...` line names what must
+  be installed first, with the oldest version that works where that
+  matters (`Needs: git 2.35+`), or a file that must exist (`Needs:
+  ~/.gef.py`). Nothing else goes there (the switch-on test reads every
+  item as a program or a path, and `tests/test_options.py` checks it): a
+  prerequisite of another kind is a sentence of the description.
 - **Off** is a setting whose lines each start with the comment character
   directly followed by the code: `#shopt -s histverify`, `"set
   cursorcolumn` in vim, `!Xft.dpi: 96` in `~/.Xresources`. Delete that
@@ -126,7 +129,7 @@ Read-only variables the loader sets for modules and for you:
 |----------|-------|
 | `DOTFILES_DIR` | the source tree (exported) |
 | `DOTFILES_BASH_DIR` | `~/.config/bash` |
-| `DOTFILES_DEBUG` | set to `1` in the environment to print each module and its load time to stderr |
+| `DOTFILES_DEBUG` | set to `1` in the environment to print each module and its load time to stderr (the times need bash 5; bash 4 shows 0 ms) |
 
 ## Vim knobs (`~/.vimrc.before`)
 
@@ -336,7 +339,7 @@ keeps every hook off and leaves out a hook no longer packaged.
 | `test-push` | pre-push | runs `hooks.test` in a clean temporary worktree of each pushed branch tip | `hooks.test` (required) |
 | `perf-push` | pre-push | runs `hooks.perf`, a timing check against a kept baseline, the same way; `test-push` for a check too slow or noisy to want on every push | `hooks.perf` (required) |
 | `protect` | pre-push | refuses deleting or force-pushing a protected branch | `hooks.protect` (`main master`) |
-| `wip-guard` | pre-push | refuses commits whose subject matches `hooks.wipPattern` going to a protected branch, of the ones the remote lacks (every one, pushing to a URL) | `hooks.protect`, `hooks.wipPattern` (`^(wip\|WIP\|fixup!\|squash!\|amend!)`) |
+| `wip-guard` | pre-push | refuses commits whose subject matches `hooks.wipPattern` going to a protected branch, of the ones the remote lacks (every one, pushing to a URL) | `hooks.protect`, `hooks.wipPattern` (`^((wip\|WIP)([^[:alnum:]_]\|$)\|fixup!\|squash!\|amend!)`) |
 | `published` | pre-rebase | refuses to rebase commits a remote-tracking branch holds | |
 | `deps-changed` | post-checkout, post-merge, post-rewrite | names the dependency files (requirements, lock files, `pyproject.toml`, `package.json`, ...) that changed | `hooks.depsFiles` |
 | `pyc-clean` | post-checkout, post-merge, post-rewrite | deletes `__pycache__` outside hidden directories and `node_modules` | |

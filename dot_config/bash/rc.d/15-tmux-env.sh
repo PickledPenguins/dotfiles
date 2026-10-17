@@ -49,5 +49,6 @@ _tmux_env_start() {
 # the first command after a switch of clients still has the old values),
 # apply what the tmux hooks wrote: an X program opens on the screen of the
 # client you typed on, ssh uses its agent. Costs a small read per command.
-# Needs: the setting in ~/.config/tmux/conf.d/45-client-env.conf.
+# Goes with the setting in ~/.config/tmux/conf.d/45-client-env.conf.
+# Needs: tmux
 #_tmux_env_start

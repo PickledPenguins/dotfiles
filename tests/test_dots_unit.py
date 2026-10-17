@@ -8,7 +8,9 @@ from pathlib import Path
 
 import pytest
 
-# ── naming ────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# naming
+# ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("name, expected", [
@@ -75,7 +77,9 @@ def test_source_name_then_parse_name_round_trips_generated_paths(dots):
     assert reserved_seen > 20
 
 
-# ── ignores ───────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# ignores
+# ----------------------------------------------------------------------
 
 
 def test_load_ignores_strips_comments_and_blanks(dots, tmp_path):
@@ -102,7 +106,9 @@ def test_ignored(dots, rel, patterns, expected):
     assert dots.ignored(rel, patterns) is expected
 
 
-# ── entries ───────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# entries
+# ----------------------------------------------------------------------
 
 
 def test_entry_maps_components_and_collects_private_dirs(dots, tmp_path):
@@ -136,11 +142,21 @@ def test_managed_entries_dotfiles_below_the_root_are_managed(dots, src, home):
     assert ".config/.hidden" in [e.rel for e in dots.managed_entries(src, home)]
 
 
+def test_managed_entries_refuses_two_sources_with_one_target(dots, src, home, capsys):
+    (src / "private_dot_bashrc").write_text("")
+    with pytest.raises(SystemExit) as raised:
+        dots.managed_entries(src, home)
+    assert raised.value.code == 2
+    assert capsys.readouterr().err == "dots: dot_bashrc and private_dot_bashrc both map to .bashrc; remove one\n"
+
+
 def test_managed_entries_empty_source(dots, tmp_path, home):
     assert dots.managed_entries(tmp_path, home) == []
 
 
-# ── state ─────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# state
+# ----------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -183,7 +199,9 @@ def test_state_conflict_directory(dots, entry, src):
     assert dots.state(entry, src) == "conflict"
 
 
-# ── modes ─────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# modes
+# ----------------------------------------------------------------------
 
 
 def test_set_mode_private_strips_group_and_other(dots, src, home):
@@ -209,7 +227,9 @@ def test_set_mode_plain_entry_leaves_mode_alone(dots, src, home):
     assert stat.S_IMODE(e.source.stat().st_mode) == 0o640
 
 
-# ── backup ────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# backup
+# ----------------------------------------------------------------------
 
 
 def test_backup_moves_target_keeping_home_relative_path(dots, src, home):
@@ -230,16 +250,18 @@ def test_backup_moves_a_symlink_not_its_referent(dots, src, home):
     assert dest.is_symlink() and (home / "real").read_text() == "keep"
 
 
-# ── selection and source resolution ───────────────────────────────────────
+# ----------------------------------------------------------------------
+# selection and source resolution
+# ----------------------------------------------------------------------
 
 
 def test_selected_matches_exact_target_or_ancestor(dots, src, home):
     e = dots.Entry(src, home, "dot_config/app/settings.ini")
-    assert dots.selected(e, [], home)
-    assert dots.selected(e, [str(home / ".config")], home)
-    assert dots.selected(e, [str(home / ".config" / "app" / "settings.ini")], home)
-    assert not dots.selected(e, [str(home / ".ssh")], home)
-    assert not dots.selected(e, [str(home / ".config" / "app" / "settings")], home)   # prefix, not parent
+    assert dots.selected(e, [])
+    assert dots.selected(e, [str(home / ".config")])
+    assert dots.selected(e, [str(home / ".config" / "app" / "settings.ini")])
+    assert not dots.selected(e, [str(home / ".ssh")])
+    assert not dots.selected(e, [str(home / ".config" / "app" / "settings")])   # prefix, not parent
 
 
 def test_source_dir_prefers_env_then_own_tree_then_home_then_script(dots, home, monkeypatch, tmp_path):
@@ -258,7 +280,9 @@ def test_source_dir_prefers_env_then_own_tree_then_home_then_script(dots, home, 
     assert dots.source_dir() == lone
 
 
-# ── the options format ────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# the options format
+# ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("rel, marker", [

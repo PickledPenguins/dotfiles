@@ -61,7 +61,7 @@ installed() {
     for path in "$dir"/*.d/*; do
         name=${path##*/}
         name=${name%.off}
-        ours "$path" "$name" && echo "$name"
+        if ours "$path" "$name"; then echo "$name"; fi
     done | sort -u
 }
 

@@ -31,28 +31,40 @@ dot_config/systemd/user/        scheduled jobs as user timers, linked but enable
 private_dot_ssh/config          ~/.ssh/config (600) and ~/.ssh/sockets/ for ControlMaster
 dot_local/bin/dots              -> ../../dots: apply puts dots on PATH; unlink takes it off
 dot_local/share/bash-completion/completions/dots   Tab completion for dots
+dot_local/bin/executable_git-hooks   git hooks: install, switch and remove the packaged hooks in a repository
+dot_local/bin/executable_git-ctags   git ctags: a tags file kept up to date by the ctags hook
+dot_local/share/git-hooks/      the 18 packaged hooks and dispatch, the one file git runs per event
 tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, shell-mutants.txt, coveragerc
 tests/run-tests.sh              test runner and gates
 docs/                           this set
 .claude/  .agent/               the coding agent's instructions, handoff and review reports; untracked
 ```
 
+`git hooks` and `git ctags` are bash, on `PATH` as git subcommands, and
+independent of `dots` too: `dots apply` only links them and the catalog
+into place. In a repository, `.git/hooks/EVENT` is a link to `dispatch`,
+which runs each hook in `.git/hooks/EVENT.d/`; a hook is off while its
+name ends in `.off`, and a hook the repository already had moves into
+`EVENT.d` under the event's name. The layout and the commands are in
+[configuration.md](configuration.md#packaged-git-hooks-localsharegit-hooks).
+
 ## `dots`
 
-One file, ~450 lines, in five bands:
+One file, about 400 executable lines, in five bands:
 
 | Band | Functions | Responsibility |
 |------|-----------|----------------|
 | source state | `source_dir`, `parse_name`, `load_ignores`, `ignored`, `Entry`, `managed_entries` | turn the source tree into a sorted list of entries with targets and attributes |
-| target state | `state`, `set_mode`, `backup` | classify one target; apply modes; move a conflict aside |
-| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `cmd_prune`, `cmd_options`, `source_name`, `cmd_add`, `cmd_forget`, `selected` | one function per subcommand, each printing its own report and returning the exit code |
+| target state | `state`, `linked_dir`, `set_mode`, `backup` | classify one target; find a directory above it linked into the source; apply modes; move a conflict aside |
+| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `cmd_prune`, `cmd_options`, `source_name`, `reuse_source_dirs`, `cmd_add`, `cmd_forget`, `selected`, `skip_unmanaged` | one function per subcommand, each printing its own report and returning the exit code |
 | the options format | `OPTIONS_TAG`, `comment_marker`, `Option`, `parse_options` | split a configuration file into settings, their descriptions and their on/off state; used by `cmd_options` and by the tests |
 | entry | `main` | argparse, source resolution, dispatch |
 
 Dependency direction: commands call the state bands; nothing calls a
 command; `main` alone owns argument parsing and the exit status (each
 `cmd_*` returns it). Human output is `print` inside the command functions;
-warnings and the missing-source error go to stderr.
+warnings, the missing-source error and the two-sources-one-target error
+go to stderr.
 
 `dots` has no `.py` suffix so it can sit on `PATH` as a command; the tests
 load it with `SourceFileLoader` (`tests/conftest.py`).

@@ -4,8 +4,9 @@
 # config: hooks.protect hooks.wipPattern
 #
 # A commit whose subject matches hooks.wipPattern, an extended regular
-# expression (default ^(wip|WIP|fixup!|squash!|amend!)), may not reach a
-# branch in hooks.protect (default "main master"). The commits checked are
+# expression (default ^((wip|WIP)([^[:alnum:]_]|$)|fixup!|squash!|amend!),
+# so "wip: x" and "WIP" match and "wipe" does not), may not reach a branch
+# in hooks.protect (default "main master"). The commits checked are
 # the ones the remote does not have yet. A push to a URL checks every commit
 # in the branch's history: the remotes git knows by name say nothing about a
 # URL. Squash them first (git rebase -i --autosquash), or push with
@@ -13,7 +14,7 @@
 set -euo pipefail
 
 read -ra protected <<<"$(git config hooks.protect || echo main master)"
-pattern=$(git config hooks.wipPattern || echo '^(wip|WIP|fixup!|squash!|amend!)')
+pattern=$(git config hooks.wipPattern || echo '^((wip|WIP)([^[:alnum:]_]|$)|fixup!|squash!|amend!)')
 status=0
 while read -r _ local_sha remote_ref remote_sha; do
     branch=${remote_ref#refs/heads/}

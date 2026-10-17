@@ -176,8 +176,8 @@ Exit 0, or 1 when a path selected nothing.
 | Code | When |
 |------|------|
 | 0 | success |
-| 1 | `apply`, `status` or `unlink` named a path that selects nothing; `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path or refused one; `options` matched nothing; an unhandled error (a traceback, such as for an unreadable `.dotsignore`) |
-| 2 | usage error (argparse), or the source directory does not exist |
+| 1 | `apply`, `status` or `unlink` named a path that selects nothing; `apply` left conflicts; `status` found anything not `ok`; `forget` named an unmanaged path or refused one; `options` matched nothing; an unhandled error (a traceback, such as for an unreadable `.dotsignore`, or `apply` meeting a source file that is a broken symlink, before it links anything) |
+| 2 | usage error (argparse); the source directory does not exist; two source files map to one target |
 
 ## Environment
 
@@ -188,9 +188,10 @@ Exit 0, or 1 when a path selected nothing.
 
 ## Input and output
 
-Reports go to stdout; the `dots: source directory ... does not exist`
-error, the `dots: ignoring NAME: maps to '...'` warning and argparse errors
-go to stderr. Nothing is read from stdin. Output is the same whether or
+Reports go to stdout; the `dots: source directory ... does not exist` and
+`dots: A and B both map to TARGET; remove one` errors, the
+`dots: ignoring NAME: maps to '...'` warning and argparse errors go to
+stderr. Nothing is read from stdin. Output is the same whether or
 not stdout is a terminal; there is no color.
 
 ## Files

@@ -24,6 +24,7 @@ dot_local/bin/executable_git-hooks ||| if [[ $target == ../* ]]; then ||| if fal
 dot_local/bin/executable_git-hooks ||| [[ ${path##*/} == "$1" || ${path##*/} == "$1.off" ]] || return 0 ||| : ||| remove_keeps
 dot_local/bin/executable_git-hooks ||| exists "$link" || exists "$link.off" && continue ||| false && continue ||| install_moves
 dot_local/bin/executable_git-hooks ||| [[ $path == "$from" ]] || continue ||| : ||| install_moves or on_needs
+dot_local/bin/executable_git-hooks |||         if ours "$path" "$name"; then echo "$name"; fi |||         ours "$path" "$name" && echo "$name" ||| sorts_last
 
 # git hooks: update and template following the packaged hooks
 dot_local/bin/executable_git-hooks ||| if [[ $was == on ]]; then ||| if false; then ||| update_removes

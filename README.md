@@ -17,7 +17,7 @@ files, one before the modules for knobs and one after for overrides.
 Identity and secrets never enter the repository.
 
 Nothing needs looking up: each file carries the options people commonly
-want for its tool -- about 640 on and 420 off -- each with a description
+want for its tool -- about 660 on and 450 off -- each with a description
 of what it does, what it costs and when not to use it. A setting written
 with its comment character directly in front (`#shopt -s histverify`) is
 off; delete that character to turn it on. `dots options WORD` finds a
@@ -129,6 +129,6 @@ DOTFILES_DEBUG=1 bash -i -c true               # each module and its load time
 - [docs/testing.md](docs/testing.md) -- suites, gates, coverage and mutation numbers, the documentation test
 - [docs/contributing.md](docs/contributing.md) -- where a change goes, what enforces what, recipes
 - [docs/future-work.md](docs/future-work.md) -- known gaps and what was deliberately not built
-- [tests/examples/README.md](tests/examples/README.md) -- the example catalog: 51 runnable cases
+- [tests/examples/README.md](tests/examples/README.md) -- the example catalog: 53 runnable cases
 
 No changelog: the git log is the record.

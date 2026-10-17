@@ -21,7 +21,7 @@
     # access is an https token or credential helper, every push fails with
     # "Permission denied (publickey)": turn it on per machine, in
     # ~/.gitconfig.local under [url "git@github.com:"].
-    # Needs: an ssh key on GitHub
+    # It needs an ssh key on GitHub.
     #pushInsteadOf = https://github.com/
 
     # Every GitHub https URL is fetched over ssh too. Clones then fail on

@@ -14,7 +14,8 @@
 #        ~/.bashrc.before   read FIRST -- DOTFILES_* knobs (each module's header lists its own)
 #        ~/.bashrc.local    read LAST  -- any setting line, overrides, extra aliases, secrets
 #
-# DOTFILES_DEBUG=1 bash -i   prints each module as it loads, with its time.
+# DOTFILES_DEBUG=1 bash -i   prints each module as it loads, with its time
+#                            (bash 5+; bash 4 shows 0 ms).
 
 # Only interactive shells read the rest: scripts, scp and cron stay fast and
 # unaffected.

@@ -21,7 +21,7 @@ CLI = DOCS / "cli.md"
 
 README_MAX_LINES = 150
 
-#: Surface deliberately left undocumented, each with its reason.
+# Surface deliberately left undocumented, each with its reason.
 UNDOCUMENTED_ON_PURPOSE = {
     "DOTFILES_BASH_DIR",     # loader-internal; listed in the read-only table but not a knob
 }
@@ -35,7 +35,9 @@ def all_docs_text():
     return "\n".join(text(p) for p in [README, *sorted(DOCS.glob("*.md"))])
 
 
-# ── dots: commands, flags, exit codes, environment ────────────────────────
+# ----------------------------------------------------------------------
+# dots: commands, flags, exit codes, environment
+# ----------------------------------------------------------------------
 
 
 def subparsers(parser):
@@ -128,7 +130,9 @@ def test_dots_docstring_naming_rules_match_the_concepts_doc(dots):
         assert f"`{prefix}`" in text(DOCS / "concepts.md")
 
 
-# ── knobs, modules, hook files, targets ───────────────────────────────────
+# ----------------------------------------------------------------------
+# knobs, modules, hook files, targets
+# ----------------------------------------------------------------------
 
 
 def bash_module_files():
@@ -200,7 +204,9 @@ def test_every_top_level_target_is_in_the_configuration_doc(dots, home):
         assert f"~/{top}" in config, f"docs/configuration.md lacks the target ~/{top}"
 
 
-# ── packaged git hooks ────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# packaged git hooks
+# ----------------------------------------------------------------------
 
 GIT_HOOKS = REPO / "dot_local/share/git-hooks"
 GIT_EVENTS = {
@@ -268,7 +274,9 @@ def test_bash_modules_named_in_integration_test_match_the_tree():
     assert vim_on_disk == VIM_MODULES
 
 
-# ── README ────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# README
+# ----------------------------------------------------------------------
 
 
 def test_readme_is_short():

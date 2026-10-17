@@ -6,9 +6,9 @@ Back to the [README](../README.md).
 
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
-| `tests/run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (the packaged `test-push` hook, installed switched off by `tests/run-tests.sh hook`; `git hooks on test-push` switches it on) | ~2 s |
-| `tests/run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~130 s |
-| `tests/run-tests.sh all` | both | | ~130 s |
+| `tests/run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (the packaged `test-push` hook, installed switched off by `tests/run-tests.sh hook`; `git hooks on test-push` switches it on) | ~4 s |
+| `tests/run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~140 s |
+| `tests/run-tests.sh all` | both | | ~145 s |
 | `tests/run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `tests/run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
 | `tests/run-tests.sh mutate-shell` | every mutant in `tests/shell-mutants.txt` applied to a copy of the checkout under `.build/mutate-shell` with `breaks-it`, each checked by its own long-test subset or toolkit bats file; **fails if any survives, or if its line is no longer in the file (stale)**; exits 2 first if a TESTS fails with no mutant applied (a `-k` selecting nothing, bats missing), which would read as every mutant caught | on a change to a hook, a bash module, `layout.sh` or the toolkit's git cache | ~6 min |
@@ -33,33 +33,33 @@ Generated files (coverage data) land in `.build/`; the pytest cache is
 disabled. Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
 
-## Numbers (2026-10-10, this machine, measured on the commit that added this line)
+## Numbers (2026-10-16, this machine, measured on the commit that added this line)
 
-- fast: 336 tests, 3.6 s. long: 325 passed and 14 skipped (programs not
-  installed here: conda, sqlite3, ctags, ripgrep, matplotlib in the test
-  interpreter; settings whose `Needs:` program is missing), 131 s, of
-  which the toolkit's 165 bats tests are about 45 s. A gdb
-  built without debuginfod support passes the debuginfod setting.
-- coverage of `dots`: 100% lines (363), 100% branches (154); floor 100.
-- mutation: 51 mutants, 51 caught, 0 survivors. The list is hand-written
+- fast: 440 tests, 3.5 s. long: 386 passed and 6 skipped (programs not
+  installed here: conda, sqlite3, ripgrep, matplotlib in the test
+  interpreter; no loader for `~/.screenrc`; settings whose `Needs:`
+  program is missing), 140 s, of which the toolkit's bats tests are
+  about 45 s. A gdb built without debuginfod support passes the
+  debuginfod setting.
+- coverage of `dots`: 100% lines (392), 100% branches (166); floor 100.
+- mutation: 60 mutants, 60 caught, 0 survivors. The list is hand-written
   (no mutmut here), one mutant per decision in the script: each attribute
   prefix, the ignore matching, the root-dotfile skip, the home-directory
   guard, each state classification, each mode bit, the force/dry-run
   branches, every exit code, the `add` attribute inference, path
   selection, and the options parser and filters. A new branch in `dots`
   needs a line there.
-- shell mutation: 54 mutants, 54 caught, 0 survivors, 0 stale (the 7 for
-  `git hooks update` and `template` run on their own, 2026-10-13): the git
+- shell mutation: 55 mutants, 55 caught, 0 survivors, 0 stale: the git
   hooks and the dispatcher, `git hooks`, the `20-path.sh` helpers and
   `path_clash`, `up`, `bd`, `cdg`, `retry`, `_title_arm`, `_venv_auto`, the
   prompt rows in `layout.sh`, and the toolkit's git cache and collector
   touch. The first runs had 5 survivors; four tests were added and one
-  equivalent mutant dropped (the list says which). ~6 min.
+  equivalent mutant dropped (the list says which). ~6.5 min.
 - performance (2026-10-13, 4 cores, load 0.5): an interactive start 70 ms
   median (68 to 74 over 15), a warm `prompt_build` 13.5 ms in this
   repository, 16 ms with a stub `tmux`, 12 ms outside git; `perf` takes
   ~6 s. `dots apply` on
-  this repository (76 targets) is ~60 ms, not gated.
+  this repository (112 targets, 2026-10-16) is ~85 ms, not gated.
 
 ## Layout
 
@@ -75,8 +75,8 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order, failure and stdin rules; each packaged hook refusing and passing; `update` following the packaged hooks as they change; the template `git hooks template` writes matching what install leaves; `git ctags` on top | long |
 | `tests/test_runner.py` | `tests/run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` and `perf` need none | fast |
 | `tests/perf.py`, `tests/test_perf.py` | the `perf` gate; its baseline and verdict with the timing replaced (fast), one real measurement (long) | fast + long |
-| `tests/test_examples.py` | the example catalog: 51 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
-| `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 11; each with `README.md`, `case.sh`, `expected.txt` | |
+| `tests/test_examples.py` | the example catalog: 53 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
+| `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 14; each with `README.md`, `case.sh`, `expected.txt` | |
 | `tests/mutants.txt`, `tests/shell-mutants.txt`, `tests/coveragerc` | the gates | |
 
 Integration tests for programs not installed skip by name

@@ -8,7 +8,9 @@ import time
 import pytest
 
 
-# ── nothing outside the plan is ever deleted ──────────────────────────────
+# ----------------------------------------------------------------------
+# nothing outside the plan is ever deleted
+# ----------------------------------------------------------------------
 
 
 def test_apply_never_deletes_a_real_file_without_force(run, home):
@@ -84,6 +86,12 @@ def test_unwritable_directory_halfway_through_apply_raises_naming_it(run, src, h
     assert (src / "dot_config" / "app" / "settings.ini").read_text() == "[app]\n"
 
 
+def test_a_broken_link_in_the_source_stops_apply_before_any_change(run, src, home):
+    (src / "dot_zz").symlink_to("nowhere")
+    with pytest.raises(FileNotFoundError) as raised:
+        run("apply")
+    assert raised.value.filename == str(src / "dot_zz")
+    assert list(home.iterdir()) == []
 def test_unwritable_backup_root_under_force_raises_and_moves_nothing(run, src, home):
     if os.geteuid() == 0:
         pytest.skip("root writes everything")
@@ -136,7 +144,9 @@ def test_add_refuses_paths_that_escape_home_via_dotdot(run, src, home, tmp_path)
     assert outside.read_text() == "o\n"
 
 
-# ── the home directory itself is never a target ───────────────────────────
+# ----------------------------------------------------------------------
+# the home directory itself is never a target
+# ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("name", ["dot_", "private_", "executable_"])
@@ -158,7 +168,9 @@ def test_a_directory_named_dot_is_ignored_with_its_contents(run, src, home):
     assert "./x" not in out
 
 
-# ── modes ─────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# modes
+# ----------------------------------------------------------------------
 
 
 def test_private_file_is_unreadable_by_others_after_apply(run, src, home):
@@ -176,7 +188,9 @@ def test_add_infers_private_from_the_absence_of_other_bits(run, src, home, mode,
     assert out == f"add       .f  ->  {prefix}f\n"
 
 
-# ── pathological names ────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# pathological names
+# ----------------------------------------------------------------------
 
 
 def test_names_with_spaces_unicode_and_odd_characters(run, src, home):

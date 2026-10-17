@@ -13,7 +13,9 @@ import pytest
 
 from conftest import DOTS, REPO, run_subprocess
 
-# ── managed ───────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# managed
+# ----------------------------------------------------------------------
 
 
 def test_managed_lists_targets_in_order(run, home):
@@ -29,7 +31,9 @@ def test_managed_show_source(run, src, home):
     assert out.splitlines()[-1] == str(src / "private_dot_ssh" / "config")
 
 
-# ── apply ─────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# apply
+# ----------------------------------------------------------------------
 
 
 def test_apply_links_everything_and_reports_count(run, src, home):
@@ -133,7 +137,9 @@ def test_apply_reasserts_modes_on_already_linked_files(run, src, home):
     assert stat.S_IMODE((src / "private_dot_ssh" / "config").stat().st_mode) == 0o600
 
 
-# ── status ────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# status
+# ----------------------------------------------------------------------
 
 
 def test_status_lists_problems_with_summary_and_exit_1(run, home):
@@ -171,7 +177,9 @@ def test_status_restricted_to_a_path(run, home):
     assert run("status", str(home / ".ssh")) == (1, "missing     .ssh/config\nmissing: 1\n", "")
 
 
-# ── unlink ────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# unlink
+# ----------------------------------------------------------------------
 
 
 def test_unlink_removes_only_our_links(run, src, home):
@@ -199,7 +207,9 @@ def test_unlink_dry_run(run, home):
     assert (home / ".bashrc").is_symlink()
 
 
-# ── add ───────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# add
+# ----------------------------------------------------------------------
 
 
 def test_add_moves_files_and_infers_attributes(run, src, home):
@@ -307,7 +317,9 @@ def test_add_skips_symlinks_directories_outsiders_and_existing(run, src, home, t
     assert (src / "dot_bashrc.new").read_text() == "already\n"
 
 
-# ── forget ────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# forget
+# ----------------------------------------------------------------------
 
 
 def test_forget_leaves_a_real_copy_and_removes_the_source(run, src, home):
@@ -371,7 +383,9 @@ def test_a_directory_path_that_holds_a_target_is_not_skipped(run, home):
     assert (code, "skip" in out) == (0, False)
 
 
-# ── process-level behavior ────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# process-level behavior
+# ----------------------------------------------------------------------
 
 
 def test_no_subcommand_is_a_usage_error(home, src):
@@ -450,7 +464,9 @@ def test_exit_status_propagates_from_main(home, src):
     assert run_subprocess(home, src, "apply", "--force").returncode == 0
 
 
-# ── prune ─────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# prune
+# ----------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -506,7 +522,9 @@ def test_prune_with_nothing_managed(run, tmp_path, home):
     assert run("prune", source=empty) == (0, "0 dangling link(s) removed\n", "")
 
 
-# ── options ───────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# options
+# ----------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -567,7 +585,9 @@ def test_options_on_and_off_together_is_a_usage_error(home, src):
     assert proc.returncode == 2 and "not allowed with argument" in proc.stderr
 
 
-# ── dots on PATH, and its completion ──────────────────────────────────────
+# ----------------------------------------------------------------------
+# dots on PATH, and its completion
+# ----------------------------------------------------------------------
 
 COMPLETION = REPO / "dot_local/share/bash-completion/completions/dots"
 

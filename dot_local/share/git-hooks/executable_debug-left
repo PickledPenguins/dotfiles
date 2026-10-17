@@ -7,7 +7,7 @@
 # binding.pry. A line holding the text hooks:allow-debug is not checked.
 set -euo pipefail
 
-found=$(git diff --cached -U0 --no-color --no-ext-diff --no-renames --diff-filter=AM |
+found=$(git diff --cached -U0 --no-color --no-ext-diff --no-renames --diff-filter=AM --src-prefix=a/ --dst-prefix=b/ |
     awk '/^\+\+\+ /{file = substr($0, 7); next} /^\+/{print file ": " substr($0, 2)}' |
     grep -v 'hooks:allow-debug' |
     grep -E '\bbreakpoint\(\)|\bi?pdb\.set_trace\(|^[^:]*: *(import|from) i?pdb\b|\bdebugger *;|\bbinding\.pry\b' || true)

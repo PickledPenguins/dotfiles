@@ -10,11 +10,14 @@ Names match the code. Back to the [README](../README.md).
   It mirrors `$HOME`: a path inside it names a path in the home directory.
 - **target** -- the path in `$HOME` a source file maps to. `dot_bashrc` has
   the target `~/.bashrc`; `dot_config/git/core.gitconfig` has
-  `~/.config/git/core.gitconfig`.
+  `~/.config/git/core.gitconfig`. Each target has one source file: two
+  that map to one target (`dot_bashrc` and `private_dot_bashrc`) make
+  every command refuse the tree, exit 2.
 - **attribute prefix** -- a prefix on any path component, stripped to get
   the target name and remembered as a property of the entry:
-  `dot_` (leading dot), `private_` (mode 600 for a file, 700 for a
-  directory and everything below it), `executable_` (owner execute bit).
+  `dot_` (leading dot), `private_` (group and other permissions removed:
+  600 for an ordinary file; 700 for a directory and everything below it),
+  `executable_` (owner execute bit).
   Prefixes stack in any order: `private_executable_dot_x`. A home file
   whose own name starts with a prefix word (`~/private_notes`,
   `~/bin/dot_env`) cannot be managed: its name would be read as an

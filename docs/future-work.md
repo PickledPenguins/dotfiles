@@ -59,6 +59,20 @@ here is scheduled; an item is cited by its label. Back to the
   clone's `apply` links `$HOME` into the clone, and deleting it leaves the
   links dangling. Printing the tree used (the other shape) was not built.
 
+- **F.1.j  `add` exits 0 when every path was skipped.**  Open, the
+  owner's call. `cmd_add` (`dots`) returns 0 whatever happened: a path
+  outside `$HOME`, a directory, a symlink, a prefix-word name, an ignored
+  path or one whose source already exists each print a `skip` line and
+  the run still exits 0, so `dots add ~/x && git commit` cannot tell
+  that nothing was added. `forget`, and `apply`, `status` and `unlink`
+  given a path that selects nothing (F.1.g), exit 1 for the same kind
+  of miss. `docs/cli.md` calls `add`'s skips deliberate ("skips are not
+  errors"), so this is a design choice, not drift, and changing it
+  changes a documented exit status. The fix would be `return 1` when any
+  path was skipped, with the `cli.md` exit table, the `add` catalog cases
+  that end in a skip (`failures/06`, `07`) and their `expected.txt`
+  updated. From the 2026-10-17 creview.
+
 ## F.2 configuration
 
 - **F.2.a  A `dots doctor`** that runs the integration checks against the
@@ -260,6 +274,20 @@ here is scheduled; an item is cited by its label. Back to the
   its header with no match; `port` printed a header with no match. What
   is still open there is in linuxbin's `docs/future-work.md` (F.1.a-c).
 
+- **F.2.am  `git hooks` needs git 2.31, and nothing says so.**  Open,
+  the owner's call. `hooks_dir` in `dot_local/bin/executable_git-hooks`
+  runs `git rev-parse --path-format=absolute --git-path hooks`, an
+  option git 2.31 added; on an older git, common on HPC login nodes, every
+  `git hooks` command (and `git ctags`, which calls it) stops with git's
+  usage error. The README's prerequisites say only "git", and
+  `configuration.md`'s packaged-hooks section gives no floor. Two shapes:
+  state `git 2.31+ for git hooks and git ctags` in the README install line
+  and the packaged-hooks section; or drop the option, taking
+  `git rev-parse --git-path hooks` and making it absolute in the shell
+  (`cd` and `pwd`, the path being relative to the current directory),
+  which keeps every older git working at the cost of a few lines. From
+  the 2026-10-17 creview and creadme.
+
 ## F.3 tests
 
 - **F.3.a  mutmut or cosmic-ray** instead of the hand-written mutant list,
@@ -364,6 +392,45 @@ here is scheduled; an item is cited by its label. Back to the
   lacks. The header and `configuration.md` say so, and a test pushes to a
   URL.
 
+- **F.3.i  No example cases for `git hooks` and `git ctags`.**  Open.
+  All 53 catalog cases drive `dots`; `git hooks` (install, on, off,
+  remove, update, template, over a hook the repository had, in a
+  worktree) and `git ctags` are covered by `tests/test_git_hooks.py`
+  alone, with scenarios chosen by the test's author. The `remove` that
+  exited 1 silently when the old hook sorted last in `EVENT.d` (fixed
+  2026-10-17) is what a user-shaped case finds. About five cases would
+  do: a project with a tracked `pre-push` gate taken through install,
+  on, remove and back to the start; `update` after a hook is dropped;
+  `git ctags` and `git ctags off`; and `failures/` cases for the refusals
+  (`hooks.test` unset, a hook and its `.off` both present). Not built
+  here: the catalog's harness puts `dots` on `PATH` in a fresh `HOME`,
+  and a second command in it is a decision about what the catalog is
+  for. From the 2026-10-17 ctesting audit.
+- **F.3.j  `~/.screenrc`'s off settings are never loaded.**  Open.
+  `test_every_file_in_the_format_has_a_loader_or_says_why_not` exempts
+  it, since screen checks a file only with a terminal, so its 4 off
+  settings are the only ones the switch-on test never loads. The
+  `pty_output` helper the nano loader uses could start `screen -c FILE`
+  on a pty and read the error line, at the cost of a few seconds and a
+  pty-dependent test. From the 2026-10-17 ctesting audit.
+- **F.3.k  `tests/test_config_integration.py` is one 1830-line file.**
+  Open. It covers bash, vim, tmux, git, ssh, readline, gdb, curl, wget,
+  python, xrdb and nano; the layout rule is integration tests split by
+  subject. The split is per program (`test_bash_integration.py`,
+  `test_vim_integration.py`, ...), with `BASH_MODULES` and `VIM_MODULES`
+  moving with their tests and `docs/testing.md`'s layout table and the
+  shell-mutant `-k` expressions checked. Not done here: a large move with
+  several reasonable groupings, best done when the file is next worked
+  on. From the 2026-10-17 ctesting audit.
+- **F.3.l  The numbers in `docs/testing.md` and the README drift.**
+  Open. The test counts, times, coverage figures, mutant counts and the
+  README's on/off setting counts were all stale by 2026-10-17 (re-measured
+  then); nothing checks them. Counts that do not depend on the machine
+  (mutants in `tests/mutants.txt` and `tests/shell-mutants.txt`, catalog
+  cases per level, `dots options` on/off totals to the nearest ten) could
+  be asserted by `tests/test_docs.py`; times and test counts cannot
+  without a dated measurement. From the 2026-10-17 creadme audit.
+
 ## F.4 housekeeping
 
 Things done by hand outside the repository, moved from the 2026-09-20
@@ -434,3 +501,11 @@ handoff.
   `~/.dotfiles/dots`. A pytest run outside the runner still leaves
   `.pytest_cache/` and `.benchmarks/` in the root; the runner turns both
   off.
+
+- **F.4.f  The README has no version line.**  Open, the owner's call.
+  The workspace convention is a README versioned in its own header
+  (`**Version N**`), and house-lint R6 flags its absence; this repository
+  has never had a version, a tag or a release. Either add `**Version
+  0.1**` under the title and bump it as the tree changes, or record here
+  that a home directory is not released and is exempt. From the
+  2026-10-17 creview and creadme.

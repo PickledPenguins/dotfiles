@@ -76,7 +76,6 @@ def src(tmp_path):
 @pytest.fixture
 def run(dots, src, capsys):
     """Call the CLI in-process against `src`; returns (exit code, stdout, stderr)."""
-
     def _run(*args, source=None):
         code = dots.main(["-S", str(source or src), *args])
         out = capsys.readouterr()

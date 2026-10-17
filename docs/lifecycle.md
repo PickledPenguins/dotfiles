@@ -65,7 +65,8 @@ valid links, broken links elsewhere, files -- is untouched.
 1. bash reads `~/.bash_profile` (login) or `~/.bashrc` (interactive
    non-login). `~/.bash_profile` sources `~/.profile` (PATH and locale, in
    POSIX sh), then `~/.config/bash/profile.d/*.sh` if the directory exists,
-   then `~/.bashrc`.
+   then `~/.bashrc`; last, when `95-override.sh` found a read-only variable
+   listed in `DOTFILES_OVERRIDE`, the shell swap it deferred to here.
 2. `~/.bashrc` returns immediately for a non-interactive shell.
 3. It sets `DOTFILES_BASH_DIR` (`~/.config/bash`) and exports `DOTFILES_DIR`
    (the source tree, found by resolving `~/.bashrc` itself).
@@ -74,7 +75,10 @@ valid links, broken links elsewhere, files -- is untouched.
    in **`~/.config/bash/disabled`** (`.off` files are not matched by the
    glob at all). With `DOTFILES_DEBUG=1` each module's name and load time
    go to stderr.
-6. The last module, `90-local.sh`, sources **`~/.bashrc.local`** if present.
+6. `90-local.sh` sources **`~/.bashrc.local`** if present; then
+   `95-override.sh`, the last module, sets and unsets the variables listed
+   in `DOTFILES_OVERRIDE` (replacing the shell when one is read-only, or
+   in a login shell leaving that to `~/.bash_profile`).
 7. On each prompt, `PROMPT_COMMAND` runs. Each module prepends its entry,
    so the later module runs earlier:
    `_title_prompt;prompt_build;_prompt_gap;history -a` by default, with

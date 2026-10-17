@@ -9,6 +9,8 @@ return [l for l in lines if l and not l.startswith("#")] ||| return [l for l in 
 if any(fnmatch.fnmatch(prefix, p) for p in patterns): ||| if any(fnmatch.fnmatch(parts[i - 1], p) for p in patterns):
 if name.startswith(".") and rel_root == Path("."): ||| if name.startswith("."):
 if any(part in ("", ".", "..") for part in entry.rel.split("/")): ||| if False:
+if other is not entry: ||| if False:
+entry.source.stat()             # a broken link in the source stops apply here, before any change ||| pass
 if link == str(entry.source): ||| if link == str(entry.source) or True:
 if link.startswith(str(src) + os.sep): ||| if link.startswith(str(src)):
 mode &= ~(stat.S_IRWXG | stat.S_IRWXO) ||| mode &= ~stat.S_IRWXO
@@ -59,4 +61,4 @@ if (own / IGNORE_FILE).is_file(): ||| if not (own / IGNORE_FILE).is_file():
 return 1 if conflicts or missed else 0 ||| return 1 if conflicts else 0
 return 0 if set(counts) <= {"ok"} and not missed else 1 ||| return 0 if set(counts) <= {"ok"} else 1
 return 1 if missed else 0 ||| return 0
-missed = [p for p in paths if not any(selected(e, [p], home) for e in entries)] ||| missed = [p for p in paths if not all(selected(e, [p], home) for e in entries)]
+missed = [p for p in paths if not any(selected(e, [p]) for e in entries)] ||| missed = [p for p in paths if not all(selected(e, [p]) for e in entries)]
