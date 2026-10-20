@@ -5,11 +5,12 @@ applied this checkout to, so each tool runs as `git NAME` from where `dots
 apply` links it, with the git configuration this checkout ships.
 """
 
+import re
 import shutil
 
 import pytest
 
-from test_config_integration import git_script
+from test_config_integration import bash, git_script
 
 pytestmark = pytest.mark.long
 
@@ -115,3 +116,73 @@ def test_scrub_help_and_range_diff_aliases(linked):
     assert proc.stdout.splitlines()[0] == "usage: git scrub [--path RE]... [--trailer RE]... [--messages FILE] " \
                                           "[--words FILE] [--backup DIR] [--filter-branch] [--dry-run]"
     assert "1:  " in proc.stdout and " ! 1:  " in proc.stdout, proc.stderr
+
+
+# ----------------------------------------------------------------------
+# git each, git wt
+# ----------------------------------------------------------------------
+
+def test_each_and_wt_complete_in_an_interactive_shell(linked):
+    proc = bash(linked, "export GIT_AUTHOR_NAME=T GIT_AUTHOR_EMAIL=t@example.com GIT_COMMITTER_NAME=T "
+                        "GIT_COMMITTER_EMAIL=t@example.com; git init -q r && cd r && git commit -q --allow-empty -m a && "
+                        "git branch other && git wt new side >/dev/null && __load_completion git; "
+                        'c() { COMP_WORDS=("$@"); COMP_CWORD=$(($# - 1)); COMP_LINE="$*"; COMP_POINT=${#COMP_LINE}; '
+                        'COMPREPLY=(); __git_wrap__git_main; echo "${COMPREPLY[*]}"; }; '
+                        'c git wt ""; c git wt rm ""; c git wt rm -; c git wt new o; c git each -')
+    assert [line.split() for line in proc.stdout.splitlines()] == [
+        ["new", "ls", "rm", "cd"], ["main", "side"], ["-f"], ["other"], ["-k"]], proc.stderr
+
+
+# A pushed base, then three commits that set n to 2, 3 and 4
+EACH_REPO = (
+    "git init -q --bare origin.git && git init -q -b main r && cd r && git remote add origin ../origin.git && "
+    "mkdir sub && echo 1 >sub/n && git add . && git commit -q -m base && git push -q -u origin main 2>/dev/null && "
+    "for i in 2 3 4; do echo $i >sub/n && git commit -q -a -m \"set $i\"; done && "
+    "echo dirty >sub/n && touch new && cd sub && "
+)
+
+
+def test_each_runs_at_every_commit_stops_at_a_failure_and_leaves_the_work_tree(linked):
+    check = "-- sh -c 'cat n; pwd; test $(cat n) != 3'"
+    proc = sh(linked, EACH_REPO + f"git each {check}; echo exit $?; git each -k {check}; echo exit $?; "
+                                  "cd .. && git status --short && git worktree list | wc -l")
+    lines = [re.sub(r"^[0-9a-f]{7,}  ", "", line) for line in proc.stdout.splitlines()]
+    assert lines[:3] == ["PASS  set 2", "FAIL  set 3", "    3"], proc.stderr
+    assert lines[3].endswith("/wt/sub") and lines[4] == "exit 1"
+    assert lines[5:8] == ["PASS  set 2", "FAIL  set 3", "    3"]
+    assert lines[9:] == ["PASS  set 4", "exit 1", " M sub/n", "?? new", "1"]
+
+
+def test_each_takes_a_range_and_refuses_bad_ones(linked):
+    proc = sh(linked, EACH_REPO + "git each HEAD~.. -- true | cut -c10-; git each HEAD..HEAD -- true; echo $?; "
+                                  "git each nope -- true; echo $?; git each; echo $?; git each -x -- true; echo $?")
+    assert proc.stdout == "PASS  set 4\n1\n1\n2\n2\n"
+    assert proc.stderr == ("git each: no commits in HEAD..HEAD\nfatal: bad revision 'nope'\n"
+                           "usage: git each [-k] [RANGE] -- CMD...\nusage: git each [-k] [RANGE] -- CMD...\n")
+
+
+def test_wt_new_ls_rm_and_cd_with_the_cdw_function(linked):
+    proc = sh(linked, "git init -q --bare origin.git && git init -q -b main app && cd app && "
+                      "git remote add origin ../origin.git && git commit -q --allow-empty -m one && "
+                      "git push -q -u origin main 2>/dev/null && git branch remote && git push -q origin remote 2>/dev/null && "
+                      "git branch -q -D remote && git commit -q --allow-empty -m two && "
+                      "git wt new feat/x && git wt new remote >/dev/null && git wt new side HEAD~ >/dev/null && "
+                      "git wt new side main; echo $?; touch ../app.wt/feat/x/u && git wt ls | sed \"s|$HOME|~|\"; "
+                      "git rev-parse --abbrev-ref remote@{upstream} side; git wt rm feat/x; echo $?; "
+                      "git wt rm -f feat/x && ls ../app.wt; git wt rm main; echo $?; git wt cd nope; echo $?; "
+                      "git wt cd side; git wt cd; git wt x; echo $?")
+    assert proc.stdout == (
+        f"{linked}/app.wt/feat/x\n1\n"
+        "main    clean       +1 -0     ~/app\n"
+        "feat/x  1 changed   -         ~/app.wt/feat/x\n"
+        "remote  clean       +0 -0     ~/app.wt/remote\n"
+        "side    clean       -         ~/app.wt/side\n"
+        "origin/remote\nside\n1\nremote\nside\n1\n1\n"
+        f"{linked}/app.wt/side\n{linked}/app\n2\n"), proc.stderr
+    assert "git wt: side exists; BASE is only for a new branch\n" in proc.stderr
+    assert "contains modified or untracked files, use --force to delete it" in proc.stderr
+    assert "git wt: main is checked out in the main worktree\ngit wt: no worktree on nope\n" in proc.stderr
+    cdw = bash(linked, "export GIT_AUTHOR_NAME=T GIT_AUTHOR_EMAIL=t@example.com GIT_COMMITTER_NAME=T "
+                       "GIT_COMMITTER_EMAIL=t@example.com; cd app.wt/side/ && cdw remote && pwd && cdw && pwd; "
+                       "cdw nope; echo $?; pwd")
+    assert cdw.stdout == f"{linked}/app.wt/remote\n{linked}/app\n1\n{linked}/app\n", cdw.stderr

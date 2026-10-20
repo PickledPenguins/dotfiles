@@ -17,6 +17,8 @@ They need git 2.30 or newer; `git scrub`, `git resolve` and
 | Command | Does |
 |---------|------|
 | [`git scrub`](#git-scrub-rewrite-history) | rewrite every branch and tag to drop paths, message lines and words |
+| [`git each`](#git-each-run-a-command-at-each-commit) | run a command at each commit of a range, in a temporary worktree |
+| [`git wt`](#git-wt-a-worktree-per-branch) | one worktree per branch beside the repository; `cdw` goes there |
 | [`git rd`, `git rdu`](#git-rd-and-git-rdu-compare-two-versions-of-a-series) | aliases for `range-diff` |
 
 ## `git scrub`: rewrite history
@@ -68,6 +70,48 @@ fails if the remote moved since the last fetch; a tag with a lease on its
 old value, on every remote. Annotated tag messages, the stash and the
 remote-tracking refs are not rewritten. If a check fails, `git scrub`
 exits 1 and prints the command that restores every ref from the bundle.
+
+## `git each`: run a command at each commit
+
+```sh
+git each -- make test                     # each commit not yet pushed
+git each -k main..topic -- sh -c 'make && make check'
+```
+
+Checks out each commit of the range (default `@{upstream}..HEAD`), oldest
+first, in a worktree of its own under `$TMPDIR`, cleans it with
+`git clean -ffdx`, and runs the command there, in the subdirectory you
+started from when that commit has it. One line per commit; a failed
+commit's output follows its line, indented:
+
+```
+3f2a1c9  PASS  Add the parser
+8d01b7e  FAIL  Use the parser
+    test_parser.py::test_empty FAILED
+```
+
+It stops at the first failure unless `-k`. The command is a program and
+its arguments; shell code goes through `sh -c`. Your work tree, index and
+stash are not touched, hooks do not run in the temporary worktree, and the
+worktree is removed at the end, also when interrupted. Exit 1 when the
+command failed at any commit, or when the range is empty or bad.
+
+## `git wt`: a worktree per branch
+
+| Command | Does |
+|---------|------|
+| `git wt new BRANCH [BASE]` | a worktree on `BRANCH` at `REPO.wt/BRANCH`, its path printed; a new `BRANCH` starts at `BASE`, or else at the one remote branch of that name (tracking it), or else at `HEAD` |
+| `git wt ls` | each worktree: branch, `clean` or `N changed` (untracked files count), `+ahead -behind` its upstream (`-` without one), path |
+| `git wt rm [-f] BRANCH` | remove `BRANCH`'s worktree, then `git worktree prune` and the directories left empty; git refuses changed or untracked files unless `-f`; the branch stays |
+| `git wt cd [BRANCH]` | print the path of `BRANCH`'s worktree, or of the main one |
+
+`REPO` is the main worktree's directory: the worktrees of `~/src/app` are
+under `~/src/app.wt/`, beside it, so tools that search upward from a
+worktree do not find the main repository around it. A program cannot
+change its caller's directory, so the shell function `cdw [BRANCH]`
+(`40-functions.sh`) does `cd "$(git wt cd BRANCH)"`. Tab completes
+branch names after `new`, and the branches in a worktree after `rm` and
+`cd`.
 
 ## `git rd` and `git rdu`: compare two versions of a series
 

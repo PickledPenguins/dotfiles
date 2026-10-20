@@ -47,6 +47,10 @@ cdf() { cd -- "$(dirname -- "${1:?cdf FILE}")" || return; }
 # to SUBDIR below it.
 cdg() { local top; top=$(git rev-parse --show-toplevel) && cd -- "$top${1:+/$1}" || return; }
 
+# cdw [BRANCH]: go to the worktree on BRANCH, or to the main worktree
+# (git wt cd, ~/.local/bin/git-wt).
+cdw() { local dir; dir=$(git wt cd "$@") && cd -- "$dir" || return; }
+
 # ── Running commands ──────────────────────────────────────────────────────
 
 # retry N CMD...: run CMD until it succeeds, at most N times, 1 s apart.

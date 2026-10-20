@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# git-each: run a command at each commit of a range, in a temporary worktree.
+#
+#   git each [-k] [RANGE] -- CMD...
+#
+# Checks out each commit of RANGE (default @{upstream}..HEAD), oldest
+# first, in a worktree of its own under $TMPDIR, cleans it (git clean
+# -ffdx) and runs CMD there, in the subdirectory git each was started
+# from when the commit has it. Prints one line per commit:
+#
+#   3f2a1c9  PASS  Add the parser
+#   8d01b7e  FAIL  Use the parser
+#
+# with a failed commit's output below its line, indented. It stops at the
+# first failure; -k keeps going. CMD is a command and its arguments, not
+# shell code: write `-- sh -c 'make && make test'` for that. The work tree
+# and the index here are never touched, hooks do not run in the temporary
+# worktree, and it is removed at the end, interrupted or not.
+#
+# Exit 0 when CMD passed at every commit, 1 when it failed at one or git
+# failed, 2 on a usage error. git turns "git each --help" into "git help
+# each": use -h.
+set -euo pipefail
+
+usage() { echo "usage: git each [-k] [RANGE] -- CMD..." >&2; exit 2; }
+
+keep_going='' range=''
+while (( $# )); do
+    case $1 in
+        -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"; exit 0 ;;
+        -k) keep_going=1 ;;
+        --) shift; break ;;
+        -*) usage ;;
+        *) [[ -z $range ]] || usage; range=$1 ;;
+    esac
+    shift
+done
+(( $# )) || usage
+range=${range:-@\{upstream\}..HEAD}
+
+commits=$(git rev-list --reverse "$range" --) || exit 1
+[[ -n $commits ]] || { echo "git each: no commits in $range" >&2; exit 1; }
+prefix=$(git rev-parse --show-prefix)
+
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/git-each.XXXXXX")
+wt=$tmp/wt
+# shellcheck disable=SC2329  # run by the EXIT trap
+cleanup() {
+    git worktree remove --force "$wt" 2>/dev/null || true
+    command rm -rf "$tmp"
+    git worktree prune
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+git -c core.hooksPath=/dev/null worktree add -q --detach "$wt" "${commits%%$'\n'*}" || exit 1
+
+failed=0
+for commit in $commits; do
+    git -C "$wt" -c core.hooksPath=/dev/null checkout -q --force --detach "$commit" || exit 1
+    git -C "$wt" clean -q -ffdx || exit 1
+    dir=$wt/$prefix
+    [[ -d $dir ]] || dir=$wt
+    short=$(git rev-parse --short "$commit") subject=$(git log -1 --format=%s "$commit")
+    if (cd "$dir" && "$@") >"$tmp/out" 2>&1 </dev/null; then
+        printf '%s  PASS  %s\n' "$short" "$subject"
+    else
+        printf '%s  FAIL  %s\n' "$short" "$subject"
+        sed 's/^/    /' "$tmp/out"
+        failed=1
+        [[ -n $keep_going ]] || break
+    fi
+done
+exit "$failed"

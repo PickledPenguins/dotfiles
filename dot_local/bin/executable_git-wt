@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# git-wt: worktrees, one per branch, beside the repository.
+#
+#   git wt new BRANCH [BASE]   a worktree on BRANCH at REPO.wt/BRANCH; BRANCH
+#                              is made from BASE (default HEAD, or the one
+#                              remote branch of that name) when it is new
+#   git wt ls                  each worktree: branch, clean or N changed,
+#                              ahead and behind its upstream, path
+#   git wt rm [-f] BRANCH      remove BRANCH's worktree and prune, refusing
+#                              changed or untracked files unless -f (the
+#                              branch stays)
+#   git wt cd [BRANCH]         print the path of BRANCH's worktree, or of the
+#                              main one
+#
+# REPO is the main worktree's directory, so the worktrees of ~/src/app are
+# under ~/src/app.wt/. The cdw shell function (40-functions.sh) goes to
+# the path git wt cd prints. git wt new prints the new path.
+#
+# Exit 0 on success, 1 when git refuses or there is no such worktree, 2 on
+# a usage error. git turns "git wt --help" into "git help wt": use -h.
+set -euo pipefail
+
+usage() {
+    echo "usage: git wt new BRANCH [BASE] | ls | rm [-f] BRANCH | cd [BRANCH]" >&2
+    exit 2
+}
+die() { echo "git wt: $*" >&2; exit 1; }
+
+# The main worktree's directory: the common git directory without /.git,
+# or without .git for a bare repository.
+main_dir() {
+    local common
+    common=$(git rev-parse --path-format=absolute --git-common-dir)
+    common=${common%/.git}
+    echo "${common%.git}"
+}
+
+# "PATH<TAB>BRANCH" for each worktree, BRANCH empty when detached or bare
+worktrees() {
+    git worktree list --porcelain | awk '
+        /^worktree / { if (path != "") print path "\t" branch; path = substr($0, 10); branch = "" }
+        /^branch refs\/heads\// { branch = substr($0, 19) }
+        END { if (path != "") print path "\t" branch }'
+}
+
+path_of() {
+    local path branch
+    while IFS=$'\t' read -r path branch; do
+        [[ $branch == "$1" ]] && { echo "$path"; return; }
+    done < <(worktrees)
+    die "no worktree on $1"
+}
+
+new() {
+    local branch=$1 base=${2-} path remotes
+    git check-ref-format --branch "$branch" >/dev/null || exit 1
+    path=$(main_dir).wt/$branch
+    if git show-ref -q --verify "refs/heads/$branch"; then
+        [[ -z $base ]] || die "$branch exists; BASE is only for a new branch"
+        git worktree add -q "$path" "$branch" || exit 1
+    elif [[ -n $base ]]; then
+        git worktree add -q -b "$branch" "$path" "$base" || exit 1
+    else
+        remotes=$(git for-each-ref --format='%(refname:short)' "refs/remotes/*/$branch")
+        if [[ -n $remotes && $remotes != *$'\n'* ]]; then
+            git worktree add -q --track -b "$branch" "$path" "$remotes" || exit 1
+        else
+            git worktree add -q -b "$branch" "$path" HEAD || exit 1
+        fi
+    fi
+    echo "$path"
+}
+
+ls_() {
+    local path branch state counts width=0 rows=()
+    while IFS=$'\t' read -r path branch; do
+        if [[ ! -d $path ]]; then
+            state=missing counts=''
+        elif [[ $(git -C "$path" rev-parse --is-inside-work-tree 2>/dev/null) != true ]]; then
+            continue                                    # a bare repository
+        else
+            state=$(git -C "$path" status --porcelain | wc -l)
+            (( state )) && state="$state changed" || state=clean
+            counts=$(git -C "$path" rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null \
+                     | awk '{print "+" $2 " -" $1}') || counts=''
+        fi
+        branch=${branch:-(detached)}
+        (( ${#branch} > width )) && width=${#branch}
+        rows+=("$branch"$'\x1f'"$state"$'\x1f'"$counts"$'\x1f'"$path")
+    done < <(worktrees)
+    local row
+    for row in "${rows[@]}"; do
+        IFS=$'\x1f' read -r branch state counts path <<<"$row"
+        printf '%-*s  %-10s  %-8s  %s\n' "$width" "$branch" "$state" "${counts:--}" "$path"
+    done
+}
+
+rm_() {
+    local force='' path parent stop
+    [[ ${1-} == -f ]] && { force=--force; shift; }
+    (( $# == 1 )) || usage
+    path=$(path_of "$1")
+    [[ $path != "$(main_dir)" ]] || die "$1 is checked out in the main worktree"
+    git worktree remove $force "$path" || exit 1
+    git worktree prune
+    stop=$(dirname "$(main_dir)")
+    parent=$(dirname "$path")
+    while [[ $parent != "$stop" && $parent != / ]] && rmdir "$parent" 2>/dev/null; do
+        parent=$(dirname "$parent")
+    done
+}
+
+case ${1-} in
+    -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0" ;;
+    new) (( $# == 2 || $# == 3 )) || usage; new "${@:2}" ;;
+    ls) (( $# == 1 )) || usage; ls_ ;;
+    rm) shift; rm_ "$@" ;;
+    cd) (( $# <= 2 )) || usage; if (( $# == 2 )); then path_of "$2"; else main_dir; fi ;;
+    *) usage ;;
+esac

@@ -59,6 +59,28 @@ _git_scrub() {
     case $prev in --path | --trailer | --messages | --words | --backup) return ;; esac
     __gitcomp "--path --trailer --messages --words --backup --filter-branch --dry-run"
 }
+
+# `git each` (~/.local/bin/git-each) completes -k, then a range
+# shellcheck disable=SC2154  # cur: set by git's completion
+_git_each() {
+    case $cur in -*) __gitcomp "-k" ;; *) __git_complete_revlist ;; esac
+}
+
+# `git wt` (~/.local/bin/git-wt) completes its subcommands, then branch
+# names: every branch after new, the ones in a worktree after rm and cd.
+# shellcheck disable=SC2154  # cur: set by git's completion
+_git_wt() {
+    local subcommands="new ls rm cd" subcommand
+    subcommand=$(__git_find_on_cmdline "$subcommands")
+    case $subcommand in
+        '') __gitcomp "$subcommands" ;;
+        new) __gitcomp_direct "$(__git_heads "" "$cur" " ")" ;;
+        rm | cd)
+            [[ $subcommand == rm && $cur == -* ]] && { __gitcomp "-f"; return; }
+            __gitcomp "$(git worktree list --porcelain 2>/dev/null | sed -n 's|^branch refs/heads/||p')"
+            ;;
+    esac
+}
 # Host names after ssh, scp and rsync come only from ~/.ssh/config and
 # known_hosts, not also every name in /etc/hosts.
 #COMP_KNOWN_HOSTS_WITH_HOSTFILE=
