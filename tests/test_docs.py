@@ -258,12 +258,36 @@ def test_every_packaged_git_hook_has_a_row_in_the_configuration_doc():
         assert f"| `{name}` | {events} |" in section, f"docs/configuration.md lacks a row for git hook {name}"
 
 
-def test_git_hooks_completion_offers_exactly_the_subcommands_of_its_usage():
-    usage = re.search(r'"usage: git hooks \[(.*?)\]"', (REPO / "dot_local/bin/executable_git-hooks").read_text())[1]
-    subcommands = {word.split()[0] for word in usage.split(" | ")} - {"-h"}
-    completion = (REPO / "dot_config/bash/rc.d/50-completion.sh").read_text()
-    offered = re.search(r"_git_hooks\(\).*?subcommands=['\"]([^'\"]+)", completion, re.S)[1]
-    assert set(offered.split()) == subcommands
+GIT_PROGRAMS = sorted(p.name.removeprefix("executable_") for p in (REPO / "dot_local/bin").glob("executable_git*"))
+
+
+def usage_words(name):
+    """The subcommands and options in NAME's usage lines, -h and --help aside"""
+    command = name.replace("-", " ", 1)
+    usages = re.findall(rf'"usage: {re.escape(command)}\b([^"]*)"', (REPO / f"dot_local/bin/executable_{name}").read_text())
+    assert usages, f"{name}: no usage line"
+    words = re.sub(r"\(.*?\)", "", " ".join(usages))                # a hint in parentheses is not usage
+    return set(re.findall(r"(?<![\w-])-{0,2}[a-z][a-z-]*", words)) - {"-h", "--help"}
+
+
+def completion_words(name):
+    """The words NAME's completion offers: _git_NAME in 50-completion.sh for a
+    git subcommand, the completions file for any other program."""
+    if name.startswith("git-"):
+        completion = (REPO / "dot_config/bash/rc.d/50-completion.sh").read_text()
+        function = "_git_" + name[4:].replace("-", "_")
+        body = re.search(rf"^{function}\(\) \{{[^\n]*\}}$|^{function}\(\) \{{.*?^\}}", completion, re.M | re.S)
+        assert body, f"50-completion.sh has no {function}"
+        offered = re.findall(r'(?:__gitcomp |subcommands=|words=)"([^"$]*)"', body[0])
+    else:
+        offered = re.findall(r'(?:compgen -W |subcommands=|words=)"([^"$]*)"',
+                             (REPO / f"dot_local/share/bash-completion/completions/{name}").read_text())
+    return set(" ".join(offered).split())
+
+
+@pytest.mark.parametrize("name", GIT_PROGRAMS)
+def test_git_program_completion_offers_exactly_the_words_of_its_usage(name):
+    assert completion_words(name) == usage_words(name)
 
 
 def test_bash_modules_named_in_integration_test_match_the_tree():

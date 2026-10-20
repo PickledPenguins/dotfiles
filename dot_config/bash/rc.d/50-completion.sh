@@ -52,6 +52,13 @@ _git_hooks() {
     fi
 }
 
+# `git scrub` (~/.local/bin/git-scrub) completes its options, and a file
+# after the ones that take one.
+_git_scrub() {
+    # shellcheck disable=SC2154  # prev: set by git's completion
+    case $prev in --path | --trailer | --messages | --words | --backup) return ;; esac
+    __gitcomp "--path --trailer --messages --words --backup --filter-branch --dry-run"
+}
 # Host names after ssh, scp and rsync come only from ~/.ssh/config and
 # known_hosts, not also every name in /etc/hosts.
 #COMP_KNOWN_HOSTS_WITH_HOSTFILE=

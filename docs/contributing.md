@@ -33,7 +33,9 @@ first rule that fits wins.
    the end (`gs`, `ll`, `qs`).
 4. Otherwise a **program** in linuxbin's `bin/` (`bin/hpc/` for one that
    needs a scheduler), with its own `docs/README_<name>.md`. dotfiles keeps
-   a program only when its own files run it.
+   a program only when its own files run it, or when it is a git
+   subcommand (`git-NAME`, documented in [git-tools.md](git-tools.md)):
+   those go with the git configuration that completes them.
 5. A set that shares state stays together in one form (`mark jump unmark
    marks`).
 

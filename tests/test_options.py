@@ -43,9 +43,8 @@ NOT_IN_THE_FORMAT = {
     ".config/bash/prompt/toolkit/*": "bash-prompt-toolkit subtree; a library, not a configuration file",
     ".ssh/sockets/.keep": "empty placeholder that makes git keep the directory",
     ".local/bin/dots": "the dots program itself, linked onto PATH; code, not options",
-    ".local/share/bash-completion/completions/dots": "bash completion for dots; code, not options",
-    ".local/bin/git-ctags": "the git ctags command, linked onto PATH; code, not options",
-    ".local/bin/git-hooks": "the git hooks command, linked onto PATH; code, not options",
+    ".local/share/bash-completion/completions/*": "bash completion for dots and gits; code, not options",
+    ".local/bin/git*": "git hooks, git ctags, the git tools and gits, linked onto PATH; code, not options",
     ".config/tmux/client-env": "the script the tmux client hooks run; code, not options",
     ".local/share/git-hooks/*": "the packaged git hooks and their dispatcher; code, not options",
 }

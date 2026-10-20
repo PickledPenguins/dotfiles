@@ -121,6 +121,13 @@
     # blame ignoring whitespace and following moved and copied lines.
     bl = blame -w -C -C -C
 
+    # rd A B: range-diff, how one version of a series of commits differs
+    # from another (after a rebase, an amend, a git scrub).
+    rd = range-diff
+
+    # rdu: the commits here against the upstream's since they forked, as
+    # range-diff pairs them.
+    rdu = range-diff @{upstream}...HEAD
     # ── Diff ──────────────────────────────────────────────────────────────
 
     # df diff, dfs staged, dfw by word, dfn names only, dfst summary.

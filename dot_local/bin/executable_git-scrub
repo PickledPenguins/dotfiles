@@ -1,0 +1,402 @@
+#!/usr/bin/env python3
+"""git-scrub: rewrite a repository's history to remove files and text
+
+  git scrub --path RE              drop every path RE matches, from every commit
+  git scrub --trailer RE           delete each message line RE matches
+  git scrub --messages FILE        replace whole messages, named by old commit
+  git scrub --words FILE           replace words in messages, case kept
+  git scrub ... --dry-run          report what would change, change nothing
+
+Every branch and tag is rewritten (--branches --tags). Commits left empty
+are dropped. --path and --trailer repeat, and are Python regular
+expressions searched in the path from the top of the repository and in
+each message line. The options combine in one pass.
+
+--messages FILE: lines "COMMIT<TAB>MESSAGE-FILE". COMMIT is a hash or a
+prefix of one as it is before the rewrite (git log --oneline), on a
+branch or a tag; MESSAGE-FILE, relative to FILE's directory, holds the
+whole new message. --words FILE: lines "OLD NEW", "#" starts a comment.
+OLD is one word, matched whole and in any case; NEW, the rest of the
+line, takes the case of what it replaces: "widget" -> "gadget",
+"Widget" -> "Gadget". A match in capitals ("WIDGET") is left alone, as an
+acronym or a constant. Replacements come first, then trailers, then
+words.
+
+Before rewriting, git scrub refuses tracked changes and other worktrees,
+and writes a backup to --backup DIR (default REPO.scrub/TIMESTAMP beside
+the repository): all-refs.bundle (git bundle of every ref), refs.txt and
+remote-refs.txt (the remote-tracking refs, what the push commands below
+lease against). It rewrites with git filter-repo when that is on PATH,
+otherwise with git filter-branch (--filter-branch forces it). Then it
+repoints the branches and tags, the checked-out one too, and updates the
+work tree. A dropped file that was there stays as an untracked file. It
+checks that each rewritten tip's tree differs from the old one only in
+dropped paths and that nothing dropped is left, prints old -> new for
+each ref, and prints, without running them, the git push
+--force-with-lease commands that publish the result, and the commands
+that delete the old objects here.
+
+Exit 0 on success, 1 when git scrub refuses or a check fails, 2 on a
+usage error. git turns "git scrub --help" into "git help scrub": use -h.
+"""
+
+import argparse
+import datetime
+import difflib
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+USAGE = "usage: git scrub [--path RE]... [--trailer RE]... [--messages FILE] [--words FILE] [--backup DIR] [--filter-branch] [--dry-run]"  # noqa: E501
+ENV = "GIT_SCRUB_CONFIG"
+
+
+def die(message):
+    sys.exit(f"git scrub: {message}")
+
+
+def git(*args, input=None, env=None):
+    """git's stdout as text, or git's own message and exit 1 when it fails"""
+    proc = subprocess.run(["git", *args], stdout=subprocess.PIPE, input=input, env=env,
+                          text=True, errors="surrogateescape")
+    if proc.returncode:
+        die(f"git {next(a for a in args if not a.startswith('-') and '=' not in a)} failed")
+    return proc.stdout
+
+
+# ----------------------------------------------------------------------
+# what changes: shared by the filters, the dry run and the checks
+# ----------------------------------------------------------------------
+
+
+def recase(found, new):
+    """NEW in the case of FOUND; FOUND itself when it is in capitals"""
+    if len(found) > 1 and found.isupper():
+        return found
+    if found[0].isupper() and (len(found) == 1 or found[1:].islower()):
+        return new[0].upper() + new[1:]
+    return new
+
+
+class Scrubber:
+    def __init__(self, config):
+        self.paths = [re.compile(p) for p in config["paths"]]
+        self.trailers = [re.compile(t) for t in config["trailers"]]
+        self.messages = config["messages"]
+        self.words = {old.lower(): new for old, new in config["words"]}
+        self.word_re = None
+        if self.words:
+            alternatives = "|".join(re.escape(w) for w in sorted(self.words, key=len, reverse=True))
+            self.word_re = re.compile(rf"\b(?:{alternatives})\b", re.IGNORECASE)
+
+    @classmethod
+    def load(cls, path):
+        return cls(json.loads(Path(path).read_text()))
+
+    def drops(self, path):
+        if isinstance(path, bytes):
+            path = path.decode("utf-8", "surrogateescape")
+        return any(p.search(path) for p in self.paths)
+
+    def message(self, commit, text):
+        text = self.messages.get(commit, text)
+        lines = text.split("\n")
+        kept = [line for line in lines if not any(t.search(line) for t in self.trailers)]
+        if len(kept) != len(lines):
+            text = "\n".join(kept).rstrip() + "\n"
+        if self.word_re:
+            text = self.word_re.sub(lambda m: recase(m[0], self.words[m[0].lower()]), text)
+        return text
+
+    def message_bytes(self, commit, raw):
+        return self.message(commit, raw.decode("utf-8", "surrogateescape")).encode("utf-8", "surrogateescape")
+
+
+# ----------------------------------------------------------------------
+# the filters git filter-branch runs once per commit
+# ----------------------------------------------------------------------
+
+
+def filter_index(scrub):
+    listed = subprocess.run(["git", "ls-files", "-z"], stdout=subprocess.PIPE, check=True).stdout
+    drop = [p for p in listed.split(b"\0") if p and scrub.drops(p)]
+    if drop:
+        subprocess.run(["git", "update-index", "--force-remove", "-z", "--stdin"],
+                       input=b"\0".join(drop) + b"\0", check=True)
+
+
+def filter_message(scrub):
+    sys.stdout.buffer.write(scrub.message_bytes(os.environ["GIT_COMMIT"], sys.stdin.buffer.read()))
+
+
+# ----------------------------------------------------------------------
+# options
+# ----------------------------------------------------------------------
+
+
+def regex(text):
+    try:
+        re.compile(text)
+    except re.error as e:
+        raise argparse.ArgumentTypeError(f"{text!r}: {e}")
+    return text
+
+
+def read_words(path):
+    words = []
+    for number, line in enumerate(Path(path).read_text().splitlines(), 1):
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        fields = line.split(None, 1)
+        if len(fields) != 2 or not re.fullmatch(r"\w+", fields[0]):
+            die(f"{path}:{number}: expected OLD NEW, OLD one word")
+        words.append(fields)
+    return words
+
+
+def read_messages(path, rewritten):
+    messages = {}
+    for number, line in enumerate(Path(path).read_text().splitlines(), 1):
+        if not line.strip() or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        if len(fields) != 2 or not re.fullmatch(r"[0-9a-fA-F]{4,40}", fields[0]):
+            die(f"{path}:{number}: expected COMMIT<TAB>MESSAGE-FILE")
+        commit = git("rev-parse", "--verify", f"{fields[0]}^{{commit}}").strip()
+        if commit not in rewritten:
+            die(f"{path}:{number}: {fields[0]} is on no branch or tag")
+        messages[commit] = (Path(path).parent / fields[1]).read_text()
+    return messages
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(prog="git scrub", usage=USAGE[len("usage: "):], description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--path", action="append", default=[], type=regex, metavar="RE")
+    parser.add_argument("--trailer", action="append", default=[], type=regex, metavar="RE")
+    parser.add_argument("--messages", metavar="FILE")
+    parser.add_argument("--words", metavar="FILE")
+    parser.add_argument("--backup", metavar="DIR")
+    parser.add_argument("--filter-branch", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--filter-index", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--filter-message", action="store_true", help=argparse.SUPPRESS)
+    args = parser.parse_args()
+    if not (args.filter_index or args.filter_message or args.path or args.trailer or args.messages or args.words):
+        parser.error("nothing to remove: give --path, --trailer, --messages or --words")
+    return args
+
+
+# ----------------------------------------------------------------------
+# the run
+# ----------------------------------------------------------------------
+
+
+def refs(*patterns):
+    """{refname: object} for the refs under PATTERNS"""
+    out = git("for-each-ref", "--format=%(refname) %(objectname)", *patterns)
+    return dict(line.split(" ") for line in out.splitlines())
+
+
+def peeled(ref):
+    return git("rev-parse", "--verify", "-q", f"{ref}^{{commit}}").strip()
+
+
+def short(sha):
+    return sha[:12] if sha else "(deleted)"
+
+
+def dry_run(scrub, forced):
+    commits = git("rev-list", "--branches", "--tags").split()
+    changed = set()
+    touched = {}
+    if scrub.paths:
+        commit = None
+        out = git("-c", "core.quotePath=false", "log", "--branches", "--tags", "--root", "--no-renames",
+                  "--format=%x01%H", "--name-only")
+        for line in out.splitlines():
+            if line.startswith("\x01"):
+                commit = line[1:]
+            elif line and scrub.drops(line):
+                touched.setdefault(line, set()).add(commit)
+                changed.add(commit)
+    lines = []
+    if scrub.trailers or scrub.messages or scrub.word_re:
+        for record in git("log", "--branches", "--tags", "--format=%H%x00%s%x00%B%x01").split("\x01")[:-1]:
+            commit, subject, body = record.lstrip("\n").split("\0")
+            new = scrub.message(commit, body)
+            if new != body:
+                changed.add(commit)
+                lines.append(f"{commit[:12]} {subject}")
+                for diff in difflib.ndiff(body.rstrip("\n").split("\n"), new.rstrip("\n").split("\n")):
+                    if diff[0] in "+-":
+                        lines.append(f"    {diff}")
+    print(f"{len(changed)} of {len(commits)} commits would change; every commit after one of them gets a new hash")
+    for path in sorted(touched):
+        count = len(touched[path])
+        print(f"drop {path}  ({count} commit{'s' * (count != 1)})")
+    print("\n".join(lines) if lines else "no message changes")
+    print(f"backend: {backend_name(forced)}")
+
+
+def backend_name(forced):
+    return "git filter-repo" if shutil.which("git-filter-repo") and not forced else "git filter-branch"
+
+
+def rewrite(args, config_path, scrub, tmp):
+    names = sorted(refs("refs/heads", "refs/tags"))
+    message_work = bool(scrub.trailers or scrub.messages or scrub.word_re)
+    env = dict(os.environ, **{ENV: str(config_path)})
+    if backend_name(args.filter_branch) == "git filter-repo":
+        loader = (
+            "g = globals()\n"
+            "if '_scrub' not in g:\n"
+            "    import importlib.machinery, importlib.util\n"
+            f"    loader = importlib.machinery.SourceFileLoader('git_scrub', {os.path.abspath(__file__)!r})\n"
+            "    module = importlib.util.module_from_spec(importlib.util.spec_from_loader('git_scrub', loader))\n"
+            "    loader.exec_module(module)\n"
+            f"    g['_scrub'] = module.Scrubber.load({str(config_path)!r})\n")
+        command = ["git", "filter-repo", "--force", "--refs", *names]
+        if scrub.paths:
+            command += ["--filename-callback", loader + "return None if g['_scrub'].drops(filename) else filename"]
+        if message_work:
+            command += ["--commit-callback",
+                        loader + "commit.message = g['_scrub'].message_bytes(commit.original_id.decode(), commit.message)"]
+    else:
+        self = f"{shlex.quote(sys.executable)} {shlex.quote(os.path.abspath(__file__))}"
+        command = ["git", "filter-branch", "-d", str(tmp / "rewrite"), "--tag-name-filter", "cat"]
+        if scrub.paths:
+            command += ["--prune-empty", "--index-filter", f"{self} --filter-index"]
+        if message_work:
+            command += ["--msg-filter", f"{self} --filter-message"]
+        command += ["--", "--branches", "--tags"]
+        env["FILTER_BRANCH_SQUELCH_WARNING"] = "1"
+    if subprocess.run(command, env=env, stdout=subprocess.DEVNULL).returncode:
+        die(f"{command[1]} failed; the backup is in {args.backup}")
+    for ref in refs("refs/original"):
+        git("update-ref", "-d", ref)
+
+
+def check(scrub, before, after):
+    """Each tip's tree differs from the old one only in dropped paths, no
+    dropped path or deleted line is left. The problems found."""
+    problems = []
+    for ref, old in before.items():
+        new = after.get(ref)
+        if not new or new == old:
+            continue
+        diff = git("diff", "--no-renames", "--name-only", "-z", peeled(old), peeled(new), "--").split("\0")
+        for path in filter(None, diff):
+            if not scrub.drops(path):
+                problems.append(f"{ref}: {path} changed but is not dropped")
+    if scrub.paths:
+        for ref in after:
+            for path in git("ls-tree", "-r", "-z", "--name-only", peeled(ref)).split("\0"):
+                if path and scrub.drops(path):
+                    problems.append(f"{ref}: {path} is still there")
+    if scrub.trailers and after:
+        for line in git("log", "--branches", "--tags", "--format=%B").splitlines():
+            if any(t.search(line) for t in scrub.trailers):
+                problems.append(f"a message still has: {line}")
+    return problems
+
+
+def push_commands(before, after):
+    remotes = refs("refs/remotes")
+    lines = []
+    for ref, old in sorted(before.items()):
+        new = after.get(ref)
+        if new == old:
+            continue
+        name = ref.split("/", 2)[2]
+        if ref.startswith("refs/heads/"):
+            leases = [(r.split("/")[2], sha) for r, sha in remotes.items()
+                      if r.split("/", 3)[3:] == [name]]
+        else:
+            leases = [(remote, old) for remote in git("remote").split()]
+        for remote, lease in leases:
+            target = f"{ref}:{ref}" if new else f":{ref}"
+            lines.append(f"git push --force-with-lease={ref}:{lease} {remote} {target}")
+    return lines
+
+
+def main():
+    args = parse_args()
+    if args.filter_index or args.filter_message:
+        scrub = Scrubber.load(os.environ[ENV])
+        filter_index(scrub) if args.filter_index else filter_message(scrub)
+        return
+    top = Path(git("rev-parse", "--show-toplevel").strip())
+    os.chdir(top)
+    rewritten = set(git("rev-list", "--branches", "--tags").split())
+    config = {"paths": args.path, "trailers": args.trailer,
+              "words": read_words(args.words) if args.words else [],
+              "messages": read_messages(args.messages, rewritten) if args.messages else {}}
+    scrub = Scrubber(config)
+    if args.dry_run:
+        dry_run(scrub, args.filter_branch)
+        return
+    if git("status", "--porcelain", "--untracked-files=no"):
+        die("tracked changes here: commit or stash them first")
+    if git("worktree", "list", "--porcelain").count("\nworktree ") or git("rev-parse", "--git-dir") != git("rev-parse", "--git-common-dir"):
+        die("other worktrees share this repository: remove them first (git worktree list)")
+    if refs("refs/original"):
+        die("refs/original holds an earlier rewrite's backup: delete it first (git for-each-ref refs/original)")
+
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    args.backup = Path(args.backup or top.parent / f"{top.name}.scrub" / stamp).absolute()
+    args.backup.mkdir(parents=True)
+    git("bundle", "create", "-q", str(args.backup / "all-refs.bundle"), "--all")
+    (args.backup / "refs.txt").write_text(git("for-each-ref", "--format=%(objectname) %(refname)"))
+    (args.backup / "remote-refs.txt").write_text(git("for-each-ref", "--format=%(objectname) %(refname)",
+                                                     "refs/remotes"))
+    print(f"backup: {args.backup}")
+
+    before = refs("refs/heads", "refs/tags")
+    head = git("rev-parse", "-q", "--verify", "HEAD").strip()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        config_path = tmp / "config.json"
+        config_path.write_text(json.dumps(config))
+        kept = tmp / "kept"
+        for path in git("ls-files", "-z").split("\0"):
+            if path and scrub.drops(path) and os.path.lexists(path):
+                (kept / path).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, kept / path, follow_symlinks=False)
+        rewrite(args, config_path, scrub, tmp)
+        if head and git("rev-parse", "-q", "--verify", "HEAD").strip() != head:
+            git("reset", "-q", "--hard")
+        for path in kept.rglob("*"):
+            target = path.relative_to(kept)
+            if not path.is_dir() and not os.path.lexists(target):
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target, follow_symlinks=False)
+                print(f"kept untracked: {target}")
+
+    after = refs("refs/heads", "refs/tags")
+    for ref in sorted(before):
+        if after.get(ref) != before[ref]:
+            print(f"{ref}  {short(before[ref])} -> {short(after.get(ref))}")
+    problems = check(scrub, before, after)
+    if problems:
+        print("\n".join(f"git scrub: {p}" for p in problems), file=sys.stderr)
+        die(f"check failed; to undo: git fetch --force --update-head-ok {args.backup / 'all-refs.bundle'} "
+            "'refs/*:refs/*'")
+    pushes = push_commands(before, after)
+    if pushes:
+        print("to publish the rewrite (run these yourself):")
+        print("\n".join(f"  {line}" for line in pushes))
+    print("old objects stay here until: git reflog expire --expire=now --all && git gc --prune=now")
+
+
+if __name__ == "__main__":
+    main()

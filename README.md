@@ -120,15 +120,16 @@ DOTFILES_DEBUG=1 bash -i -c true               # each module and its load time
 
 ## Documentation
 
-- [docs/concepts.md](docs/concepts.md) -- source tree, targets, attribute prefixes, target states, modules, loaders, knobs, hook files
-- [docs/lifecycle.md](docs/lifecycle.md) -- what `dots apply`, `add` and `forget` do step by step; the order a shell, vim, tmux, git and ssh read their files
-- [docs/cli.md](docs/cli.md) -- every `dots` command, flag, exit code, environment variable
-- [docs/usage.md](docs/usage.md) -- bootstrapping a used machine, importing a home, per-machine settings, reorganizing, scripts, troubleshooting
-- [docs/configuration.md](docs/configuration.md) -- the options format, every knob, hook file, module and dotfile, with defaults
-- [docs/architecture.md](docs/architecture.md) -- file tree, the bands of `dots`, decisions and their reasons, extension points, limits
-- [docs/testing.md](docs/testing.md) -- suites, gates, coverage and mutation numbers, the documentation test
-- [docs/contributing.md](docs/contributing.md) -- where a change goes, what enforces what, recipes
-- [docs/future-work.md](docs/future-work.md) -- known gaps and what was deliberately not built
-- [tests/examples/README.md](tests/examples/README.md) -- the example catalog: 53 runnable cases
+- [docs/concepts.md](docs/concepts.md): source tree, targets, attribute prefixes, target states, modules, loaders, knobs, hook files
+- [docs/lifecycle.md](docs/lifecycle.md): what `dots apply`, `add` and `forget` do step by step; the order a shell, vim, tmux, git and ssh read their files
+- [docs/cli.md](docs/cli.md): every `dots` command, flag, exit code, environment variable
+- [docs/usage.md](docs/usage.md): bootstrapping a used machine, importing a home, per-machine settings, reorganizing, scripts, troubleshooting
+- [docs/git-tools.md](docs/git-tools.md): the `git` subcommands in `~/.local/bin` (rewriting history, per-commit runs, worktrees, conflicts, fixups, recovery, many repositories)
+- [docs/configuration.md](docs/configuration.md): the options format, every knob, hook file, module and dotfile, with defaults
+- [docs/architecture.md](docs/architecture.md): file tree, the bands of `dots`, decisions and their reasons, extension points, limits
+- [docs/testing.md](docs/testing.md): suites, gates, coverage and mutation numbers, the documentation test
+- [docs/contributing.md](docs/contributing.md): where a change goes, what enforces what, recipes
+- [docs/future-work.md](docs/future-work.md): known gaps and what was deliberately not built
+- [tests/examples/README.md](tests/examples/README.md): the example catalog, 53 runnable cases
 
 No changelog: the git log is the record.
