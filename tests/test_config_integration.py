@@ -25,8 +25,8 @@ from conftest import REPO
 
 pytestmark = pytest.mark.long
 
-BASH_MODULES = ["env", "options", "history", "tmux-env", "path", "aliases", "functions", "dirs", "completion",
-                "prompt", "title", "conda", "python", "tools", "hpc", "local", "override"]
+BASH_MODULES = ["env", "options", "history", "tmux-env", "path", "aliases", "functions", "arrays", "dirs",
+                "completion", "prompt", "title", "conda", "python", "tools", "hpc", "local", "override"]
 VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
                "35-folding", "40-files", "45-filetypes", "50-keys", "52-tags", "55-netrw"]
 
@@ -315,6 +315,55 @@ def test_functions_hr_fills_the_terminal_width(linked):
     assert proc.stdout == "─────\n===\n81\n"
 
 
+def test_arrays_slice_split_and_join_keep_empty_and_spaced_values(linked):
+    proc = bash(linked, r"""
+        a=(1 2 3 4 5 6 7 8 9 10)
+        arr_slice -e b a 1::4; echo "${b[*]}"
+        arr_slice b a 1::4; echo "${b[*]}"
+        arr_slice a a -3:; echo "${a[*]}"
+        arr_slice b a 3:2; echo "${#b[@]}"
+        arr_slice b a 1:x; echo "rc=$?"
+        arr_split p ', ' 'x, , y z, '; arr_show p
+        arr_split p , ''; echo "${#p[@]}"
+        arr_join p -; arr_split p "" x; echo "rc=$?"
+        q=(a 'b c' $'d\ne'); arr_join q ' | '
+    """)
+    assert proc.stdout == ("1 5 9 10\n1 5 9\n8 9 10\n0\nrc=2\n"
+                           "p (4)\n  [0] x\n  [1] ''\n  [2] y\\ z\n  [3] ''\n0\n\nrc=2\n"
+                           "a | b c | d\ne\n")
+    assert proc.stderr.splitlines() == ["arr_slice: bad slice '1:x' (START:END:STEP)",
+                                        "arr_split: empty separator"]
+
+
+def test_arrays_reshape_in_place_with_newlines_in_values(linked):
+    proc = bash(linked, r"""
+        x=(b 'a b' b $'c\nd')
+        arr_uniq x x; arr_show x
+        arr_sort s x -r; arr_show s
+        arr_rev x x; arr_join x ,
+        arr_has x 'a b' && echo has; arr_has x a || echo no
+        arr_index x 'a b'; arr_index x zz || echo "rc=$?"
+        n=(3 10 7); arr_filter n n test 5 -lt; arr_join n ,
+        up() { printf '%s!\n' "${1^^}"; }; arr_map x x up; arr_join x ,
+        arr_map x x false; echo "rc=$? ${#x[@]}"
+        e=(); arr_to_lines e; arr_sort e e; arr_uniq e e; echo "empty ${#e[@]}"
+    """)
+    assert proc.stdout == ("x (3)\n  [0] b\n  [1] a\\ b\n  [2] $'c\\nd'\n"
+                           "s (3)\n  [0] $'c\\nd'\n  [1] b\n  [2] a\\ b\n"
+                           "c\nd,a b,b\nhas\nno\n1\nrc=1\n10,7\nC\nD!,A B!,B!\nrc=1 3\nempty 0\n")
+
+
+def test_arrays_maps_and_strings(linked):
+    proc = bash(linked, r"""
+        declare -A h=(['k 2']=v [a]='x y')
+        map_show h; map_keys k h; arr_join k /
+        str_trim t $'  hi there \n'; echo "[$t]"
+
+        str_starts foobar foo && str_ends foobar bar && ! str_starts foobar bar && echo ok
+        printf 'one\n\nthree\n' | { arr_from_lines l; arr_show l; }
+    """)
+    assert proc.stdout == ("a=x\\ y\nk 2=v\na/k 2\n[hi there]\nok\n"
+                           "l (3)\n  [0] one\n  [1] ''\n  [2] three\n")
 def test_functions_man_falls_back_to_help_for_one_program_without_a_page(linked, tmp_path):
     fake = stubs(tmp_path, man='echo "No manual entry for $*" >&2; exit 16\n',
                  mytool='echo "usage: mytool $*"\n')

@@ -5,6 +5,7 @@ bashrc: tmux-env
 bashrc: path
 bashrc: aliases
 bashrc: skip functions
+bashrc: arrays
 bashrc: dirs
 bashrc: completion
 bashrc: prompt
