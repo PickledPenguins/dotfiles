@@ -30,7 +30,8 @@ die() { echo "git wt: $*" >&2; exit 1; }
 # or without .git for a bare repository.
 main_dir() {
     local common
-    common=$(git rev-parse --path-format=absolute --git-common-dir)
+    common=$(git rev-parse --git-common-dir)
+    common=$(cd "$common" && pwd -P)
     common=${common%/.git}
     echo "${common%.git}"
 }
