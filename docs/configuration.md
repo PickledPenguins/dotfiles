@@ -309,7 +309,18 @@ git's arguments, its stdin and `GIT_HOOK_EVENT` set. A hook is off while
 its name ends in `.off`. A pre- event stops at the first hook that fails,
 which fails the commit, merge or push; a post- event runs every hook.
 `HOOKS_SKIP="NAME..."` skips hooks for one command; `--no-verify` skips
-all of an event's. A hook the repository already had (a project's tracked
+all of an event's.
+
+After them `dispatch` runs the hooks of a private directory the same way:
+`PRIVATE/EVENT.d/NAME`, where `PRIVATE` is `git config hooks.privateDir`,
+default `~/.config/git/hooks.private`. They are for hooks a machine keeps
+out of every repository, this one included: a check against an internal
+server, a reminder that names a client. They run in every repository
+where `dispatch` is installed for the event, that is for the events of
+the packaged hooks installed there, and `.off`, `HOOKS_SKIP` and a failing
+pre- hook work on them as on the others.
+
+A hook the repository already had (a project's tracked
 `pre-push` gate, linked as `pre-push.off`) moves into `EVENT.d` under its
 event name, in the state it was in, and `git hooks on pre-push` still
 switches it; `remove` moves it back once no packaged hook is left for the

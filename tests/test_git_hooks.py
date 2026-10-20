@@ -206,6 +206,20 @@ def test_dispatch_runs_every_post_hook_and_gives_each_the_whole_stdin(linked):
     assert proc.stdout == "1\n1\n0\n"
 
 
+def test_dispatch_runs_the_private_hooks_after_the_shipped_ones(linked):
+    proc = hooks(linked, "git hooks install whitespace >/dev/null && "
+                         "printf '#!/bin/sh\\necho shipped\\n' >.git/hooks/pre-commit.d/z && "
+                         "p=$HOME/.config/git/hooks.private/pre-commit.d && mkdir -p $p ../mine/pre-commit.d && "
+                         "printf '#!/bin/sh\\necho \"private $GIT_HOOK_EVENT\"; exit 4\\n' >$p/a && "
+                         "printf '#!/bin/sh\\necho after\\n' >$p/b && printf '#!/bin/sh\\necho off\\n' >$p/c.off && "
+                         "printf '#!/bin/sh\\necho mine\\n' >../mine/pre-commit.d/m && "
+                         "chmod +x .git/hooks/pre-commit.d/z $p/* ../mine/pre-commit.d/m && "
+                         "git commit -q --allow-empty -m two 2>&1; echo $?; "
+                         "HOOKS_SKIP=a git commit -q --allow-empty -m three 2>&1; "
+                         "git config hooks.privateDir ../mine && git commit -q --allow-empty -m four 2>&1; "
+                         "rm -r .git/hooks/pre-commit.d && git commit -q --allow-empty -m five 2>&1")
+    assert proc.stdout.splitlines() == ["shipped", "private pre-commit", "1", "shipped", "after",
+                                        "shipped", "mine", "mine"]
 # ----------------------------------------------------------------------
 # the packaged hooks
 # ----------------------------------------------------------------------

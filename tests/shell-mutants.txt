@@ -42,6 +42,8 @@ dot_local/share/git-hooks/executable_dispatch ||| if ((status)) && [[ $GIT_HOOK_
 dot_local/share/git-hooks/executable_dispatch ||| && " ${HOOKS_SKIP-} " != *" $name "* ]] ||| ]] ||| dispatch
 dot_local/share/git-hooks/executable_dispatch ||| $name != *.off &&  ||| true &&  ||| dispatch or install
 dot_local/share/git-hooks/executable_dispatch |||     pre-push | post-rewrite) |||     pre-push) ||| dispatch
+dot_local/share/git-hooks/executable_dispatch ||| for hook in "$dir"/* "$private"/*; do ||| for hook in "$dir"/*; do ||| private_hooks
+dot_local/share/git-hooks/executable_dispatch ||| [[ -d $dir || -d $private ]] || exit 0 ||| [[ -d $dir ]] || exit 0 ||| private_hooks
 
 # 20-path.sh helpers
 dot_config/bash/rc.d/20-path.sh ||| PATH="${PATH//:"$1":/:}" ||| PATH="${PATH//:$1:/:}" ||| path

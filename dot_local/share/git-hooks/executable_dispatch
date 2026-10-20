@@ -8,11 +8,18 @@
 # the rest and fails the event, so git stops the commit, merge or push.
 # HOOKS_SKIP="NAME..." skips those hooks for one command, as in
 # HOOKS_SKIP=test-push git push.
+#
+# Then the hooks in PRIVATE/EVENT.d run the same way, PRIVATE being git
+# config hooks.privateDir, default ~/.config/git/hooks.private: hooks a
+# machine keeps out of the repositories, for the events dispatch is
+# installed for.
 set -uo pipefail
 
 export GIT_HOOK_EVENT=${0##*/}
 dir=$0.d
-[[ -d $dir ]] || exit 0
+private=$(git config --path hooks.privateDir || echo "$HOME/.config/git/hooks.private")
+private=$private/$GIT_HOOK_EVENT.d
+[[ -d $dir || -d $private ]] || exit 0
 
 # pre-push and post-rewrite read git's list on stdin; each hook gets it all.
 input=/dev/null
@@ -24,7 +31,7 @@ case $GIT_HOOK_EVENT in
         ;;
 esac
 
-for hook in "$dir"/*; do
+for hook in "$dir"/* "$private"/*; do
     name=${hook##*/}
     [[ -x $hook && $name != *.off && " ${HOOKS_SKIP-} " != *" $name "* ]] || continue
     "$hook" "$@" <"$input"
