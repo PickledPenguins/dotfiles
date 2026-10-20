@@ -2,8 +2,7 @@
 
 Known gaps, ideas, and decisions taken not to build something. Nothing
 here is scheduled; an item is cited by its label. Back to the
-[README](../README.md). Open findings from test writing live in
-`reviews/` until `caddressreview` closes them.
+[README](../README.md).
 
 ## F.1 dots
 
@@ -47,7 +46,7 @@ here is scheduled; an item is cited by its label. Back to the
   name such a file would be read back as an attribute. chezmoi solves it
   with a `literal_` prefix that ends attribute parsing. The same here
   would be about five lines in `parse_name` and `source_name` plus a
-  naming rule in `docs/concepts.md`. From the 2026-10-07 ctesting audit;
+  naming rule in `docs/concepts.md`. From the 2026-10-07 test audit;
   not built because no such file has turned up in a real home yet.
 - **F.1.i  A second checkout managed `~/.dotfiles`, not itself.**  Built
   2026-10-12. `source_dir` tried `~/.dotfiles` before the directory holding
@@ -71,7 +70,7 @@ here is scheduled; an item is cited by its label. Back to the
   changes a documented exit status. The fix would be `return 1` when any
   path was skipped, with the `cli.md` exit table, the `add` catalog cases
   that end in a skip (`failures/06`, `07`) and their `expected.txt`
-  updated. From the 2026-10-17 creview.
+  updated. From the 2026-10-17 code review.
 
 ## F.2 configuration
 
@@ -286,7 +285,7 @@ here is scheduled; an item is cited by its label. Back to the
   `git rev-parse --git-path hooks` and making it absolute in the shell
   (`cd` and `pwd`, the path being relative to the current directory),
   which keeps every older git working at the cost of a few lines. From
-  the 2026-10-17 creview and creadme.
+  the 2026-10-17 code and documentation review.
 
 ## F.3 tests
 
@@ -405,14 +404,14 @@ here is scheduled; an item is cited by its label. Back to the
   (`hooks.test` unset, a hook and its `.off` both present). Not built
   here: the catalog's harness puts `dots` on `PATH` in a fresh `HOME`,
   and a second command in it is a decision about what the catalog is
-  for. From the 2026-10-17 ctesting audit.
+  for. From the 2026-10-17 test audit.
 - **F.3.j  `~/.screenrc`'s off settings are never loaded.**  Open.
   `test_every_file_in_the_format_has_a_loader_or_says_why_not` exempts
   it, since screen checks a file only with a terminal, so its 4 off
   settings are the only ones the switch-on test never loads. The
   `pty_output` helper the nano loader uses could start `screen -c FILE`
   on a pty and read the error line, at the cost of a few seconds and a
-  pty-dependent test. From the 2026-10-17 ctesting audit.
+  pty-dependent test. From the 2026-10-17 test audit.
 - **F.3.k  `tests/test_config_integration.py` is one 1830-line file.**
   Open. It covers bash, vim, tmux, git, ssh, readline, gdb, curl, wget,
   python, xrdb and nano; the layout rule is integration tests split by
@@ -421,7 +420,7 @@ here is scheduled; an item is cited by its label. Back to the
   moving with their tests and `docs/testing.md`'s layout table and the
   shell-mutant `-k` expressions checked. Not done here: a large move with
   several reasonable groupings, best done when the file is next worked
-  on. From the 2026-10-17 ctesting audit.
+  on. From the 2026-10-17 test audit.
 - **F.3.l  The numbers in `docs/testing.md` and the README drift.**
   Open. The test counts, times, coverage figures, mutant counts and the
   README's on/off setting counts were all stale by 2026-10-17 (re-measured
@@ -429,30 +428,27 @@ here is scheduled; an item is cited by its label. Back to the
   (mutants in `tests/mutants.txt` and `tests/shell-mutants.txt`, catalog
   cases per level, `dots options` on/off totals to the nearest ten) could
   be asserted by `tests/test_docs.py`; times and test counts cannot
-  without a dated measurement. From the 2026-10-17 creadme audit.
+  without a dated measurement. From the 2026-10-17 documentation audit.
 
 ## F.4 housekeeping
 
 Things done by hand outside the repository, moved from the 2026-09-20
-handoff.
+notes.
 
 - **F.4.a  Publishing.**  Settled: public at
   `github.com/PickledPenguins/dotfiles` since 2026-10-10 at the latest,
   like the other projects. Its whole history was scanned on 2026-10-13
-  for private keys and AWS, GitHub and Anthropic tokens: the only hits are
+  for private keys and AWS, GitHub and API tokens: the only hits are
   the `secrets` hook's test fixtures, and `private_dot_ssh/config` names
-  only commented `example.edu` hosts. Pushing stays the owner's call;
-  `CLAUDE.md`, untracked on 2026-10-11, leaves the public tip with the
-  next push of `main` and stays in its history.
+  only commented `example.edu` hosts. Pushing stays the owner's call.
 - **F.4.b  `~/.gitignore`.**  Removed 2026-10-13. The old
   `~/env/.gitconfig` set `excludesfile = ~/.gitignore`; this set names
   `~/.config/git/ignore` (linked from `dot_config/git/ignore`), the one
   global ignore file, in `core.excludesFile`, so git reads it whatever
   `$XDG_CONFIG_HOME` says. The settings of the old configs that this set
   lacked are in it too: `core.compression`, `merge.ff=false` and
-  `remote.origin.tagOpt` off, the `llg` and `ds` aliases. Checked first: the
-  file's only line, `**/.claude/settings.local.json`, is line 43 there;
-  no loaded git config, ripgrep or fd config names `~/.gitignore`; `$HOME`
+  `remote.origin.tagOpt` off, the `llg` and `ds` aliases. Checked first:
+  the file's only line is covered by the global ignore; no loaded git config, ripgrep or fd config names `~/.gitignore`; `$HOME`
   is not a repository; `git check-ignore -v` in a new repository names
   `~/.config/git/ignore`.
 - **F.4.c  `~/env/` and `~/.bash_aliases`.**  Closed 2026-10-13: both
@@ -482,22 +478,13 @@ handoff.
   where a key is only in the agent (a login node reached with
   `ForwardAgent`) can lose it; the setting's description and
   `docs/lifecycle.md#ssh` give the fixes in `~/.ssh/config.local`.
-- **F.4.e  Agent files and generated paths in the root.**  Closed
-  2026-10-14. The
-  workspace layout standard puts `CLAUDE.md` in `.claude/`, `HANDOFF.md`
-  and `reviews/` in `.agent/`, and the test runner under `tests/`. From
-  the 2026-10-07 creview. The runner moved to `tests/run-tests.sh` on
+- **F.4.e  Generated paths in the root.**  Closed 2026-10-14. The
+  workspace layout standard puts the test runner under `tests/`. From
+  the 2026-10-07 code review. The runner moved to `tests/run-tests.sh` on
   2026-10-13. `hook` sets `hooks.test` and `hooks.perf` to a command that
   falls back to `./run-tests.sh`, because the push hooks test each pushed
   commit in its own checkout and commits from before the move have the
-  runner in the root. The agent files moved on 2026-10-14, on disk only
-  since no branch tracks them: `CLAUDE.md` to `.claude/`, `HANDOFF.md`
-  and `reviews/` to `.agent/`, with `CLAUDE.md`'s root list and test
-  commands brought up to date. The README's link to `CLAUDE.md`, dead on
-  GitHub since the file is untracked, went. `.dotsignore` keeps `CLAUDE.md`, `HANDOFF.md` and `reviews`: `dots`
-  never links a hidden directory, but a stray root `CLAUDE.md` would become
-  `~/CLAUDE.md`, which Claude Code loads in every session under `$HOME`.
-  `dots` stays in the root, since `dot_local/bin/dots` and the README use
+  runner in the root. `dots` stays in the root, since `dot_local/bin/dots` and the README use
   `~/.dotfiles/dots`. A pytest run outside the runner still leaves
   `.pytest_cache/` and `.benchmarks/` in the root; the runner turns both
   off.
@@ -508,4 +495,4 @@ handoff.
   has never had a version, a tag or a release. Either add `**Version
   0.1**` under the title and bump it as the tree changes, or record here
   that a home directory is not released and is exempt. From the
-  2026-10-17 creview and creadme.
+  2026-10-17 code and documentation review.

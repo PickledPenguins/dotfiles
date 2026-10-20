@@ -210,7 +210,7 @@ Read-only variables the loader sets for modules and for you:
 | `diff.gitconfig` | histogram, colorMoved, renames+copies, mnemonic prefixes, vimdiff as difftool/mergetool. Off: `noprefix`, submodule log, difftastic, delta, diff-so-fancy, meld, VS Code, PDF and docx text diffs |
 | `url.gitconfig` | `gh:`, `gh-ssh:`, `gl:` shorthands. Off: push to GitHub over ssh, all GitHub over ssh, `gl-ssh:`, `cb:`, `bb:` |
 | `signing.gitconfig` | commit and tag signing; its include line in `~/.gitconfig` is off. Off inside: signed pushes, ssh signing, allowed signers, `showSignature` |
-| `ignore` | global excludes (editor, OS, environment, agent files). Off: `*.orig`, Jupyter checkpoints, `.envrc`, packaging, coverage, clangd, node_modules, `*.log` |
+| `ignore` | global excludes (editor, OS, environment). Off: `*.orig`, Jupyter checkpoints, `.envrc`, packaging, coverage, clangd, node_modules, `*.log` |
 | `attributes` | `diff=` drivers by extension, binary types, LF for scripts. Off: PDF and docx diffs, generated minified and lock files |
 
 
@@ -357,6 +357,6 @@ In the source root. One glob per line, `#` comments, matched with
 `fnmatch` against the target-relative path and every leading directory of
 it: `README.md` matches only at the top; `tests` skips everything under
 `tests/`; `*.local` matches at any depth because `*` crosses `/`. The
-shipped file lists `README.md CLAUDE.md HANDOFF.md LICENSE dots tests
-docs reviews __pycache__`. To not link a file you do
+shipped file lists `README.md LICENSE dots tests docs reviews
+__pycache__`. To not link a file you do
 not want on any machine, add its target path here.

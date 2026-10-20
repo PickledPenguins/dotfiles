@@ -1,5 +1,5 @@
 # ignore: the global gitignore (~/.config/git/ignore), read by every
-# repository. Editor, OS and coding-agent leftovers only: a project's own
+# repository. Editor, OS and environment leftovers only: a project's own
 # build output belongs in its .gitignore, so everyone who clones it gets that
 # too.
 #
@@ -39,20 +39,7 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 
-# Coding agents' per-user settings.
-**/.claude/settings.local.json
 
-# Coding agents' instruction and handoff files, at a repository's root only,
-# so a project whose product is agent config (skills/agent-config/) can still
-# commit its own. They never belong in a repository.
-/CLAUDE.md
-/AGENTS.md
-/GEMINI.md
-/HANDOFF.md
-/.claude/
-/.agent/
-/.agents/
-/.gemini/
 
 # Merge and patch leftovers: *.orig from mergetool, *.rej from a failed patch.
 #*.orig

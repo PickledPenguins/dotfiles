@@ -37,7 +37,6 @@ dot_local/share/git-hooks/      the 18 packaged hooks and dispatch, the one file
 tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, shell-mutants.txt, coveragerc
 tests/run-tests.sh              test runner and gates
 docs/                           this set
-.claude/  .agent/               the coding agent's instructions, handoff and review reports; untracked
 ```
 
 `git hooks` and `git ctags` are bash, on `PATH` as git subcommands, and
