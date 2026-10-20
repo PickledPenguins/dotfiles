@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""git-absorb: turn staged changes into fixup! commits for the commits they fix
+
+  git absorb [--base REV] [--dry-run]
+
+For each staged hunk, finds the commit in REV..HEAD (default
+@{upstream}..HEAD) that last changed the lines it changes, by git blame
+on HEAD; a hunk that only adds lines goes by the lines around it. Each
+such commit gets one "fixup! SUBJECT" commit on top of HEAD holding its
+hunks, so
+
+  git rebase -i --autosquash REV
+
+folds them in. git absorb prints that command and does not run it. A
+hunk whose lines come from more than one commit, or from one outside the
+range, stays staged, as do new, deleted, renamed and binary files and
+mode changes. Each is listed. The work tree is not touched, and what
+stays staged is still staged afterwards. --dry-run prints the plan and
+changes nothing.
+
+Exit 0 when at least one hunk was absorbed (or would be), 1 when none can
+be or git fails, 2 on a usage error. git turns "git absorb --help" into
+"git help absorb": use -h.
+"""
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+USAGE = "usage: git absorb [--base REV] [--dry-run]"
+HUNK = re.compile(rb"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+WHOLE_FILE = {b"new file mode": "new file", b"deleted file mode": "deleted file", b"old mode": "mode change",
+              b"Binary files": "binary", b"GIT binary patch": "binary"}
+
+
+def die(message):
+    print(f"git absorb: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def git(*args, input=None, env=None):
+    """git's stdout as bytes, or git's own message and exit 1 when it fails"""
+    proc = subprocess.run(["git", *args], stdout=subprocess.PIPE, input=input, env=env)
+    if proc.returncode:
+        sys.exit(1)
+    return proc.stdout
+
+
+class Hunk:
+    """A staged hunk: which HEAD lines it replaces and with what"""
+
+    def __init__(self, path, old_start, old_count, header):
+        self.path, self.old_start, self.old_count = path, old_start, old_count
+        self.header, self.new = header, []
+
+    def where(self):
+        if self.old_count == 0:
+            return f"{self.path}: after line {self.old_start}"
+        end = self.old_start + self.old_count - 1
+        return f"{self.path}:{self.old_start}" + (f"-{end}" if end > self.old_start else "")
+
+
+def staged_hunks(path):
+    """The hunks of PATH's staged diff, or the reason it stays whole"""
+    out = git("diff", "--cached", "-U0", "--no-renames", "--no-ext-diff", "--no-textconv", "--no-color",
+              "--", path)
+    lines = out.splitlines(keepends=True)
+    head_end = next((i for i, line in enumerate(lines) if line.startswith(b"@@")), len(lines))
+    for line in lines[:head_end]:
+        for start, why in WHOLE_FILE.items():
+            if line.startswith(start):
+                return why
+        if line.startswith(b"index ") and line.rstrip().endswith(b" 160000"):
+            return "submodule"
+    hunks, prev = [], b""
+    for line in lines[head_end:]:
+        match = HUNK.match(line)
+        if match:
+            old_start, old_count = int(match[1]), 1 if match[2] is None else int(match[2])
+            hunks.append(Hunk(path, old_start, old_count, line))
+        elif line.startswith(b"+"):
+            hunks[-1].new.append(line[1:])
+        elif line.startswith(b"\\") and prev.startswith(b"+"):
+            hunks[-1].new[-1] = hunks[-1].new[-1].rstrip(b"\n")
+        prev = line
+    return hunks
+
+
+def blame(path, start, count):
+    """The commits that last changed lines START..START+COUNT-1 of HEAD:PATH"""
+    out = git("blame", "--porcelain", "-L", f"{start},+{count}", "HEAD", "--", path)
+    return {line[:40].decode() for line in out.splitlines() if re.match(rb"^[0-9a-f]{40} \d+ \d+", line)}
+
+
+def owner(hunk, in_range, length):
+    """The one commit in the range HUNK belongs to, or why there is none"""
+    if hunk.old_count:
+        owners = blame(hunk.path, hunk.old_start, hunk.old_count)
+    else:
+        around = [n for n in (hunk.old_start, hunk.old_start + 1) if 1 <= n <= length]
+        if not around:
+            return None, "no lines around it"
+        owners = set().union(*(blame(hunk.path, n, 1) for n in around))
+    if len(owners) > 1:
+        return None, f"lines from {len(owners)} commits"
+    (sha,) = owners
+    if sha not in in_range:
+        return None, "lines from before the range"
+    return sha, None
+
+
+def apply(blob, hunks):
+    """BLOB with HUNKS (in HEAD's line numbers) applied"""
+    lines = blob.splitlines(keepends=True)
+    for hunk in sorted(hunks, key=lambda h: h.old_start, reverse=True):
+        start = hunk.old_start - 1 if hunk.old_count else hunk.old_start
+        lines[start:start + hunk.old_count] = hunk.new
+    return b"".join(lines)
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(prog="git absorb", usage=USAGE[len("usage: "):], add_help=False)
+    parser.add_argument("-h", "--help", action="store_true")
+    parser.add_argument("--base", default="@{upstream}")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+    if args.help:
+        print(__doc__.split("\n", 1)[1].strip("\n"))
+        return 0
+
+    os.chdir(git("rev-parse", "--show-toplevel").decode().strip())
+    commits = git("rev-list", "--no-merges", f"{args.base}..HEAD", "--").decode().split()
+    if not commits:
+        die(f"no commits in {args.base}..HEAD")
+    paths = git("diff", "--cached", "--name-only", "-z", "--no-renames").decode(errors="surrogateescape")
+    paths = [p for p in paths.split("\0") if p]
+    if not paths:
+        die("nothing staged")
+
+    in_range = set(commits)
+    plan, kept = {}, []
+    for path in paths:
+        hunks = staged_hunks(path)
+        if isinstance(hunks, str):
+            kept.append((path, hunks))
+            continue
+        blob = git("cat-file", "blob", f"HEAD:{path}")
+        for hunk in hunks:
+            sha, why = owner(hunk, in_range, len(blob.splitlines()))
+            if sha:
+                plan.setdefault(sha, []).append(hunk)
+            else:
+                kept.append((hunk.where(), why))
+
+    order = [sha for sha in reversed(commits) if sha in plan]
+    subjects = {sha: git("log", "-1", "--format=%s", sha).decode().strip() for sha in order}
+    for sha in order:
+        where = ", ".join(h.where() for h in plan[sha])
+        print(f"{sha[:12]} {subjects[sha]}\n    {where}")
+    for where, why in kept:
+        print(f"stays staged: {where} ({why})")
+    if not order:
+        die("no staged hunk belongs to one commit of the range")
+    if args.dry_run:
+        return 0
+
+    head = parent = git("rev-parse", "HEAD").decode().strip()
+    done = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        env = dict(os.environ, GIT_INDEX_FILE=os.path.join(tmp, "index"))
+        for sha in order:
+            git("read-tree", parent, env=env)
+            for hunk in plan[sha]:
+                done.setdefault(hunk.path, []).append(hunk)
+            for path in {h.path for h in plan[sha]}:
+                mode = git("ls-tree", "HEAD", "--", path).split(b" ", 1)[0].decode()
+                content = apply(git("cat-file", "blob", f"HEAD:{path}"), done[path])
+                blob = git("hash-object", "-w", "--stdin", input=content).decode().strip()
+                git("update-index", "--cacheinfo", f"{mode},{blob},{path}", env=env)
+            tree = git("write-tree", env=env).decode().strip()
+            parent = git("commit-tree", tree, "-p", parent, "-m", f"fixup! {subjects[sha]}").decode().strip()
+    git("update-ref", "-m", "absorb", "HEAD", parent, head)
+    print(f"to fold them in: git rebase -i --autosquash {args.base}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

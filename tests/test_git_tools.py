@@ -186,3 +186,97 @@ def test_wt_new_ls_rm_and_cd_with_the_cdw_function(linked):
                        "GIT_COMMITTER_EMAIL=t@example.com; cd app.wt/side/ && cdw remote && pwd && cdw && pwd; "
                        "cdw nope; echo $?; pwd")
     assert cdw.stdout == f"{linked}/app.wt/remote\n{linked}/app\n1\n{linked}/app\n", cdw.stderr
+
+
+# ----------------------------------------------------------------------
+# git resolve, git absorb
+# ----------------------------------------------------------------------
+
+# A merge with two conflicts in f (lines b and i) and g deleted by us
+RESOLVE_REPO = (
+    "git init -q -b main r && cd r && git config merge.conflictStyle {style} && "
+    "printf 'a\\nb\\nc\\nd\\ne\\nf\\ng\\nh\\ni\\nj\\n' >f && echo g >g && git add . && git commit -q -m base && "
+    "git checkout -q -b other && sed -i -e 's/^b$/B-theirs/' -e 's/^i$/I-theirs/' f && echo x >>g && "
+    "git commit -q -a -m theirs && git checkout -q main && sed -i -e 's/^b$/B-ours/' -e 's/^i$/I-ours/' f && "
+    "git rm -q g && git commit -q -a -m ours && git merge -q other >/dev/null 2>&1; "
+)
+
+
+@pytest.mark.parametrize("style", ["merge", "diff3", "zdiff3"])
+def test_resolve_lists_shows_and_takes_sides_per_conflict_in_every_style(linked, style):
+    proc = sh(linked, RESOLVE_REPO.format(style=style) +
+                      "echo edit >>f; git resolve list; COLUMNS=60 git resolve show f:1; "
+                      "git resolve base f:2 && git resolve list && git resolve both f && tr '\\n' ' ' <f; echo; "
+                      "git resolve ours g; git status --short")
+    assert proc.stdout == (
+        "f  both modified  2 conflicts\ng  deleted by us  0 conflicts\n"
+        "f:1  lines 2-" + ("6" if style == "merge" else "8") + "\n"
+        "ours HEAD          | base               | theirs other\n"
+        "------------------ | ------------------ | ------------------\n"
+        "B-ours             | b                  | B-theirs\n\n"
+        "f: 1 conflict left\n"
+        "f  both modified  1 conflict\ng  deleted by us  0 conflicts\n"
+        "f: resolved, staged\n"
+        "a B-ours B-theirs c d e f g h i j edit \n"
+        "g: removed (ours has no such file)\n"
+        "M  f\n"), proc.stderr
+
+
+def test_resolve_base_of_a_merge_style_conflict_takes_the_lines_moved_out_of_it(linked):
+    proc = sh(linked, "git init -q -b main r && cd r && git config merge.conflictStyle merge && "
+                      "printf 'a\\nb\\nc\\n' >f && git add f && git commit -q -m base && git checkout -q -b other && "
+                      "printf 'a\\nP\\nY\\nc\\n' >f && git commit -q -a -m theirs && git checkout -q main && "
+                      "printf 'a\\nP\\nX\\nc\\n' >f && git commit -q -a -m ours && git merge -q other >/dev/null; "
+                      "sed -n 2p f; git resolve base f && cat f")
+    assert proc.stdout == "P\nf: resolved, staged\na\nb\nc\n", proc.stderr
+
+
+@pytest.mark.parametrize("args, message, status", [
+    ("ours f:3", "git resolve: f has 2 conflicts, no 3", 1),
+    ("ours nope", "git resolve: nope is not conflicted", 1),
+    ("both g", "git resolve: g has no conflict markers: take ours, theirs or base", 1),
+    ("", "usage: git resolve list | show FILE[:N,...]... | ours|theirs|base|both FILE[:N,...]...", 2),
+    ("list f", "usage: git resolve", 2),
+])
+def test_resolve_refusals_change_nothing(linked, args, message, status):
+    proc = sh(linked, RESOLVE_REPO.format(style="merge") + f"git resolve {args}; echo $?; git status --short")
+    assert proc.stdout == f"{status}\nUU f\nDU g\n"
+    assert proc.stderr.startswith(message)
+
+
+ABSORB_REPO = (
+    "git init -q --bare origin.git && git init -q -b main r && cd r && git remote add origin ../origin.git && "
+    "seq 1 30 >f && printf 'x\\ny\\n' >g && git add . && git commit -q -m base && "
+    "git push -q -u origin main 2>/dev/null && "
+    "sed -i 's/^5$/five/' f && git commit -q -a -m 'Name five' && "
+    "sed -i 's/^20$/twenty/' f && printf 'x\\nY\\n' >g && git commit -q -a -m 'Name twenty' && "
+    "sed -i -e 's/^five$/FIVE/' -e 's/^twenty$/TWENTY/' -e 's/^10$/ten/' f && printf 'x\\nY\\nz\\n' >g && "
+    "echo new >n && git add f g n && echo unstaged >>f && "
+)
+
+
+def test_absorb_makes_one_fixup_per_owning_commit_and_keeps_the_rest_staged(linked):
+    proc = sh(linked, ABSORB_REPO + "git absorb | sed 's/^[0-9a-f]\\{12\\} /SHA /'; "
+                                    "git log --format=%s; git diff --cached --name-only; git diff --name-only; "
+                                    "git show -U0 --format= HEAD~ | grep '^[-+][^-+]'; "
+                                    "git -c sequence.editor=true rebase -q -i --autosquash --autostash @{upstream} "
+                                    ">/dev/null 2>&1 && git log --format=%s && git show -U0 --format= HEAD~ | grep '^[-+][^-+]'")
+    assert proc.stdout == (
+        "SHA Name five\n    f:5\nSHA Name twenty\n    f:20, g: after line 2\n"
+        "stays staged: f:10 (lines from before the range)\nstays staged: n (new file)\n"
+        "to fold them in: git rebase -i --autosquash @{upstream}\n"
+        "fixup! Name twenty\nfixup! Name five\nName twenty\nName five\nbase\n"
+        "f\nn\nf\n-five\n+FIVE\n"
+        "Name twenty\nName five\nbase\n-5\n+FIVE\n"), proc.stderr
+
+
+def test_absorb_dry_run_and_refusals_change_nothing(linked):
+    proc = sh(linked, ABSORB_REPO + "before=$(git rev-parse HEAD; git diff --cached) && "
+                                    "git absorb --dry-run >/dev/null && echo $? && "
+                                    "test \"$(git rev-parse HEAD; git diff --cached)\" = \"$before\" && "
+                                    "git absorb --base HEAD >/dev/null; echo $?; git absorb --base nope; echo $?; "
+                                    "git absorb -x; echo $?; git reset -q; git absorb; echo $?")
+    assert proc.stdout == "0\n1\n1\n2\n1\n"
+    assert proc.stderr == ("git absorb: no commits in HEAD..HEAD\nfatal: bad revision 'nope..HEAD'\n"
+                           "usage: git absorb [--base REV] [--dry-run]\n"
+                           "git absorb: error: unrecognized arguments: -x\ngit absorb: nothing staged\n")

@@ -66,6 +66,26 @@ _git_each() {
     case $cur in -*) __gitcomp "-k" ;; *) __git_complete_revlist ;; esac
 }
 
+# `git resolve` (~/.local/bin/git-resolve) completes its subcommands, then
+# the conflicted files
+_git_resolve() {
+    local subcommands="list show ours theirs base both" subcommand
+    subcommand=$(__git_find_on_cmdline "$subcommands")
+    case $subcommand in
+        '') __gitcomp "$subcommands" ;;
+        list) ;;
+        *) __gitcomp "$(git diff --name-only --relative --diff-filter=U 2>/dev/null)" ;;
+    esac
+}
+
+# `git absorb` (~/.local/bin/git-absorb) completes its options, and a
+# revision after --base.
+# shellcheck disable=SC2154  # prev: set by git's completion
+_git_absorb() {
+    [[ $prev == --base ]] && { __git_complete_refs; return; }
+    __gitcomp "--base --dry-run"
+}
+
 # `git wt` (~/.local/bin/git-wt) completes its subcommands, then branch
 # names: every branch after new, the ones in a worktree after rm and cd.
 # shellcheck disable=SC2154  # cur: set by git's completion

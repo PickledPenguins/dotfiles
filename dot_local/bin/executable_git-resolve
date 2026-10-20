@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+"""git-resolve: resolve merge conflicts a file or a hunk at a time
+
+  git resolve list                         each conflicted file, its state
+                                           and how many conflicts it has
+  git resolve show FILE[:N,...]...         each conflict as text, ours,
+                                           base and theirs side by side
+  git resolve ours FILE[:N,...]...         take our side of conflicts N
+  git resolve theirs FILE[:N,...]...       take their side
+  git resolve base FILE[:N,...]...         take the merge base's version
+  git resolve both FILE[:N,...]...         take ours, then theirs
+
+Conflicts are numbered from 1 in the order of the file, as list counts
+them. Without :N a command acts on all of them. Ours is the index's
+stage 2 (HEAD, the branch being rebased onto during a rebase), theirs
+stage 3, base stage 1. A file with no conflict left is staged (git add).
+
+Works with any merge.conflictStyle: the base comes from the ||| section
+when the markers have one (diff3, zdiff3), else from the index stages
+through git merge-file. A file without markers (deleted on one side,
+binary) takes a whole side: ours, theirs or base, a side that does not
+have the file deleting it (git rm).
+
+Only the conflict blocks change. The rest of the file, edits included,
+stays. git checkout --conflict=diff3 FILE puts every conflict back.
+
+Exit 0 on success, 1 when a file or conflict is not there or git fails,
+2 on a usage error. git turns "git resolve --help" into "git help
+resolve": use -h.
+"""
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+USAGE = "usage: git resolve list | show FILE[:N,...]... | ours|theirs|base|both FILE[:N,...]..."
+SIDES = ("ours", "theirs", "base", "both")
+STATES = {"UU": "both modified", "AA": "both added", "UD": "deleted by them", "DU": "deleted by us",
+          "AU": "added by us", "UA": "added by them", "DD": "both deleted"}
+
+
+def die(message, status=1):
+    print(f"git resolve: {message}", file=sys.stderr)
+    sys.exit(status)
+
+
+def git(*args, check=True):
+    """git's stdout as bytes, or git's own message and exit 1 when it fails"""
+    proc = subprocess.run(["git", *args], stdout=subprocess.PIPE)
+    if check and proc.returncode:
+        sys.exit(1)
+    return proc.stdout
+
+
+class Conflict:
+    """One conflict block: its line range in the file and its three sides"""
+
+    def __init__(self, start):
+        self.start, self.end = start, None
+        self.ours, self.base, self.theirs = [], None, []
+        self.labels = ["", "", ""]
+
+
+def marker_size(path):
+    out = git("check-attr", "conflict-marker-size", "--", path).decode()
+    value = out.rsplit(": ", 1)[-1].strip()
+    return int(value) if value.isdigit() else 7
+
+
+def is_marker(line, char, size):
+    return line.startswith(char * size) and line[size:size + 1] in (b"", b" ", b"\n", b"\r")
+
+
+def parse(lines, size):
+    """The conflicts in LINES (bytes with their line ends)"""
+    conflicts, current, part = [], None, None
+    for i, line in enumerate(lines):
+        if current is None:
+            if is_marker(line, b"<", size):
+                current, part = Conflict(i), "ours"
+                current.labels[0] = line[size:].strip().decode(errors="replace")
+        elif part == "ours" and is_marker(line, b"|", size):
+            part, current.base = "base", []
+            current.labels[1] = line[size:].strip().decode(errors="replace")
+        elif part in ("ours", "base") and is_marker(line, b"=", size):
+            part = "theirs"
+        elif part == "theirs" and is_marker(line, b">", size):
+            current.end = i + 1
+            current.labels[2] = line[size:].strip().decode(errors="replace")
+            conflicts.append(current)
+            current = None
+        else:
+            {"ours": current.ours, "base": current.base, "theirs": current.theirs}[part].append(line)
+    return conflicts
+
+
+def stage(path, n):
+    """The blob at stage N of PATH, or None when that stage is missing"""
+    proc = subprocess.run(["git", "cat-file", "blob", f":{n}:{path}"], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL)
+    return proc.stdout if proc.returncode == 0 else None
+
+
+def diff3_conflicts(path):
+    """The conflicts git merge-file finds between the stages, with base sections"""
+    with tempfile.TemporaryDirectory() as tmp:
+        names = []
+        for n, name in ((2, "ours"), (1, "base"), (3, "theirs")):
+            names.append(os.path.join(tmp, name))
+            with open(names[-1], "wb") as f:
+                f.write(stage(path, n) or b"")
+        out = subprocess.run(["git", "merge-file", "-p", "--diff3", *names], stdout=subprocess.PIPE).stdout
+    return parse(out.splitlines(keepends=True), 7)
+
+
+def find_base(lines, conflict, candidates):
+    """(start, end, base lines) to put the base in place of CONFLICT, or None
+
+    A conflict in the merge style may be a diff3 conflict with the lines
+    both sides share at its ends moved out of it. Then those lines, still
+    around it in the file, are replaced too.
+    """
+    for d3 in candidates:
+        if (d3.ours, d3.theirs) == (conflict.ours, conflict.theirs):
+            return conflict.start, conflict.end, d3.base
+        for p in range(min(len(d3.ours), len(d3.theirs)) + 1):
+            prefix = d3.ours[:p]
+            if d3.theirs[:p] != prefix or d3.ours[p:p + len(conflict.ours)] != conflict.ours:
+                continue
+            suffix = d3.ours[p + len(conflict.ours):]
+            if (d3.theirs != prefix + conflict.theirs + suffix
+                    or lines[max(conflict.start - p, 0):conflict.start] != prefix or p > conflict.start
+                    or lines[conflict.end:conflict.end + len(suffix)] != suffix):
+                continue
+            return conflict.start - p, conflict.end + len(suffix), d3.base
+    return None
+
+
+def split_spec(spec):
+    """FILE[:N,...] as (FILE, [N, ...] or None)"""
+    match = re.fullmatch(r"(.+):(\d+(?:,\d+)*)", spec)
+    if match and not os.path.exists(spec):
+        return match[1], [int(n) for n in match[2].split(",")]
+    return spec, None
+
+
+def unmerged():
+    """{path: two-letter state} for the unmerged paths"""
+    out = git("status", "--porcelain=v1", "-z", "--untracked-files=no").decode(errors="surrogateescape")
+    return {entry[3:]: entry[:2] for entry in out.split("\0") if entry[:2] in STATES}
+
+
+def read(path):
+    with open(path, "rb") as f:
+        return f.read().splitlines(keepends=True)
+
+
+def pick(numbers, conflicts, path):
+    if numbers is None:
+        return list(range(len(conflicts)))
+    for n in numbers:
+        if not 1 <= n <= len(conflicts):
+            die(f"{path} has {len(conflicts)} conflict{'s' * (len(conflicts) != 1)}, no {n}")
+    return sorted({n - 1 for n in numbers})
+
+
+def resolve_whole(path, side):
+    """Take a whole side of a file with no markers: its blob, or git rm"""
+    if side == "both":
+        die(f"{path} has no conflict markers: take ours, theirs or base")
+    blob = stage(path, {"ours": 2, "theirs": 3, "base": 1}[side])
+    if blob is None:
+        git("rm", "-q", "--", path)
+        print(f"{path}: removed ({side} has no such file)")
+        return
+    with open(path, "wb") as f:
+        f.write(blob)
+    git("add", "--", path)
+    print(f"{path}: {side}, staged")
+
+
+def resolve(path, numbers, side):
+    states = unmerged()
+    if path not in states:
+        die(f"{path} is not conflicted")
+    lines = read(path) if os.path.exists(path) else []
+    conflicts = parse(lines, marker_size(path))
+    if not conflicts:
+        if numbers is not None:
+            die(f"{path} has no conflict markers")
+        resolve_whole(path, side)
+        return
+    candidates = None
+    edits = []
+    for i in pick(numbers, conflicts, path):
+        c = conflicts[i]
+        start, end = c.start, c.end
+        if side == "ours":
+            new = c.ours
+        elif side == "theirs":
+            new = c.theirs
+        elif side == "both":
+            new = c.ours + c.theirs
+        elif c.base is not None:
+            new = c.base
+        else:
+            candidates = diff3_conflicts(path) if candidates is None else candidates
+            found = find_base(lines, c, candidates)
+            if found is None:
+                die(f"{path}:{i + 1} has no base section and git merge-file finds none like it; "
+                    f"git checkout --conflict=diff3 {path} writes one (and undoes edits to the file)")
+            start, end, new = found
+        edits.append((start, end, new))
+    for start, end, new in sorted(edits, reverse=True):
+        lines[start:end] = new
+    with open(path, "wb") as f:
+        f.writelines(lines)
+    left = len(parse(lines, marker_size(path)))
+    if left:
+        print(f"{path}: {left} conflict{'s' * (left != 1)} left")
+    else:
+        git("add", "--", path)
+        print(f"{path}: resolved, staged")
+
+
+def list_():
+    for path, state in sorted(unmerged().items()):
+        count = len(parse(read(path), marker_size(path))) if os.path.isfile(path) else 0
+        print(f"{path}  {STATES[state]}  {count} conflict{'s' * (count != 1)}")
+
+
+def columns(left, middle, right, width):
+    """Three lists of lines side by side, each cut to WIDTH"""
+    def cell(text):
+        text = text.expandtabs(4)
+        return text if len(text) <= width else text[:width - 1] + ">"
+    rows = max(len(left), len(middle), len(right))
+    for i in range(rows):
+        parts = [cell(side[i]) if i < len(side) else "" for side in (left, middle, right)]
+        print(f"{parts[0]:<{width}} | {parts[1]:<{width}} | {parts[2]}".rstrip())
+
+
+def show(path, numbers):
+    if path not in unmerged():
+        die(f"{path} is not conflicted")
+    lines = read(path) if os.path.isfile(path) else []
+    conflicts = parse(lines, marker_size(path))
+    if not conflicts:
+        die(f"{path} has no conflict markers: git diff shows the sides")
+    width = max((shutil.get_terminal_size((120, 24)).columns - 6) // 3, 10)
+    candidates = None
+    for i in pick(numbers, conflicts, path):
+        c = conflicts[i]
+        base = c.base
+        if base is None:
+            candidates = diff3_conflicts(path) if candidates is None else candidates
+            found = find_base(lines, c, candidates)
+            base = found[2] if found else [b"(not found)\n"]
+        text = [[line.decode(errors="replace").rstrip("\r\n") for line in side]
+                for side in (c.ours, base, c.theirs)]
+        print(f"{path}:{i + 1}  lines {c.start + 1}-{c.end}")
+        columns(*[[f"ours {c.labels[0]}".rstrip()], ["base"], [f"theirs {c.labels[2]}".rstrip()]], width)
+        columns(*[["-" * width]] * 3, width)
+        columns(*text, width)
+        print()
+
+
+def main(argv):
+    if argv[:1] in (["-h"], ["--help"]):
+        print(__doc__.split("\n", 1)[1].strip("\n"))
+        return
+    if not argv or argv[0] not in ("list", "show", *SIDES) or (argv[0] == "list") != (len(argv) == 1):
+        print(USAGE, file=sys.stderr)
+        sys.exit(2)
+    specs = [split_spec(spec) for spec in argv[1:]]
+    prefix = git("rev-parse", "--show-prefix").decode().strip()
+    os.chdir(git("rev-parse", "--show-toplevel").decode().strip())
+    if argv[0] == "list":
+        list_()
+    for path, numbers in specs:
+        path = os.path.normpath(os.path.join(prefix, path))
+        if argv[0] == "show":
+            show(path, numbers)
+        else:
+            resolve(path, numbers, argv[0])
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
