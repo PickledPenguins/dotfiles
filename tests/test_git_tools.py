@@ -371,3 +371,63 @@ def test_fails_without_holds_only_when_the_change_is_what_the_test_checks(linked
         "git fails-without: passes with untracked as at HEAD too: nothing there is tested by it\n"
         "git fails-without: fails here; it must pass with the change first\n"
         "usage: git fails-without PATH... [--base REV] [--build CMD] -- CMD...\n")
+
+
+# ----------------------------------------------------------------------
+# git port, git recover
+# ----------------------------------------------------------------------
+
+PORT_REPO = (
+    "git init -q -b main s && cd s && mkdir lib && seq 10 >lib/x && git add . && git commit -q -m one && "
+    "git checkout -q -b side && echo y >lib/y && git add lib/y && git commit -q -m side && git checkout -q main && "
+    "sed -i s/3/three/ lib/x && GIT_AUTHOR_DATE=2020-01-03T03:04:05Z GIT_AUTHOR_NAME=Ann "
+    "GIT_AUTHOR_EMAIL=ann@example.com git commit -q -a -m '[fix] two' && "
+    "git merge -q --no-ff -m merge side && cd .. && "
+    "git init -q -b main d && cd d && mkdir -p vendor/lib && seq 10 >vendor/lib/x && echo extra >>vendor/lib/x && "
+    "git add . && git commit -q -m base && "
+)
+
+
+def test_port_replays_a_range_under_another_directory_keeping_authors_and_dates(linked):
+    proc = sh(linked, PORT_REPO + "git port ../s HEAD~2..HEAD --strip 1 --dir vendor/lib >/dev/null && "
+                                  "TZ=UTC git log --format='%an|%ad|%cd|%s' --date=iso-strict-local; "
+                                  "git log -1 --format=%s -- vendor/lib/y; tr '\\n' ' ' <vendor/lib/x")
+    lines = proc.stdout.splitlines()
+    assert "Ann|2020-01-03T03:04:05Z|2020-01-03T03:04:05Z|[fix] two" in lines[:2], proc.stderr
+    assert sorted(line.split("|")[-1] for line in lines[:3]) == ["[fix] two", "base", "side"]
+    assert lines[3:] == ["side", "1 2 three 4 5 6 7 8 9 10 extra "]
+
+
+def test_port_one_commit_and_refusals(linked):
+    proc = sh(linked, PORT_REPO + "git port ../s HEAD~ --strip 1 --dir vendor/lib >/dev/null && "
+                                  "git log -1 --format='%an <%ae> %s'; git port ../s nope; echo $?; "
+                                  "git port ../s HEAD..HEAD; echo $?; git port ../s; echo $?; "
+                                  "git port ../s HEAD --strip x; echo $?; git port ../nowhere HEAD; echo $?")
+    assert proc.stdout == "Ann <ann@example.com> [fix] two\n1\n1\n2\n2\n1\n", proc.stderr
+    assert "fatal: bad revision 'nope^!'\ngit port: no commits in HEAD..HEAD\n" in proc.stderr
+    assert proc.stderr.count("usage: git port SRC_REPO REV_RANGE [--dir SUBDIR] [--strip N]\n") == 2
+
+
+def test_port_stops_on_a_conflict_with_git_am_in_progress(linked):
+    proc = sh(linked, PORT_REPO + "sed -i s/3/drei/ vendor/lib/x && git commit -q -a -m drei && "
+                                  "git port ../s HEAD~ --strip 1 --dir vendor/lib >/dev/null; echo $?; "
+                                  "test -d .git/rebase-apply && echo in-progress")
+    assert proc.stdout == "1\nin-progress\n"
+    assert proc.stderr.endswith("git port: git am stopped; git am --continue after resolving, or git am --abort\n")
+
+
+def test_recover_lists_lost_tips_and_dropped_stashes_and_brings_them_back(linked):
+    proc = sh(linked, "git init -q -b main r && cd r && git recover; echo a >a && git add a && git commit -q -m one && "
+                      "git recover; echo b >>a && git commit -q -a -m two && echo c >>a && git commit -q -a -m three && "
+                      "git reset -q --hard HEAD~2 && echo s1 >>a && git stash -q && echo s2 >>a && git stash -q && "
+                      "git stash drop -q stash@{1} && git recover | cut -c10-; "
+                      "s=$(git recover | awk '/stash/ {print $1}') && c=$(git recover | awk '/commit/ {print $1}') && "
+                      "git recover show $s | grep '^+s'; git recover branch $c back && git log --format=%s back; "
+                      "git recover branch $s kept; git recover | wc -l; git recover x; echo $?")
+    lines = proc.stdout.splitlines()
+    lines[:2] = sorted(lines[:2], key=lambda line: "stash" not in line)    # same date: either order
+    assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d  stash   WIP on main: \w+ one", lines[0]), proc.stdout
+    assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d  commit  three", lines[1])
+    assert lines[2:] == ["+s1", "three", "two", "one", "0", "2"], proc.stderr
+    assert "git recover: kept holds a stash; git stash apply " in proc.stderr
+    assert proc.stderr.endswith("usage: git recover [show SHA | branch SHA NAME]\n")

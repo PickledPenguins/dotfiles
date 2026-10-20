@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# git-recover: find commits and stashes no branch, tag or stash list holds.
+#
+#   git recover                  list them, newest first
+#   git recover show SHA         show one: its patch, or a stash's changes
+#   git recover branch SHA NAME  make branch NAME point at it
+#
+# Lists the commits git fsck finds dangling when reflogs are not counted:
+# the tips of work a reset, rebase, amend or branch -D left behind, and
+# stashes dropped or cleared. One line each, newest commit date first:
+#
+#   4c1d2e9  2026-10-20 14:02  stash   WIP on main: 3f2a1c9 Add the parser
+#   8d01b7e  2026-10-19 09:41  commit  Use the parser
+#
+# Their older commits are not listed: a branch on a tip brings back the
+# commits below it too. Stashes still on the stash list are left out. For
+# a stash, branch NAME holds its commit. git stash store -m MSG HASH puts
+# it back on the stash list instead, and git stash apply HASH applies it,
+# given the full hash: git stash reads a short one of digits as stash@{N}.
+# Objects stay until git gc prunes them, by default two weeks after they
+# became unreachable.
+#
+# Exit 0 on success, 1 when git fails, 2 on a usage error. git turns "git
+# recover --help" into "git help recover": use -h.
+set -euo pipefail
+
+usage() { echo "usage: git recover [show SHA | branch SHA NAME]" >&2; exit 2; }
+
+# Whether commit $1 is a stash: a merge whose second parent is "index on"
+is_stash() {
+    local parent
+    parent=$(git rev-parse -q --verify "$1^2" 2>/dev/null) || return 1
+    [[ $(git log -1 --format=%s "$parent") == "index on "* ]]
+}
+
+list() {
+    local stashed found sha date time kind subject
+    stashed=$(git log -g --format=%H refs/stash 2>/dev/null || true)
+    found=$(git fsck --no-reflogs --dangling --no-progress | awk '$2 == "commit" { print $3 }' \
+            | { grep -vxF -e "${stashed:-x}" || true; })
+    [[ -n $found ]] || return 0
+    git log --no-walk --stdin --format='%H %cd %s' --date=format:'%Y-%m-%d %H:%M' <<<"$found" \
+        | while read -r sha date time subject; do
+            if is_stash "$sha"; then kind=stash; else kind=commit; fi
+            printf '%s  %s %s  %-6s  %s\n' "$(git rev-parse --short "$sha")" "$date" "$time" "$kind" "$subject"
+        done
+}
+
+case ${1-} in
+    -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0" ;;
+    '') list ;;
+    show)
+        (( $# == 2 )) || usage
+        # Not git stash show: it reads a short hash of digits as stash@{N}
+        if is_stash "$2"; then git diff --stat -p "$2^" "$2"; else git show --stat -p "$2"; fi
+        ;;
+    branch)
+        (( $# == 3 )) || usage
+        git branch "$3" "$2" || exit 1
+        if is_stash "$2"; then
+            echo "git recover: $3 holds a stash; git stash apply $(git rev-parse "$2") applies it" >&2
+        fi
+        ;;
+    *) usage ;;
+esac

@@ -110,6 +110,20 @@ _git_fails_without() {
     [[ $cur == -* ]] && __gitcomp "--base --build"
 }
 
+# `git port` (~/.local/bin/git-port) completes its options, and a
+# directory otherwise.
+# shellcheck disable=SC2154  # cur, prev: set by git's completion
+_git_port() {
+    case $prev in --dir | --strip) return ;; esac
+    [[ $cur == -* ]] && __gitcomp "--dir --strip"
+}
+
+# `git recover` (~/.local/bin/git-recover) completes its subcommands
+_git_recover() {
+    local subcommands="show branch"
+    [[ -n $(__git_find_on_cmdline "$subcommands") ]] || __gitcomp "$subcommands"
+}
+
 # `git wt` (~/.local/bin/git-wt) completes its subcommands, then branch
 # names: every branch after new, the ones in a worktree after rm and cd.
 # shellcheck disable=SC2154  # cur: set by git's completion

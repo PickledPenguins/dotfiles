@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# git-port: replay commits from another repository onto HEAD.
+#
+#   git port SRC_REPO REV_RANGE [--dir SUBDIR] [--strip N]
+#
+# Takes the commits of REV_RANGE (A..B, or REV alone for the one commit) in
+# the repository SRC_REPO, a path, and applies them here on top of HEAD,
+# oldest first, with git format-patch | git am -3. Each keeps its author,
+# author date and message, and its committer date is set to the author
+# date. --strip N drops N leading directories from the paths of the
+# source, and --dir SUBDIR puts them under SUBDIR here: --strip 1 --dir
+# vendor/lib moves lib/x.c to vendor/lib/x.c. Merge commits are skipped.
+#
+# The source's objects are fetched first (no refs are made), so git am can
+# fall back on a three-way merge. When a commit does not apply, git am
+# stops with the conflict in the work tree, as git am always does: resolve
+# it and run git am --continue, or git am --abort to go back.
+#
+# Exit 0 when every commit applied, 1 when git am stopped or git failed,
+# 2 on a usage error. git turns "git port --help" into "git help port":
+# use -h.
+set -euo pipefail
+
+usage() { echo "usage: git port SRC_REPO REV_RANGE [--dir SUBDIR] [--strip N]" >&2; exit 2; }
+die() { echo "git port: $*" >&2; exit 1; }
+
+args=() dir='' strip=0
+while (( $# )); do
+    case $1 in
+        -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"; exit 0 ;;
+        --dir) (( $# > 1 )) || usage; dir=${2%/}; shift ;;
+        --strip) [[ ${2-} =~ ^[0-9]+$ ]] || usage; strip=$2; shift ;;
+        -*) usage ;;
+        *) args+=("$1") ;;
+    esac
+    shift
+done
+(( ${#args[@]} == 2 )) || usage
+src=${args[0]} range=${args[1]}
+[[ $range == *..* ]] || range="$range^!"
+
+git -C "$src" rev-parse -q --git-dir >/dev/null || exit 1
+commits=$(git -C "$src" rev-list --no-merges "$range" --) || exit 1
+[[ -n $commits ]] || die "no commits in $range"
+tip=${commits%%$'\n'*}
+git fetch -q --no-tags --no-write-fetch-head "$src" "$tip" || exit 1
+
+am=(am -3 -k --committer-date-is-author-date "-p$((strip + 1))")
+[[ -z $dir ]] || am+=("--directory=$dir")
+git -C "$src" format-patch -k --stdout --no-merges "$range" -- | git "${am[@]}" || {
+    echo "git port: git am stopped; git am --continue after resolving, or git am --abort" >&2
+    exit 1
+}

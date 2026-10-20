@@ -24,6 +24,8 @@ They need git 2.30 or newer; `git scrub`, `git resolve` and
 | [`git commit-paths`](#git-commit-paths-commit-just-these-paths) | commit just the named paths, leaving the rest staged |
 | [`git at-rev`](#git-at-rev-run-with-some-paths-as-at-a-revision) | run a command in a copy of the work tree with some paths as at a revision |
 | [`git fails-without`](#git-fails-without-prove-a-change-is-tested) | prove a command passes with a change and fails without it |
+| [`git port`](#git-port-commits-from-another-repository) | replay a range of commits from another repository here, paths moved |
+| [`git recover`](#git-recover-lost-commits-and-stashes) | list, show and branch the commits and stashes nothing refers to any more |
 | [`git rd`, `git rdu`](#git-rd-and-git-rdu-compare-two-versions-of-a-series) | aliases for `range-diff` |
 
 ## `git scrub`: rewrite history
@@ -227,6 +229,47 @@ test notices when the change is taken away. `--build CMD`, shell code,
 runs before the command in both places. A run's output is shown only when
 it does not do what it must. Exit 0 and `ok: passes here, fails with
 PATH as at REV` when both hold, 1 otherwise.
+
+## `git port`: commits from another repository
+
+```sh
+git port ../upstream v1.2..v1.3
+git port ../lib main~3..main --strip 1 --dir vendor/lib
+git port ../lib 4c1d2e9
+```
+
+Takes the commits of a range (`A..B`, or one revision for that commit
+alone) in the repository at a local path and applies them on top of
+`HEAD`, oldest first, through `git format-patch | git am -3`. Each keeps
+its author, author date and message, and its committer date is the
+author date. `--strip N` drops `N` leading directories from the source's
+paths and `--dir SUBDIR` puts them under `SUBDIR`: `--strip 1 --dir
+vendor/lib` moves `lib/x.c` to `vendor/lib/x.c`. Merge commits are
+skipped. The source's objects are fetched first, without making refs, so
+`git am` can fall back on a three-way merge. When a commit does not
+apply, `git am` stops with the conflict in the work tree as it always
+does: resolve it and `git am --continue`, or `git am --abort`. Exit 1
+then.
+
+## `git recover`: lost commits and stashes
+
+```sh
+git recover                    # what nothing refers to, newest first
+git recover show 4c1d2e9       # its patch, or a stash's changes
+git recover branch 8d01b7e old # branch old points at it
+```
+
+Lists the commits `git fsck` finds dangling when reflogs are not counted:
+the tips that a reset, rebase, amend or `branch -D` left behind, and
+stashes dropped or cleared. One line each with the short hash, commit
+date, `stash` or `commit`, and subject. Only tips are listed: a branch on
+one brings back the commits below it too. Stashes still on the stash list
+are left out. For a stash, `branch` makes a branch holding its commit
+and says so with its full hash. `git stash store -m MSG HASH` puts it
+back on the stash list instead, and `git stash apply HASH` applies it:
+give either the full hash, since `git stash` reads a short one made of
+digits as `stash@{N}`. Objects stay until `git gc` prunes them, by
+default two weeks after they became unreachable.
 
 ## `git rd` and `git rdu`: compare two versions of a series
 
