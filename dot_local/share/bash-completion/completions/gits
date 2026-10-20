@@ -1,0 +1,12 @@
+# bash completion for gits: its subcommands, then directories.
+#
+# dots apply links this file to ~/.local/share/bash-completion/completions/gits,
+# where bash-completion finds it the first time Tab is pressed after `gits`.
+# tests/test_docs.py fails when a subcommand of its usage line is missing here.
+
+_gits() {
+    local cur=${COMP_WORDS[COMP_CWORD]} words="fetch unpushed"
+    (( COMP_CWORD == 1 )) || words=''
+    mapfile -t COMPREPLY < <(compgen -W "$words" -- "$cur"; compgen -d -- "$cur")
+}
+complete -o filenames -F _gits gits

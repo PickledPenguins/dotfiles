@@ -233,6 +233,8 @@ Read-only variables the loader sets for modules and for you:
 | `~/.Xresources` | xterm font, colors, scrollback, clipboard keys; urxvt basics. Off: Xft rendering and dpi, URL double-click, light scheme |
 | `~/.local/bin/dots` | this checkout's `dots`, on `PATH` through `~/.local/bin`; `dots unlink` removes it |
 | `~/.local/share/bash-completion/completions/dots` | Tab completion of the `dots` subcommands and their options, loaded by bash-completion on first use (`50-completion.sh`) |
+| `~/.local/bin/gits` | `gits`: one line per repository under a directory with its branch, changed files, ahead and behind, unpushed commits and stashes; `gits fetch` fetches them all in parallel; [git tools](git-tools.md#gits-many-repositories-at-once) |
+| `~/.local/share/bash-completion/completions/gits` | Tab completion of the `gits` subcommands, then directories |
 | `~/.ssh/config` (600, `~/.ssh` 700) | includes, keepalive, multiplexing (`~/.ssh/sockets/`), `AddKeysToAgent`, `IdentitiesOnly`, no agent/X11 forwarding by default. Off: example hosts (cluster, bastion, GitHub on 443, Jupyter tunnel), `accept-new`, `UpdateHostKeys`, `ConnectTimeout`, IPv4, no GSSAPI, quiet log, `SetEnv TERM`, `SendEnv`, `ExitOnForwardFailure`, legacy ssh-rsa |
 | `~/.config/ripgrep/config` | smart case, hidden files, ignores, colors. Off: follow links, sorted output, no VCS ignores, minified files |
 | `~/.config/python/pythonrc.py` | REPL history and completion before 3.13; `json math re Path pp` imported. Off: datetime, numpy/pandas, pretty display, rich, colored prompt |

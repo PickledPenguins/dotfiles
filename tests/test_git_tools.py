@@ -431,3 +431,63 @@ def test_recover_lists_lost_tips_and_dropped_stashes_and_brings_them_back(linked
     assert lines[2:] == ["+s1", "three", "two", "one", "0", "2"], proc.stderr
     assert "git recover: kept holds a stash; git stash apply " in proc.stderr
     assert proc.stderr.endswith("usage: git recover [show SHA | branch SHA NAME]\n")
+
+
+# ----------------------------------------------------------------------
+# gits
+# ----------------------------------------------------------------------
+
+# Under w/: a clone one commit ahead with a changed file, a repository with
+# no remote and a stash, and a directory that is no repository.
+GITS_REPOS = (
+    "git init -q -b main up && git -C up commit -q --allow-empty -m one && mkdir w && cd w && "
+    "git clone -q ../up a 2>/dev/null && git -C a commit -q --allow-empty -m two && echo x >a/f && "
+    "git init -q -b dev b && git -C b commit -q --allow-empty -m bb && echo y >b/g && "
+    "git -C b add g && git -C b stash -q && mkdir plain && "
+)
+
+
+def test_gits_prints_one_aligned_line_per_repository(linked):
+    proc = sh(linked, GITS_REPOS + "gits; echo $?; gits a ../up; git -C a checkout -q --detach && "
+                                   "cd .. && gits w/ up/")
+    assert proc.stdout.splitlines() == [
+        "a  main  1 changed  +1 -0        1 unpushed  0 stashes",
+        "b  dev   clean      no upstream  no remote   1 stash",
+        "0",
+        "a      main  1 changed  +1 -0        1 unpushed  0 stashes",
+        "../up  main  clean      no upstream  no remote   0 stashes",
+        "w/a  (detached)  1 changed  no upstream  1 unpushed  0 stashes",
+        "w/b  dev         clean      no upstream  no remote   1 stash",
+        "up/  main        clean      no upstream  no remote   0 stashes",
+    ], proc.stderr
+
+
+def test_gits_unpushed_lists_the_commits_no_remote_has(linked):
+    proc = sh(linked, GITS_REPOS + "git -C a switch -q -c side origin/main && "
+                                   "git -C a commit -q --allow-empty -m three && "
+                                   "gits unpushed | sed 's/[0-9a-f]\\{7,\\} /SHA /'")
+    lines = proc.stdout.splitlines()
+    lines[1:3] = sorted(lines[1:3])                                 # same date: either order
+    assert lines == ["a:", "    SHA main two", "    SHA side three", "b: no remote"]
+
+
+def test_gits_fetch_runs_in_every_repository_and_shows_the_failures(linked):
+    proc = sh(linked, GITS_REPOS + "git -C ../up commit -q --allow-empty -m new && gits fetch a; echo $?; "
+                                   "gits | head -1; git -C b remote add bad ../nowhere && gits fetch; echo $?")
+    lines = proc.stdout.splitlines()
+    assert lines[:3] == ["a: ok", "0", "a  main  1 changed  +1 -1        1 unpushed  0 stashes"]
+    assert lines[3:5] == ["a: ok", "b: failed"] and "../nowhere" in lines[5] and lines[-1] == "1"
+
+
+def test_gits_refuses_what_is_no_directory_and_unknown_options(linked):
+    proc = sh(linked, "gits nowhere; echo $?; gits -x; echo $?; gits fetch --all; echo $?; "
+                      "mkdir e && gits e; echo $?; gits -h | head -1")
+    assert proc.stdout.splitlines() == ["1", "2", "2", "0", "gits: the state of many git repositories at once."]
+    assert proc.stderr == "gits: nowhere: not a directory\n" + "usage: gits [fetch | unpushed] [DIR...]\n" * 2
+
+
+def test_gits_completes_its_subcommands_then_directories(linked):
+    proc = sh(linked, "mkdir fdir && . .local/share/bash-completion/completions/gits && "
+                      "COMP_WORDS=(gits f) && COMP_CWORD=1 && _gits && echo ${COMPREPLY[*]}; "
+                      "COMP_WORDS=(gits fetch f) && COMP_CWORD=2 && _gits && echo ${COMPREPLY[*]}")
+    assert proc.stdout.splitlines() == ["fetch fdir", "fdir"], proc.stderr

@@ -124,7 +124,7 @@ DOTFILES_DEBUG=1 bash -i -c true               # each module and its load time
 - [docs/lifecycle.md](docs/lifecycle.md): what `dots apply`, `add` and `forget` do step by step; the order a shell, vim, tmux, git and ssh read their files
 - [docs/cli.md](docs/cli.md): every `dots` command, flag, exit code, environment variable
 - [docs/usage.md](docs/usage.md): bootstrapping a used machine, importing a home, per-machine settings, reorganizing, scripts, troubleshooting
-- [docs/git-tools.md](docs/git-tools.md): the `git` subcommands in `~/.local/bin` (rewriting history, per-commit runs, worktrees, conflicts, fixups, recovery, many repositories)
+- [docs/git-tools.md](docs/git-tools.md): the `git` subcommands in `~/.local/bin` and `gits` (rewriting history, per-commit runs, worktrees, conflicts, fixups, recovery, many repositories)
 - [docs/configuration.md](docs/configuration.md): the options format, every knob, hook file, module and dotfile, with defaults
 - [docs/architecture.md](docs/architecture.md): file tree, the bands of `dots`, decisions and their reasons, extension points, limits
 - [docs/testing.md](docs/testing.md): suites, gates, coverage and mutation numbers, the documentation test

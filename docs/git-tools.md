@@ -1,7 +1,8 @@
 # Git tools
 
 The `git` subcommands `dots apply` links into `~/.local/bin`, beside
-`git hooks` and `git ctags` ([configuration.md](configuration.md#packaged-git-hooks-localsharegit-hooks)).
+`git hooks` and `git ctags` ([configuration.md](configuration.md#packaged-git-hooks-localsharegit-hooks)),
+and `gits`, which reports on many repositories at once.
 git runs `~/.local/bin/git-NAME` for `git NAME`. Back to the
 [README](../README.md).
 
@@ -26,6 +27,7 @@ They need git 2.30 or newer; `git scrub`, `git resolve` and
 | [`git fails-without`](#git-fails-without-prove-a-change-is-tested) | prove a command passes with a change and fails without it |
 | [`git port`](#git-port-commits-from-another-repository) | replay a range of commits from another repository here, paths moved |
 | [`git recover`](#git-recover-lost-commits-and-stashes) | list, show and branch the commits and stashes nothing refers to any more |
+| [`gits`](#gits-many-repositories-at-once) | one line per repository: branch, changes, ahead and behind, unpushed, stashes; fetch them all |
 | [`git rd`, `git rdu`](#git-rd-and-git-rdu-compare-two-versions-of-a-series) | aliases for `range-diff` |
 
 ## `git scrub`: rewrite history
@@ -270,6 +272,35 @@ back on the stash list instead, and `git stash apply HASH` applies it:
 give either the full hash, since `git stash` reads a short one made of
 digits as `stash@{N}`. Objects stay until `git gc` prunes them, by
 default two weeks after they became unreachable.
+
+## `gits`: many repositories at once
+
+```sh
+gits                 # the repositories directly under the current directory
+gits ~/src ~/notes   # those under ~/src, and ~/notes itself
+gits fetch           # git fetch --all in each, in parallel
+gits unpushed        # the commits of each that no remote has
+```
+
+Each `DIR` is a repository, or a directory whose subdirectories are: the
+repositories directly under it are taken. One aligned line each:
+
+```text
+app    main  3 changed  +2 -0        2 unpushed  1 stash
+notes  dev   clean      no upstream  no remote   0 stashes
+```
+
+The branch (`(detached)` when there is none), the files `git status`
+lists, commits ahead and behind the branch's upstream, commits on no
+remote branch, and stashes. `gits fetch` runs with
+`GIT_TERMINAL_PROMPT=0`, so a remote that wants a password fails rather
+than waits, and prints `ok` or the failure under each name. `gits
+unpushed` lists each commit with the branch it is on, and says `no
+remote` for a repository without one. A directory called `fetch` or
+`unpushed` is named `./fetch`. `gits` is a command of its own, not a git
+subcommand. Tab completes its subcommands, then directories
+(`~/.local/share/bash-completion/completions/gits`). Exit 0 whatever the
+repositories' state, 1 when a `DIR` is not a directory or a fetch failed.
 
 ## `git rd` and `git rdu`: compare two versions of a series
 

@@ -30,10 +30,10 @@ dot_config/{kitty,matplotlib}/  dot_ipython/profile_default/  dot_sqliterc     s
 dot_config/systemd/user/        scheduled jobs as user timers, linked but enabled per machine
 private_dot_ssh/config          ~/.ssh/config (600) and ~/.ssh/sockets/ for ControlMaster
 dot_local/bin/dots              -> ../../dots: apply puts dots on PATH; unlink takes it off
-dot_local/share/bash-completion/completions/dots   Tab completion for dots
+dot_local/share/bash-completion/completions/{dots,gits}   Tab completion for dots and gits
 dot_local/bin/executable_git-hooks   git hooks: install, switch and remove the packaged hooks in a repository
 dot_local/bin/executable_git-ctags   git ctags: a tags file kept up to date by the ctags hook
-dot_local/bin/executable_git-*       the other git subcommands (docs/git-tools.md)
+dot_local/bin/executable_git-*       the other git subcommands, and gits (docs/git-tools.md)
 dot_local/share/git-hooks/      the 18 packaged hooks and dispatch, the one file git runs per event
 tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, shell-mutants.txt, coveragerc
 tests/run-tests.sh              test runner and gates

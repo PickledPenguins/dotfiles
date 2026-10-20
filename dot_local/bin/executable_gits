@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# gits: the state of many git repositories at once.
+#
+#   gits [DIR...]            one line per repository: branch, changed
+#                            files, ahead and behind its upstream, commits
+#                            on no remote, stashes
+#   gits fetch [DIR...]      git fetch --all in each, in parallel
+#   gits unpushed [DIR...]   the commits of each that no remote has
+#
+# Each DIR is a repository, or a directory whose subdirectories are: the
+# repositories directly under it are taken. The default DIR is the
+# current directory. A line reads
+#
+#   dotfiles  main  3 changed  +2 -0  2 unpushed  1 stash
+#
+# "clean" when nothing changed, "no upstream" when the branch has none, and
+# "no remote" when the repository has none (then every commit is on no
+# remote, and gits unpushed does not list them). gits fetch prints "ok" or
+# the failure under each repository's name and never asks for a password.
+# A directory called fetch or unpushed is named ./fetch or ./unpushed.
+#
+# Exit 0 whatever the repositories' state, 1 when a DIR is not a directory
+# or a fetch failed, 2 on a usage error.
+set -euo pipefail
+
+usage() { echo "usage: gits [fetch | unpushed] [DIR...]" >&2; exit 2; }
+die() { echo "gits: $*" >&2; exit 1; }
+
+cmd=status
+case ${1-} in
+    -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"; exit 0 ;;
+    fetch | unpushed) cmd=$1; shift ;;
+esac
+for arg; do [[ $arg != -* ]] || usage; done
+(( $# )) || set -- .
+
+repos=()
+for dir; do
+    [[ -d $dir ]] || die "$dir: not a directory"
+    if [[ -e $dir/.git ]]; then
+        repos+=("$dir")
+    else
+        for sub in "${dir%/}"/*/; do
+            [[ -e $sub.git ]] && repos+=("${sub%/}")
+        done
+    fi
+done
+(( ${#repos[@]} )) || exit 0
+
+# How a repository is named: its path, ./ dropped
+name() { local n=${1#./}; echo "${n:-.}"; }
+
+status_row() {
+    local r=$1 branch changed upstream unpushed stashes counts
+    branch=$(git -C "$r" symbolic-ref -q --short HEAD || echo "(detached)")
+    changed=$(git -C "$r" status --porcelain | wc -l)
+    (( changed )) && changed="$changed changed" || changed=clean
+    if counts=$(git -C "$r" rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null); then
+        upstream="+${counts#*$'\t'} -${counts%$'\t'*}"
+    else
+        upstream="no upstream"
+    fi
+    if [[ -z $(git -C "$r" remote) ]]; then
+        unpushed="no remote"
+    else
+        unpushed="$(git -C "$r" rev-list --count --branches --not --remotes) unpushed"
+    fi
+    stashes=$(git -C "$r" rev-list --walk-reflogs --count refs/stash 2>/dev/null || echo 0)
+    (( stashes == 1 )) && stashes="1 stash" || stashes="$stashes stashes"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(name "$r")" "$branch" "$changed" "$upstream" "$unpushed" "$stashes"
+}
+
+case $cmd in
+    status)
+        for r in "${repos[@]}"; do status_row "$r"; done | awk -F '\t' '
+            { for (i = 1; i <= NF; i++) { cell[NR, i] = $i; if (length($i) > w[i]) w[i] = length($i) } }
+            END {
+                for (r = 1; r <= NR; r++) {
+                    line = ""
+                    for (i = 1; i < 6; i++) line = line sprintf("%-" w[i] "s  ", cell[r, i])
+                    print line cell[r, 6]
+                }
+            }'
+        ;;
+    fetch)
+        out=$(mktemp -d "${TMPDIR:-/tmp}/gits.XXXXXX")
+        trap 'command rm -rf "$out"' EXIT
+        for i in "${!repos[@]}"; do
+            { GIT_TERMINAL_PROMPT=0 git -C "${repos[i]}" fetch -q --all </dev/null >"$out/$i" 2>&1 \
+                || : >"$out/$i.failed"; } &
+        done
+        wait
+        failed=0
+        for i in "${!repos[@]}"; do
+            if [[ -e $out/$i.failed ]]; then
+                echo "$(name "${repos[i]}"): failed"
+                sed 's/^./    &/' "$out/$i"
+                failed=1
+            else
+                echo "$(name "${repos[i]}"): ok"
+            fi
+        done
+        exit "$failed"
+        ;;
+    unpushed)
+        for r in "${repos[@]}"; do
+            if [[ -z $(git -C "$r" remote) ]]; then
+                echo "$(name "$r"): no remote"
+                continue
+            fi
+            log=$(git -C "$r" log --branches --not --remotes --source --format='    %h %S %s')
+            [[ -z $log ]] || printf '%s:\n%s\n' "$(name "$r")" "${log//refs\/heads\//}"
+        done
+        ;;
+esac
