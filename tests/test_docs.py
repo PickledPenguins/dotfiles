@@ -267,7 +267,7 @@ def usage_words(name):
     usages = re.findall(rf'"usage: {re.escape(command)}\b([^"]*)"', (REPO / f"dot_local/bin/executable_{name}").read_text())
     assert usages, f"{name}: no usage line"
     words = re.sub(r"\(.*?\)", "", " ".join(usages))                # a hint in parentheses is not usage
-    return set(re.findall(r"(?<![\w-])-{0,2}[a-z][a-z-]*", words)) - {"-h", "--help"}
+    return set(re.findall(r"(?<![\w-])(?:-{1,2}[A-Za-z][\w-]*|[a-z][a-z-]*)", words)) - {"-h", "--help"}
 
 
 def completion_words(name):

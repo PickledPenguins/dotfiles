@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# git-commit-paths: commit just the named paths as the work tree has them.
+#
+#   git commit-paths PATH... [--rm PATH]... {-m MSG | -F FILE} [--branch B]
+#
+# Commits each PATH (a file or a directory, new, changed or deleted) as it
+# is in the work tree, on top of HEAD, through a temporary index: whatever
+# else is staged stays staged and out of the commit, and the index entries
+# of the committed paths are left matching the new commit. --rm PATH takes
+# PATH out of the repository and keeps the file. The commit runs the
+# commit hooks as git commit does.
+#
+# --branch B commits on top of branch B instead, without checking it out
+# and without hooks: the paths as they are here, the rest of the tree as B
+# has it. B may not be checked out in another worktree.
+#
+# Prints the new commit's short hash and subject. Exit 0 on success, 1
+# when there is nothing to commit or git refuses, 2 on a usage error. git
+# turns "git commit-paths --help" into "git help commit-paths": use -h.
+set -euo pipefail
+
+usage() {
+    echo "usage: git commit-paths PATH... [--rm PATH]... {-m MSG | -F FILE} [--branch B]" >&2
+    exit 2
+}
+die() { echo "git commit-paths: $*" >&2; exit 1; }
+
+paths=() removed=() message=() branch=''
+while (( $# )); do
+    case $1 in
+        -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"; exit 0 ;;
+        --rm) (( $# > 1 )) || usage; removed+=("$2"); shift ;;
+        -m | -F) (( $# > 1 )) || usage; message+=("$1" "$2"); shift ;;
+        --branch) (( $# > 1 )) || usage; branch=$2; shift ;;
+        --) shift; paths+=("$@"); break ;;
+        -*) usage ;;
+        *) paths+=("$1") ;;
+    esac
+    shift
+done
+(( ${#paths[@]} + ${#removed[@]} == 0 || ${#message[@]} == 0 )) && usage
+
+if [[ -n $branch ]]; then
+    git show-ref -q --verify "refs/heads/$branch" || die "no branch $branch"
+    if [[ $(git symbolic-ref -q HEAD || true) == "refs/heads/$branch" ]]; then
+        branch=''
+    elif git worktree list --porcelain | grep -qxF "branch refs/heads/$branch"; then
+        die "$branch is checked out in another worktree: commit there"
+    fi
+fi
+base=${branch:+refs/heads/$branch}
+base=${base:-HEAD}
+
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/git-commit-paths.XXXXXX")
+trap 'command rm -rf "$tmp"' EXIT
+export GIT_INDEX_FILE=$tmp/index
+if old=$(git rev-parse -q --verify "$base^{commit}"); then
+    git read-tree "$old"
+else
+    old=''                                      # an unborn branch
+fi
+(( ${#paths[@]} )) && { git add -A -- "${paths[@]}" || exit 1; }
+(( ${#removed[@]} )) && { git rm -q -r --cached -- "${removed[@]}" || exit 1; }
+tree=$(git write-tree)
+[[ -z $old || $tree != $(git rev-parse "$old^{tree}") ]] || die "nothing to commit in those paths"
+
+if [[ -z $branch ]]; then
+    git commit -q "${message[@]}" || exit 1
+    unset GIT_INDEX_FILE
+    git reset -q -- "${paths[@]}" "${removed[@]}"
+else
+    new=$(git commit-tree "$tree" -p "$old" "${message[@]}")
+    git update-ref -m "commit-paths" "refs/heads/$branch" "$new" "$old"
+fi
+git log -1 --format='%h %s' "${branch:-HEAD}"

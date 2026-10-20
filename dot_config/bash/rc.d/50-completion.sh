@@ -86,6 +86,30 @@ _git_absorb() {
     __gitcomp "--base --dry-run"
 }
 
+# `git commit-paths` (~/.local/bin/git-commit-paths) completes its options,
+# a branch after --branch, and files otherwise.
+# shellcheck disable=SC2154  # cur, prev: set by git's completion
+_git_commit_paths() {
+    case $prev in -m | -F) return ;; --branch) __gitcomp_direct "$(__git_heads "" "$cur" " ")"; return ;; esac
+    [[ $cur == -* ]] && __gitcomp "--rm -m -F --branch"
+}
+
+# `git at-rev` (~/.local/bin/git-at-rev) completes its options, a revision
+# after --rev, and files otherwise.
+# shellcheck disable=SC2154  # cur, prev: set by git's completion
+_git_at_rev() {
+    [[ $prev == --rev ]] && { __git_complete_refs; return; }
+    [[ $cur == -* ]] && __gitcomp "--rev --index --keep"
+}
+
+# `git fails-without` (~/.local/bin/git-fails-without) completes its
+# options, a revision after --base, and files otherwise.
+# shellcheck disable=SC2154  # cur, prev: set by git's completion
+_git_fails_without() {
+    case $prev in --build) return ;; --base) __git_complete_refs; return ;; esac
+    [[ $cur == -* ]] && __gitcomp "--base --build"
+}
+
 # `git wt` (~/.local/bin/git-wt) completes its subcommands, then branch
 # names: every branch after new, the ones in a worktree after rm and cd.
 # shellcheck disable=SC2154  # cur: set by git's completion

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# git-fails-without: prove a change is tested: a command passes with it and
+# fails without it.
+#
+#   git fails-without PATH... [--base REV] [--build CMD] -- CMD...
+#
+# Runs CMD here, where it must pass, then, through git at-rev, in a copy of
+# the work tree with each PATH as at REV (default HEAD), where it must
+# fail. --build CMD is shell code run before CMD in both places, for a
+# compile step. Each run's output is shown only when it does not do what
+# it must. The work tree is never touched.
+#
+#   git fails-without src/parser.py -- python -m pytest tests/test_parser.py
+#
+# Exit 0 when both hold, 1 when either does not (or git fails), 2 on a
+# usage error. git turns "git fails-without --help" into "git help
+# fails-without": use -h.
+set -euo pipefail
+
+usage() { echo "usage: git fails-without PATH... [--base REV] [--build CMD] -- CMD..." >&2; exit 2; }
+die() { echo "git fails-without: $*" >&2; exit 1; }
+
+paths=() base=HEAD build=:
+while (( $# )); do
+    case $1 in
+        -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"; exit 0 ;;
+        --base) (( $# > 1 )) || usage; base=$2; shift ;;
+        --build) (( $# > 1 )) || usage; build=$2; shift ;;
+        --) shift; break ;;
+        -*) usage ;;
+        *) paths+=("$1") ;;
+    esac
+    shift
+done
+(( ${#paths[@]} && $# )) || usage
+
+out=$(mktemp "${TMPDIR:-/tmp}/git-fails-without.XXXXXX")
+trap 'command rm -f "$out"' EXIT
+run=(sh -c "$build"' && exec "$@"' sh "$@")
+
+if ! "${run[@]}" >"$out" 2>&1 </dev/null; then
+    cat "$out"
+    die "fails here; it must pass with the change first"
+fi
+git rev-parse -q --verify "$base^{commit}" >/dev/null || die "not a commit: $base"
+if git at-rev "${paths[@]}" --rev "$base" -- "${run[@]}" >"$out" 2>&1 </dev/null; then
+    cat "$out"
+    die "passes with ${paths[*]} as at $base too: nothing there is tested by it"
+fi
+if grep -q '^git at-rev: ' "$out"; then
+    cat "$out"
+    exit 1
+fi
+echo "ok: passes here, fails with ${paths[*]} as at $base"

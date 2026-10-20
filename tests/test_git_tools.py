@@ -280,3 +280,94 @@ def test_absorb_dry_run_and_refusals_change_nothing(linked):
     assert proc.stderr == ("git absorb: no commits in HEAD..HEAD\nfatal: bad revision 'nope..HEAD'\n"
                            "usage: git absorb [--base REV] [--dry-run]\n"
                            "git absorb: error: unrecognized arguments: -x\ngit absorb: nothing staged\n")
+
+
+# ----------------------------------------------------------------------
+# git commit-paths, git at-rev, git fails-without
+# ----------------------------------------------------------------------
+
+PATHS_REPO = (
+    "git init -q -b main r && cd r && echo a >a && echo b >b && mkdir d && echo c >d/c && "
+    "git add . && git commit -q -m base && git branch other && "
+    "echo A >a && echo B >b && git add b && echo new >n && rm d/c && echo x >x && "
+)
+
+
+def test_commit_paths_commits_only_its_paths_and_keeps_the_rest_staged(linked):
+    proc = sh(linked, PATHS_REPO + "git commit-paths a n d -m Paths | cut -c9-; git status --short; "
+                                   "git show --name-status --format=%s HEAD; "
+                                   "git commit-paths --rm b -m 'Untrack b' | cut -c9-; git status --short; cat b; "
+                                   "git commit-paths x --branch other -m 'On other' | cut -c9-; git status --short; "
+                                   "git show --name-status --format=%s other; git log --format=%s main")
+    assert proc.stdout == (
+        "Paths\nM  b\n?? x\nPaths\n\nM\ta\nD\td/c\nA\tn\n"
+        "Untrack b\n?? b\n?? x\nB\n"
+        "On other\n?? b\n?? x\nOn other\n\nA\tx\n"
+        "Untrack b\nPaths\nbase\n"), proc.stderr
+
+
+def test_commit_paths_runs_the_commit_hooks_on_head_and_reads_a_message_file(linked):
+    proc = sh(linked, PATHS_REPO + "printf '#!/bin/sh\\necho hook >&2\\n' >.git/hooks/pre-commit && "
+                                   "chmod +x .git/hooks/pre-commit && printf 'From a file\\n' >../msg && "
+                                   "git commit-paths a -F ../msg | cut -c9-")
+    assert (proc.stdout, proc.stderr) == ("From a file\n", "hook\n")
+
+
+@pytest.mark.parametrize("args, message, status", [
+    ("x", "usage: git commit-paths PATH... [--rm PATH]... {-m MSG | -F FILE} [--branch B]", 2),
+    ("-m m", "usage: git commit-paths", 2),
+    ("b -m m --branch nope", "git commit-paths: no branch nope", 1),
+    ("d -m m --branch side", "git commit-paths: side is checked out in another worktree: commit there", 1),
+    ("nothing -m m", "fatal: pathspec 'nothing' did not match any files", 1),
+])
+def test_commit_paths_refusals_change_nothing(linked, args, message, status):
+    proc = sh(linked, PATHS_REPO + "git worktree add -q -b side ../side && echo B >b && "
+                                   f"git commit-paths {args}; echo $?; git log --format=%s; git status --short")
+    assert proc.stdout == f"{status}\nbase\n M a\nM  b\n D d/c\n?? n\n?? x\n"
+    assert proc.stderr.startswith(message)
+
+
+AT_REV_REPO = (
+    "mkdir tmp && export TMPDIR=$PWD/tmp && git init -q -b main r && cd r && mkdir src t && echo 'echo 1' >src/v.sh && "
+    "echo '[ \"$(sh src/v.sh)\" = 2 ]' >t/test.sh && echo ign >.gitignore && git add . && git commit -q -m base && "
+    "echo 'echo 2' >src/v.sh && echo junk >ign && echo u >untracked && git add src && echo 'echo 3' >src/v.sh && "
+)
+
+
+def test_at_rev_runs_in_a_copy_with_paths_as_at_rev_and_cleans_up(linked):
+    proc = sh(linked, AT_REV_REPO + "cd t && git at-rev ../src/v.sh -- sh -c 'pwd; sh ../src/v.sh; ls -A ..'; "
+                                    "git at-rev test.sh --index -- sh ../src/v.sh; "
+                                    "git at-rev ../untracked -- sh -c 'ls -A ..'; echo $?; "
+                                    "git at-rev ../src/v.sh --rev HEAD -- false; echo $?; "
+                                    "git status --short; ls $TMPDIR | wc -l")
+    lines = proc.stdout.splitlines()
+    assert re.fullmatch(r".*/git-at-rev\.\w+/t", lines[0]), proc.stderr
+    assert lines[1:] == ["1", ".gitignore", "src", "t", "untracked", "2", ".gitignore", "src", "t", "0", "1",
+                         "MM ../src/v.sh", "?? ../untracked", "0"]
+
+
+def test_at_rev_keeps_the_copy_and_refuses_unknown_paths(linked):
+    proc = sh(linked, AT_REV_REPO + "git at-rev src --keep -- sh src/v.sh 2>../kept; cat $(cut -d' ' -f4 ../kept)/src/v.sh; "
+                                    "git at-rev nope -- true; echo $?; git at-rev ../x -- true; echo $?; "
+                                    "git at-rev . -- true; echo $?; git at-rev src --rev nope -- true; echo $?; "
+                                    "git at-rev src; echo $?")
+    assert proc.stdout == "1\necho 1\n1\n1\n1\n1\n2\n"
+    assert proc.stderr == ("git at-rev: nope: in neither HEAD nor the copy\ngit at-rev: ../x: outside the repository\n"
+                           "git at-rev: .: the whole tree; name what is in it\ngit at-rev: not a commit: nope\n"
+                           "usage: git at-rev PATH... [--rev REV] [--index] [--keep] -- CMD...\n")
+
+
+def test_fails_without_holds_only_when_the_change_is_what_the_test_checks(linked):
+    proc = sh(linked, AT_REV_REPO + "echo 'echo 2' >src/v.sh && git fails-without src/v.sh -- sh t/test.sh; echo $?; "
+                                    "git fails-without untracked -- sh t/test.sh; echo $?; "
+                                    "git fails-without src/v.sh -- sh -c 'echo broken; false'; echo $?; "
+                                    "git fails-without src/v.sh --build 'echo built >../built' -- sh t/test.sh; echo $?; "
+                                    "cat ../built; git fails-without nope -- sh t/test.sh; echo $?; "
+                                    "git fails-without src/v.sh; echo $?")
+    assert proc.stdout == ("ok: passes here, fails with src/v.sh as at HEAD\n0\n1\nbroken\n1\n"
+                           "ok: passes here, fails with src/v.sh as at HEAD\n0\nbuilt\n"
+                           "git at-rev: nope: in neither HEAD nor the copy\n1\n2\n"), proc.stderr
+    assert proc.stderr == (
+        "git fails-without: passes with untracked as at HEAD too: nothing there is tested by it\n"
+        "git fails-without: fails here; it must pass with the change first\n"
+        "usage: git fails-without PATH... [--base REV] [--build CMD] -- CMD...\n")

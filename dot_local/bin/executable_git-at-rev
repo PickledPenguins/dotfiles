@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# git-at-rev: run a command in a copy of the work tree with some paths as
+# at another revision.
+#
+#   git at-rev PATH... [--rev REV] [--index] [--keep] -- CMD...
+#
+# Copies the work tree (tracked files and untracked ones that are not
+# ignored, as they are now) or, with --index, what is staged, into a
+# directory under $TMPDIR. Then it puts each PATH there as it is at REV
+# (default HEAD), deleting it when REV does not have it, and runs CMD in
+# the copy, in the subdirectory git at-rev was started from. The copy is not a
+# repository, and ignored files (build output, virtual environments) are
+# not in it. It is deleted afterwards unless --keep, which prints its
+# path. The work tree here is never touched.
+#
+#   git at-rev src/parser.py -- python -m pytest tests/test_parser.py
+#
+# Exit status: CMD's; 1 when git fails or a PATH is in neither REV nor the
+# copy; 2 on a usage error. git turns "git at-rev --help" into "git help
+# at-rev": use -h.
+set -euo pipefail
+
+usage() { echo "usage: git at-rev PATH... [--rev REV] [--index] [--keep] -- CMD..." >&2; exit 2; }
+die() { echo "git at-rev: $*" >&2; exit 1; }
+
+paths=() rev=HEAD index='' keep=''
+while (( $# )); do
+    case $1 in
+        -h | --help) sed -n '2,/^set /{/^set /d; s/^# \{0,1\}//; p}' "$0"; exit 0 ;;
+        --rev) (( $# > 1 )) || usage; rev=$2; shift ;;
+        --index) index=1 ;;
+        --keep) keep=1 ;;
+        --) shift; break ;;
+        -*) usage ;;
+        *) paths+=("$1") ;;
+    esac
+    shift
+done
+(( ${#paths[@]} && $# )) || usage
+
+top=$(git rev-parse --show-toplevel)
+prefix=$(git rev-parse --show-prefix)
+git rev-parse -q --verify "$rev^{commit}" >/dev/null || die "not a commit: $rev"
+
+copy=$(mktemp -d "${TMPDIR:-/tmp}/git-at-rev.XXXXXX")
+if [[ -n $keep ]]; then
+    echo "git at-rev: kept $copy" >&2
+else
+    trap 'command rm -rf "$copy"' EXIT
+fi
+trap 'exit 130' INT TERM
+
+cd "$top"
+if [[ -n $index ]]; then
+    git checkout-index -a --prefix="$copy/"
+else
+    git ls-files -z --cached --others --exclude-standard \
+        | while IFS= read -r -d '' f; do if [[ -e $f || -L $f ]]; then printf '%s\0' "$f"; fi; done \
+        | tar --null --no-recursion -T - -cf - | tar -xf - -C "$copy"
+fi
+
+# PREFIX/PATH from the top of the repository, . and .. resolved
+from_top() {
+    local part parts out=()
+    IFS=/ read -ra parts <<<"$prefix$1"
+    for part in "${parts[@]}"; do
+        case $part in
+            '' | .) ;;
+            ..) (( ${#out[@]} )) || die "$1: outside the repository"; unset 'out[-1]' ;;
+            *) out+=("$part") ;;
+        esac
+    done
+    (( ${#out[@]} )) || die "$1: the whole tree; name what is in it"
+    local IFS=/
+    echo "${out[*]}"
+}
+
+for path in "${paths[@]}"; do
+    full=$(from_top "$path")
+    at_rev=$(git ls-tree -r --name-only "$rev" -- "$full")
+    [[ -n $at_rev || -e $copy/$full || -L $copy/$full ]] || die "$path: in neither $rev nor the copy"
+    command rm -rf "${copy:?}/$full"
+    [[ -z $at_rev ]] || git archive "$rev" -- "$full" | tar -xf - -C "$copy"
+done
+
+mkdir -p "$copy/$prefix"
+cd "$copy/$prefix"
+"$@"

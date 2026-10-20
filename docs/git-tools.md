@@ -21,6 +21,9 @@ They need git 2.30 or newer; `git scrub`, `git resolve` and
 | [`git wt`](#git-wt-a-worktree-per-branch) | one worktree per branch beside the repository; `cdw` goes there |
 | [`git resolve`](#git-resolve-one-conflict-at-a-time) | list, show and resolve merge conflicts a file or a conflict at a time |
 | [`git absorb`](#git-absorb-staged-fixes-into-fixup-commits) | staged fixes into `fixup!` commits for the commits they fix |
+| [`git commit-paths`](#git-commit-paths-commit-just-these-paths) | commit just the named paths, leaving the rest staged |
+| [`git at-rev`](#git-at-rev-run-with-some-paths-as-at-a-revision) | run a command in a copy of the work tree with some paths as at a revision |
+| [`git fails-without`](#git-fails-without-prove-a-change-is-tested) | prove a command passes with a change and fails without it |
 | [`git rd`, `git rdu`](#git-rd-and-git-rdu-compare-two-versions-of-a-series) | aliases for `range-diff` |
 
 ## `git scrub`: rewrite history
@@ -171,6 +174,59 @@ Hunks with lines from several commits or from before the range stay
 staged, and so do new, deleted and binary files, mode changes and
 submodules; renames count as a deletion and a new file. The work tree is
 not touched. Exit 1 when no hunk can be absorbed.
+
+## `git commit-paths`: commit just these paths
+
+```sh
+git commit-paths src/parser.py tests/ -m 'Parse empty input'
+git commit-paths --rm build.log -m 'Stop tracking build.log'
+git commit-paths notes.md --branch notes -F msg.txt
+```
+
+Commits each path (file or directory: new, changed or deleted) as the
+work tree has it, through a temporary index (`GIT_INDEX_FILE`), so what
+else is staged stays staged and out of the commit; afterwards the index
+entries of the committed paths match the new commit. `--rm PATH` takes
+`PATH` out of the repository and leaves the file. One of `-m MSG` and
+`-F FILE` is needed. The commit hooks run as for `git commit`.
+
+`--branch B` commits on top of branch `B` without checking it out: the
+paths as they are here, the rest of the tree as `B` has it. No hooks run,
+and a branch checked out in another worktree is refused. It prints the
+new commit's short hash and subject; exit 1 when nothing in the paths
+changed.
+
+## `git at-rev`: run with some paths as at a revision
+
+```sh
+git at-rev src/parser.py -- python -m pytest tests/test_parser.py
+git at-rev src/ --rev main --index --keep -- make check
+```
+
+Copies the work tree into a directory under `$TMPDIR`: the tracked files
+and the untracked ones that are not ignored, as they are now, or with
+`--index` what is staged. Then it puts each `PATH` there as it is at
+`--rev REV` (default `HEAD`), deleting it when `REV` does not have it,
+and runs the command in the copy, in the subdirectory you started from.
+Paths are relative to where you are; `..` works. The copy is not a
+repository and holds no ignored files (build output, virtual
+environments), so a command that needs either is run with a build step
+(`git fails-without --build`). The copy is deleted afterwards unless
+`--keep`, which prints its path. Exit status is the command's.
+
+## `git fails-without`: prove a change is tested
+
+```sh
+git fails-without src/parser.py -- python -m pytest tests/test_parser.py
+git fails-without src/ext.c --build 'make' -- ./run-tests
+```
+
+Runs the command here, where it must pass, then through `git at-rev` with
+each `PATH` as at `--base REV` (default `HEAD`), where it must fail: the
+test notices when the change is taken away. `--build CMD`, shell code,
+runs before the command in both places. A run's output is shown only when
+it does not do what it must. Exit 0 and `ok: passes here, fails with
+PATH as at REV` when both hold, 1 otherwise.
 
 ## `git rd` and `git rdu`: compare two versions of a series
 
