@@ -287,6 +287,14 @@ here is scheduled; an item is cited by its label. Back to the
   which keeps every older git working at the cost of a few lines. From
   the 2026-10-17 code and documentation review.
 
+- **F.2.an  Left out of the git tools.**  Deliberately, when they were
+  built (`docs/git-tools.md`). Private hooks (`hooks.privateDir`) run
+  only for events whose dispatcher a packaged hook installed: an event
+  with only private hooks needs `.git/hooks/EVENT` linked to `dispatch`
+  by hand. `git port` takes a local path, not a URL. `gits fetch` starts
+  every fetch at once, with no limit for a directory of hundreds.
+  `git recover show` of a stash leaves out its untracked files (the
+  third parent). Build any of them when one is missed.
 ## F.3 tests
 
 - **F.3.a  mutmut or cosmic-ray** instead of the hand-written mutant list,
