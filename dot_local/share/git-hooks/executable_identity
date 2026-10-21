@@ -16,7 +16,7 @@ set -euo pipefail
 mapfile -t rules < <(git config --get-all hooks.email || true)
 ((${#rules[@]})) || exit 0
 
-# host URL: the host of a URL, lower case, or nothing for a local path.
+# host URL: the host of a URL, lower case, or nothing for a local path
 host() {
     local url=$1
     if [[ $url =~ ^[A-Za-z][A-Za-z0-9+.-]*://([^/]*@)?([^/:@]+) ]]; then

@@ -31,7 +31,7 @@ if trailer=$(git config hooks.tagTrailer); then
     text=$(printf -- "$trailer" "$tag")
     [[ $written == *"$text"* ]] && exit 0
     if [[ -z $written ]]; then
-        # Lines 1 and 2 left for the subject and the blank line after it.
+        # Lines 1 and 2 left for the subject and the blank line after it
         message=$(<"$file")
         printf '\n\n%s\n%s\n' "$text" "$message" >"$file"
     else

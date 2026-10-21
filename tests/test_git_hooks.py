@@ -438,7 +438,7 @@ def test_submodules_follow_a_switch(linked):
 
 
 def stub(name, then="exit 0"):
-    """Script that puts first on PATH a NAME logging its arguments to ~/NAME.log, then running then."""
+    """Script that puts first on PATH a NAME logging its arguments to ~/NAME.log, then running it"""
     return (f"mkdir -p ~/stubs && cat >~/stubs/{name} <<'STUB'\n"
             f'#!/bin/sh\necho "$*" >>"$HOME/{name}.log"\n{then}\nSTUB\n'
             f'chmod +x ~/stubs/{name} && export PATH="$HOME/stubs:$PATH" && ')

@@ -17,7 +17,7 @@ export LC_ALL=C
 mapfile -d '' added < <(git diff --cached --name-only -z --no-renames --diff-filter=A)
 ((${#added[@]})) || exit 0
 
-# show PATH: PATH, or quoted as $'...' when it holds a character not printable.
+# show PATH: PATH, or quoted as $'...' when it holds a character not printable
 show() { if [[ $1 == *[![:print:]]* ]]; then echo "${1@Q}"; else echo "$1"; fi; }
 
 problems=()
