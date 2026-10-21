@@ -225,11 +225,12 @@ update() {
 # packaged hook off, a hook dropped from the catalog left out and a missing
 # dispatcher put back.
 write_template() {
-    local path event
+    local path event hooks
     dir=$template/hooks
     command mkdir -p "$dir"
     update
-    quiet=1 install $(packaged)
+    mapfile -t hooks < <(packaged)
+    quiet=1 install "${hooks[@]}"
     for path in "$dir"/*.d; do
         event=${path##*/}
         ensure_dispatch "${event%.d}"
