@@ -114,7 +114,7 @@ def test_install_without_names_installs_every_packaged_hook_off(linked):
 def test_on_needs_the_required_setting_and_off_alone_leaves_dispatchers(linked):
     proc = hooks(linked, "git hooks install lint >/dev/null && git hooks on lint whitespace; echo $?; "
                          "git hooks available | grep '^... lint '; git config hooks.lint true && "
-                         "git hooks on lint && git hooks off && test -L .git/hooks/pre-commit && echo kept")
+                         "git hooks on lint && git hooks off && test -f .git/hooks/pre-commit && echo kept")
     assert proc.stdout == ("1\noff lint                 run this repository's linter on the staged files before a commit.\n"
                            "lint on\nlint off\nkept\n")
     assert proc.stderr == "git hooks: lint needs git config hooks.lint; set it first (git hooks show lint)\n"
@@ -186,6 +186,7 @@ TEMPLATE_DRIFT = {
     "event-gained": "cp --remove-destination \"$(realpath $C/protect)\" $C/protect && "
                     "sed -i 's/^# events: pre-push$/# events: pre-push pre-commit/' $C/protect",
     "dispatcher-gone": "rm $T/hooks/pre-push",
+    "dispatcher-a-link": "ln -sfn $C/dispatch $T/hooks/pre-push",
 }
 
 
@@ -689,11 +690,49 @@ def test_template_holds_what_install_leaves_linked_through_the_home(linked):
                          "git hooks template >/dev/null && git hooks template && "
                          "env -u GIT_TEMPLATE_DIR git init -q ../t && cd ../t && "
                          "tree .git/hooks >../templated && diff ../installed ../templated && grep -c . ../templated && "
-                         "readlink .git/hooks/pre-push .git/hooks/pre-push.d/protect.off && "
+                         "readlink .git/hooks/pre-push.d/protect.off && "
                          "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")
     catalog = f"{linked}/.local/share/git-hooks"
     assert (proc.stdout, proc.stderr) == (
-        f"{1 + 10 * 2 + 46}\n{catalog}/dispatch\n{catalog}/protect\nwhitespace on\n1\n", "")
+        f"{1 + 10 * 2 + 46}\n{catalog}/protect\nwhitespace on\n1\n", "")
+
+
+def stub_text(home):
+    """What install and the template write as .git/hooks/EVENT"""
+    return ("#!/usr/bin/env bash\n"
+            "# Written by git hooks: a copy, not a link, so writing this file cannot\n"
+            "# change the dispatcher it runs\n"
+            f"dispatcher={home}/.local/share/git-hooks/dispatch\n"
+            '[[ -f $dispatcher ]] || { echo "git hooks: $dispatcher is missing; run dots apply" >&2; exit 0; }\n'
+            'source "$dispatcher" "$@"\n')
+
+
+# The catalog's dispatch becomes a copy first: were the event hook still a
+# link, the write would reach this checkout's dispatcher, not the copy.
+def test_writing_the_event_hook_leaves_the_dispatcher_alone_installed_or_templated(linked):
+    proc = hooks(linked, "C=$HOME/.local/share/git-hooks; "
+                         'cp --remove-destination "$(realpath $C/dispatch)" $C/dispatch && '
+                         "git hooks install whitespace >/dev/null && git hooks template >/dev/null && "
+                         "env -u GIT_TEMPLATE_DIR git init -q ../t && cat .git/hooks/pre-commit && "
+                         "cmp .git/hooks/pre-commit ../t/.git/hooks/pre-commit && "
+                         "for r in . ../t; do printf '#!/bin/sh\\nexit 1\\n' >$r/.git/hooks/pre-commit; done && "
+                         f"cmp $C/dispatch {CATALOG}/executable_dispatch && echo same")
+    assert (proc.stdout, proc.stderr) == (stub_text(linked) + "same\n", "")
+
+
+def test_an_old_dispatcher_link_still_dispatches_and_update_makes_it_the_stub(linked):
+    (linked / "stub").write_text(stub_text(linked))
+    proc = hooks(linked, "C=$HOME/.local/share/git-hooks h=.git/hooks/pre-commit; "
+                         "git hooks install whitespace >/dev/null && ln -sfn $C/dispatch $h && "
+                         "printf '#!/bin/sh\\necho \"a $GIT_HOOK_EVENT\"\\n' >$h.d/a && chmod +x $h.d/a && "
+                         "git hooks | awk '{print $1, $2, $3}' && git commit -q --allow-empty -m two 2>&1 && "
+                         "git hooks update && git hooks update && test ! -L $h && cmp -s $h ../stub && "
+                         "git commit -q --allow-empty -m three 2>&1 && rm $C/dispatch && "
+                         "git commit -q --allow-empty -m four 2>&1; echo $?")
+    assert (proc.stdout, proc.stderr) == (
+        "on pre-commit a\noff pre-commit whitespace\na pre-commit\n"
+        "pre-commit: the link to the dispatcher is now a copy\na pre-commit\n"
+        f"git hooks: {linked}/.local/share/git-hooks/dispatch is missing; run dots apply\n0\n", "")
 
 
 # ----------------------------------------------------------------------

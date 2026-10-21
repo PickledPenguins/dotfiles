@@ -304,8 +304,9 @@ git hooks update             # after dots apply brought new or changed packaged 
 git hooks template           # ~/.local/share/git-template, for init.templateDir
 ```
 
-git runs one file per event, so `install` links `.git/hooks/EVENT` to
-`dispatch`, which runs each `.git/hooks/EVENT.d/NAME` in name order with
+git runs one file per event, so `install` writes `.git/hooks/EVENT`, a
+small stub that sources `~/.local/share/git-hooks/dispatch`, which runs
+each `.git/hooks/EVENT.d/NAME` in name order with
 git's arguments, its stdin and `GIT_HOOK_EVENT` set. Name order is byte
 order (C) whatever `LC_ALL` or `LC_COLLATE` says, so `no-commit-on` runs
 before `nocommit` everywhere; the hooks themselves run under the caller's
@@ -314,6 +315,14 @@ its name ends in `.off`. A pre- event stops at the first hook that fails,
 which fails the commit, merge or push; a post- event runs every hook.
 `HOOKS_SKIP="NAME..."` skips hooks for one command; `--no-verify` skips
 all of an event's.
+
+The stub is a copy, not a link to `dispatch`: a script or test that writes
+`.git/hooks/pre-commit` writes the stub, never the dispatcher (on
+2026-10-20 a test did that through a link and broke every repository's
+hooks). While `dispatch` is missing the stub says so on stderr, naming
+`dots apply`, and lets git go on. A repository installed by an older
+`git hooks`, with links, keeps working; `git hooks update` turns each link
+into the stub and says so once per event.
 
 After them `dispatch` runs the hooks of a private directory the same way:
 `PRIVATE/EVENT.d/NAME`, where `PRIVATE` is `git config hooks.privateDir`,
@@ -346,12 +355,13 @@ first.
 
 `git hooks template` writes `~/.local/share/git-template/hooks` as
 `install` leaves a repository, every packaged hook off, for
-`init.templateDir` in `core.gitconfig`. Its links go through
+`init.templateDir` in `core.gitconfig`. Its stubs and links go through
 `~/.local/share/git-hooks`, as `install`'s do, and `git init` copies them
 as they are, so a repository made from it keeps working after the
 checkout moves, once `dots apply` runs. It keeps every hook off, leaves
-out a hook no longer packaged and puts back a missing dispatcher. A hook
-added to or dropped from the catalog, or an event a hook gained, leaves the
+out a hook no longer packaged and puts back a missing stub. A hook
+added to or dropped from the catalog, an event a hook gained, or a link
+to `dispatch` where the stub belongs leaves the
 template behind: `git hooks update` rewrites it too when it exists, and
 says `template updated` when that changed it, also outside a repository;
 every other `git hooks` command warns in one line, naming `git hooks

@@ -12,8 +12,8 @@
 #   git hooks template          write the template init.templateDir names: every hook, off
 #
 # The packaged hooks live in ~/.local/share/git-hooks, each describing itself
-# in its header. git runs one file per event, so install links
-# .git/hooks/EVENT to the dispatcher there, which runs each
+# in its header. git runs one file per event, so install writes
+# .git/hooks/EVENT, a stub that sources the dispatcher there, which runs each
 # .git/hooks/EVENT.d/NAME in name order, byte order (C) whatever the
 # locale, as every listing here is. A hook is off while its name ends
 # in .off. A hook the repository already had for the event moves into
@@ -24,13 +24,19 @@
 # hooks directory, by its event name. The hooks directory is shared by
 # every worktree of the repository.
 #
+# The stub is a copy, not a link to the dispatcher: a test that wrote
+# .git/hooks/pre-commit through such a link once overwrote the dispatcher
+# and broke every repository's hooks. update turns a link left by an older
+# install into the stub. While the dispatcher is missing, the stub says so
+# and lets git go on.
+#
 # After dots apply brings new or changed packaged hooks, update removes each
 # installed hook missing from the catalog, and each link on an event its
 # header does not list. It installs an event a hook gained in the state the
 # hook is in, as install does. template keeps
 # ~/.local/share/git-template/hooks as install leaves a repository, every
-# packaged hook off, its links going through ~/.local/share/git-hooks as
-# install's do. A repository git init makes from it keeps working after the
+# packaged hook off, its stubs and links going through ~/.local/share/git-hooks
+# as install's do. A repository git init makes from it keeps working after the
 # checkout moves, once dots apply runs. update rewrites the template too
 # when it exists, and says so when that changed it. Every other command
 # warns, in one line, while the template's hooks or events differ from the
@@ -55,7 +61,37 @@ hooks_dir() {
 
 exists() { [[ -e $1 || -L $1 ]]; }
 
-is_dispatch() { [[ -L $1 && $(realpath -m -- "$1") == "$(realpath -m -- "$dispatch")" ]]; }
+# The stub install writes as .git/hooks/EVENT. Sourced, the dispatcher sees
+# the stub's path as $0, so the event and EVENT.d are the stub's.
+printf -v quoted %q "$dispatch"
+# shellcheck disable=SC2016 # the stub expands these when it runs
+printf -v stub '%s\n' '#!/usr/bin/env bash' \
+    '# Written by git hooks: a copy, not a link, so writing this file cannot' \
+    '# change the dispatcher it runs' \
+    "dispatcher=$quoted" \
+    '[[ -f $dispatcher ]] || { echo "git hooks: $dispatcher is missing; run dots apply" >&2; exit 0; }' \
+    'source "$dispatcher" "$@"'
+
+# is_stub PATH: PATH is the stub, as this version writes it
+is_stub() {
+    local text=''
+    [[ -f $1 && ! -L $1 ]] || return 1
+    IFS= read -r -d '' text <"$1" || true
+    [[ $text == "$stub" ]]
+}
+
+# is_link PATH: PATH is a link to the dispatcher, as an older install made
+is_link() { [[ -L $1 && $(realpath -m -- "$1") == "$(realpath -m -- "$dispatch")" ]]; }
+
+is_dispatch() { is_stub "$1" || is_link "$1"; }
+
+# write_stub PATH: write the stub beside PATH and rename it over PATH, never
+# writing through a link there.
+write_stub() {
+    printf '%s' "$stub" >"$1.new"
+    chmod +x -- "$1.new"
+    command mv -f -- "$1.new" "$1"
+}
 
 # ours PATH NAME: PATH is install's link to the packaged hook NAME, even one
 # since dropped from the catalog.
@@ -104,11 +140,16 @@ state() {
     echo "$found"
 }
 
-# ensure_dispatch EVENT: link .git/hooks/EVENT to the dispatcher, moving the
-# hook that was there into EVENT.d.
+# ensure_dispatch EVENT: write the stub as .git/hooks/EVENT, moving the hook
+# that was there into EVENT.d, or replacing an older install's link.
 ensure_dispatch() {
     local hook=$dir/$1 old new target
-    is_dispatch "$hook" && return
+    is_stub "$hook" && return
+    if is_link "$hook"; then
+        write_stub "$hook"
+        echo "$1: the link to the dispatcher is now a copy"
+        return
+    fi
     if exists "$hook" && exists "$hook.off"; then
         echo "git hooks: both $1 and $1.off exist in $dir; remove one" >&2
         exit 1
@@ -126,7 +167,7 @@ ensure_dispatch() {
         fi
         echo "$1: the hook that was there moved to $1.d/${old##*/}"
     done
-    ln -s "$dispatch" "$hook"
+    write_stub "$hook"
 }
 
 # tidy EVENT: once EVENT.d holds nothing but the event's own old hook, put
@@ -193,6 +234,7 @@ remove() {
 
 # update: remove each installed hook missing from the catalog, and each link
 # on an event its header does not list. Install the events a hook gained.
+# Turn an older install's link to the dispatcher into the stub.
 update() {
     local path name event
     for path in "$catalog"/*; do
@@ -217,6 +259,7 @@ update() {
     quiet=1 install $(installed)
     for path in "$dir"/*.d; do
         event=${path##*/}
+        if is_link "$dir/${event%.d}"; then ensure_dispatch "${event%.d}"; fi
         tidy "${event%.d}"
     done
 }
@@ -238,7 +281,7 @@ write_template() {
 }
 
 # template_behind: true when the template exists and a packaged hook is
-# missing from one of its events there, an event lacks the dispatcher, or
+# missing from one of its events there, an event lacks the stub, or
 # the template holds a hook on an event the catalog does not give it. One
 # awk over the catalog, no other process.
 template_behind() {
@@ -257,7 +300,7 @@ template_behind() {
     done
     ((n == ${#want[@]})) || return 0
     for entry in "${!want[@]}"; do
-        [[ $hooks/${entry%/*} -ef $dispatch ]] || return 0
+        is_stub "$template/hooks/${entry%/*}" || return 0
     done
     return 1
 }
