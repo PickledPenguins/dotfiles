@@ -357,7 +357,7 @@ keeps every hook off and leaves out a hook no longer packaged.
 | `debug-left` | pre-commit | refuses added `breakpoint()`, `pdb`/`ipdb`, `debugger;`, `binding.pry`; `hooks:allow-debug` on a line passes it | |
 | `lint` | pre-commit | runs `hooks.lint` with the staged paths | `hooks.lint` (required), `hooks.lintFiles` (pathspecs) |
 | `no-commit-on` | pre-commit | refuses a commit straight on a protected branch | `hooks.protect` (`main master`) |
-| `branch-tag` | prepare-commit-msg | starts the message with the ticket in the branch name (`ABC-123: `) | `hooks.tagPattern` (`[A-Z][A-Z0-9]+-[0-9]+`) |
+| `branch-tag` | prepare-commit-msg | starts the message with the ticket in the branch name (`ABC-123: `), or ends it with a trailer naming it | `hooks.tagPattern` (`[A-Z][A-Z0-9]+-[0-9]+`), `hooks.tagFormat` (`%s: `), `hooks.tagTrailer` |
 | `msg-format` | commit-msg | subject at most `hooks.subjectMax` characters, no trailing period, blank line 2; skips `fixup!`, `squash!`, `amend!` | `hooks.subjectMax` (72) |
 | `test-merge` | pre-merge-commit | runs `hooks.test` on the merged tree before git commits a merge (not a fast-forward, a conflicted merge or `--no-commit`) | `hooks.test` (required) |
 | `test-push` | pre-push | runs `hooks.test` in a clean temporary worktree of each pushed branch tip | `hooks.test` (required) |

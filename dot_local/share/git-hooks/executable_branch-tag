@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 # branch-tag: start the commit message with the ticket named in the branch.
 # events: prepare-commit-msg
-# config: hooks.tagPattern
+# config: hooks.tagPattern hooks.tagFormat hooks.tagTrailer
 #
 # On branch ABC-123-fix-login the message starts "ABC-123: ". The tag is the
 # first part of the branch name matching hooks.tagPattern, an extended regular
-# expression (default [A-Z][A-Z0-9]+-[0-9]+). Nothing is added when the
-# branch has no tag, when the message already holds it, or for a merge, a
-# squash, or a message reused with -c, -C or --amend.
+# expression (default [A-Z][A-Z0-9]+-[0-9]+). hooks.tagFormat is the printf
+# format of the prefix, its %s the tag (default "%s: "). Set
+# hooks.tagTrailer, a printf format such as "Refs: #%s", and the tag goes in
+# a trailer at the end of the message instead (git interpret-trailers), no
+# prefix. For a GitLab branch made from issue 123, 123-fix-login:
+#     git config hooks.tagPattern '^[0-9]+'
+#     git config hooks.tagTrailer 'Refs: #%s'
+# A trailer is "Key: value", so "Refs #%s" would not be one. Nothing is
+# added when the branch has no tag, when the message already holds the tag
+# (the trailer, with hooks.tagTrailer), or for a merge, a squash, or a
+# message reused with -c, -C or --amend.
 set -euo pipefail
 
 file=$1 source=${2-}
@@ -17,6 +25,22 @@ pattern=$(git config hooks.tagPattern || echo '[A-Z][A-Z0-9]+-[0-9]+')
 tag=$(grep -oE -m1 -e "$pattern" <<<"$branch" | head -n1) || exit 0
 [[ -n $tag ]] || exit 0
 # Not in git's comments: they name the branch, and so hold the tag.
-[[ $(sed '/^. -\{24\} >8 -\{24\}$/,$d' "$file" | git stripspace --strip-comments) == *"$tag"* ]] && exit 0
+written=$(sed '/^. -\{24\} >8 -\{24\}$/,$d' "$file" | git stripspace --strip-comments)
+if trailer=$(git config hooks.tagTrailer); then
+    # shellcheck disable=SC2059 # the format is the setting
+    text=$(printf -- "$trailer" "$tag")
+    [[ $written == *"$text"* ]] && exit 0
+    if [[ -z $written ]]; then
+        # Lines 1 and 2 left for the subject and the blank line after it.
+        message=$(<"$file")
+        printf '\n\n%s\n%s\n' "$text" "$message" >"$file"
+    else
+        git interpret-trailers --in-place --trailer "$text" "$file"
+    fi
+    exit 0
+fi
+[[ $written == *"$tag"* ]] && exit 0
+format=$(git config hooks.tagFormat || echo '%s: ')
 message=$(<"$file")
-printf '%s: %s\n' "$tag" "$message" >"$file"
+# shellcheck disable=SC2059 # the format is the setting
+printf -- "$format%s\n" "$tag" "$message" >"$file"

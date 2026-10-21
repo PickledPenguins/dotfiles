@@ -313,6 +313,19 @@ def test_branch_tag_prefixes_a_message_written_in_the_editor(linked):
     assert proc.stdout == "ABC-12: fix\n"
 
 
+def test_branch_tag_adds_a_trailer_or_a_formatted_prefix(linked):
+    # A GitLab issue branch: the number first, a trailer GitLab links to the issue
+    proc = hooks(linked, "use branch-tag && git switch -q -c 123-fix-login && git config hooks.tagPattern '^[0-9]+' && "
+                         "git config hooks.tagTrailer 'Refs: #%s' && git commit -q --allow-empty -m fix && "
+                         "git commit -q --allow-empty -m again -m $'Refs: #123\\nSigned-off-by: X <x@example.com>' && "
+                         "GIT_EDITOR='sed -i 1s/\\$/edited/' git commit -q --allow-empty && "
+                         "git config --unset hooks.tagTrailer && git config hooks.tagFormat '[%s] ' && "
+                         "git commit -q --allow-empty -m pre && git log --format='%B--' -4")
+    assert proc.stdout == ("[123] pre\n--\nedited\n\nRefs: #123\n--\n"
+                           "again\n\nRefs: #123\nSigned-off-by: X <x@example.com>\n--\n"
+                           "fix\n\nRefs: #123\n--\n")
+
+
 def test_msg_format_checks_the_subject_and_the_blank_line(linked):
     long = "x" * 73
     proc = hooks(linked, f"use msg-format && git commit -q --allow-empty -m 'Ends.' -m body; echo $?; "
