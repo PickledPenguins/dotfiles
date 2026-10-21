@@ -2,8 +2,10 @@
 # dispatch: run the hooks switched on for one git event.
 #
 # git hooks install links .git/hooks/EVENT here. Each .git/hooks/EVENT.d/NAME
-# runs in name order with git's arguments, its stdin and GIT_HOOK_EVENT set
-# to EVENT; NAME.off is switched off. For a post- event every hook runs and
+# runs in name order, byte order (C) whatever LC_ALL or LC_COLLATE says (so
+# no-commit-on runs before nocommit everywhere), with git's arguments, its
+# stdin and GIT_HOOK_EVENT set to EVENT, under the caller's locale;
+# NAME.off is switched off. For a post- event every hook runs and
 # git ignores the status. For any other event the first hook to fail stops
 # the rest and fails the event, so git stops the commit, merge or push.
 # HOOKS_SKIP="NAME..." skips those hooks for one command, as in
@@ -31,7 +33,8 @@ case $GIT_HOOK_EVENT in
         ;;
 esac
 
-for hook in "$dir"/* "$private"/*; do
+mapfile -d '' hooks < <(LC_ALL=C; printf '%s\0' "$dir"/* "$private"/*)
+for hook in "${hooks[@]}"; do
     name=${hook##*/}
     [[ -x $hook && $name != *.off && " ${HOOKS_SKIP-} " != *" $name "* ]] || continue
     "$hook" "$@" <"$input"

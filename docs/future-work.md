@@ -235,15 +235,17 @@ here is scheduled; an item is cited by its label. Back to the
   before the move and let it through after). The tracked template is gone:
   `git hooks template` writes `~/.local/share/git-template/hooks` with
   `install`'s own code, its links going through `~/.local/share/git-hooks`
-  as `install`'s do, and `templateDir` names it, still off. The cost: the
-  template is per-machine state, written once before `templateDir` goes on
-  and again after an update brings new or changed hooks. A `dots`
+  as `install`'s do, and `templateDir` names it. The cost: the template is
+  per-machine state, written once before `templateDir` goes on (until then
+  every `git init` warns that it is missing), and behind whenever the
+  catalog gains or drops a hook or a hook an event: `git hooks update`
+  rewrites it, and every other `git hooks` command warns while it is
+  behind. A `dots`
   attribute making a symlink with a given target (chezmoi's `symlink_`) was
   the other route; not needed now. A repository made from the old
   template keeps its links into the checkout's deleted
   `dot_config/git/template`: `find .git/hooks -xtype l -delete && git
-  hooks install` there. `templateDir` was never switched on on the
-  owner's machine.
+  hooks install` there. `templateDir` is on since 2026-10-20.
 - **F.2.al  Bringing installed hooks up to date.**  Built 2026-10-13.
   After `dots apply` brought changed packaged hooks, `git hooks install`
   left three gaps, each checked in a throwaway home: a hook that gained

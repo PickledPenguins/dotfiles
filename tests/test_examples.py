@@ -48,7 +48,7 @@ def run_case(case, tmp):
     env = {
         "HOME": str(home), "SRC": str(src), "DOTS_SOURCE": str(src), "REPO": str(REPO),
         "PATH": f"{bin_dir}:{os.environ['PATH']}", "TERM": "xterm-256color", "LANG": "C.UTF-8",
-        "USER": os.environ.get("USER", "user"),
+        "USER": os.environ.get("USER", "user"), "GIT_TEMPLATE_DIR": os.environ["GIT_TEMPLATE_DIR"],
     }
     proc = subprocess.run(["bash", str(case / "case.sh")], cwd=home, env=env, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, text=True, errors="replace", timeout=120)

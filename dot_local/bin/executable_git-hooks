@@ -8,13 +8,14 @@
 #   git hooks remove [NAME...]  remove installed packaged hooks (default: all)
 #   git hooks on NAME...        switch hooks on
 #   git hooks off [NAME...]     switch hooks off (default: every hook that is on)
-#   git hooks update            bring the installed hooks in line with the packaged ones
+#   git hooks update            bring the installed hooks and the template in line with the packaged ones
 #   git hooks template          write the template init.templateDir names: every hook, off
 #
 # The packaged hooks live in ~/.local/share/git-hooks, each describing itself
 # in its header. git runs one file per event, so install links
 # .git/hooks/EVENT to the dispatcher there, which runs each
-# .git/hooks/EVENT.d/NAME in name order. A hook is off while its name ends
+# .git/hooks/EVENT.d/NAME in name order, byte order (C) whatever the
+# locale, as every listing here is. A hook is off while its name ends
 # in .off. A hook the repository already had for the event moves into
 # EVENT.d under the event's name, in the state it was in, and remove moves it
 # back once no packaged hook is left there. A hook that needs a setting
@@ -30,11 +31,16 @@
 # ~/.local/share/git-template/hooks as install leaves a repository, every
 # packaged hook off, its links going through ~/.local/share/git-hooks as
 # install's do. A repository git init makes from it keeps working after the
-# checkout moves, once dots apply runs. Run it again after an update.
+# checkout moves, once dots apply runs. update rewrites the template too
+# when it exists, and says so when that changed it. Every other command
+# warns, in one line, while the template's hooks or events differ from the
+# packaged ones.
 #
 # git has no event after a push completes, so there is no post-push hook.
 set -euo pipefail
 shopt -s nullglob
+# Names sort, and globs expand, in byte order, as dispatch runs them
+export LC_ALL=C
 
 catalog=$HOME/.local/share/git-hooks
 dispatch=$catalog/dispatch
@@ -215,6 +221,46 @@ update() {
     done
 }
 
+# write_template: the template as install leaves a repository, every
+# packaged hook off, a hook dropped from the catalog left out and a missing
+# dispatcher put back.
+write_template() {
+    local path event
+    dir=$template/hooks
+    command mkdir -p "$dir"
+    update
+    quiet=1 install $(packaged)
+    for path in "$dir"/*.d; do
+        event=${path##*/}
+        ensure_dispatch "${event%.d}"
+    done
+}
+
+# template_behind: true when the template exists and a packaged hook is
+# missing from one of its events there, an event lacks the dispatcher, or
+# the template holds a hook on an event the catalog does not give it. One
+# awk over the catalog, no other process.
+template_behind() {
+    local hooks=$template/hooks path entry n=0
+    local -A want=()
+    [[ -d $hooks ]] || return 1
+    while read -r entry; do
+        want[$entry]=1
+    done < <(awk '/^# events: / {name = FILENAME; sub(/.*\//, "", name); for (i = 3; i <= NF; i++) print $i "/" name; nextfile}' \
+        "$catalog"/* 2>/dev/null)
+    for path in "$hooks"/*.d/*; do
+        entry=${path%.d/*}
+        entry=${entry##*/}/${path##*/}
+        [[ -n ${want[${entry%.off}]-} ]] || return 0
+        n=$((n + 1))
+    done
+    ((n == ${#want[@]})) || return 0
+    for entry in "${!want[@]}"; do
+        [[ $hooks/${entry%/*} -ef $dispatch ]] || return 0
+    done
+    return 1
+}
+
 # switch on|off NAME: rename every NAME.off to NAME, or NAME to NAME.off, in
 # the EVENT.d directories and at the top of the hooks directory.
 switch() {
@@ -247,6 +293,15 @@ on_now() {
         [[ ! -d $path && $name != *.off && $name != *.sample ]] && ! is_dispatch "$path" && echo "$name"
     done | sort -u
 }
+
+case ${1-} in
+    update | template | -h) ;;
+    *)
+        if template_behind; then
+            echo "git hooks: $template is behind the packaged hooks; run git hooks template" >&2
+        fi
+        ;;
+esac
 
 case ${1-} in
     '')
@@ -311,15 +366,18 @@ case ${1-} in
         ;;
     update)
         (($# == 1)) || { echo "usage: git hooks update" >&2; exit 2; }
-        hooks_dir
-        update
+        if in_repo || [[ ! -d $template/hooks ]]; then
+            hooks_dir
+            update
+        fi
+        if [[ -d $template/hooks ]]; then
+            changes=$(write_template)
+            [[ -z $changes ]] || echo "template updated: $template"
+        fi
         ;;
     template)
         (($# == 1)) || { echo "usage: git hooks template" >&2; exit 2; }
-        dir=$template/hooks
-        command mkdir -p "$dir"
-        update
-        quiet=1 install $(packaged)
+        write_template
         ;;
     on)
         (($# > 1)) || { echo "usage: git hooks on NAME... (git hooks available lists them)" >&2; exit 2; }

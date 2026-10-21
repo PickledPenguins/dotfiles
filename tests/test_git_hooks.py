@@ -5,6 +5,8 @@ Every test runs real git in a repository under a HOME that dots applied this
 checkout to, so the hooks run from where `dots apply` links them.
 """
 
+import subprocess
+
 import pytest
 
 from conftest import REPO
@@ -14,6 +16,9 @@ from test_runner import RUNNER
 pytestmark = pytest.mark.long
 
 CATALOG = REPO / "dot_local" / "share" / "git-hooks"
+# A locale whose collation puts nocommit before no-commit-on, as C does not
+COLLATING = next((name for name in subprocess.run(["locale", "-a"], capture_output=True, text=True).stdout.split()
+                  if name.lower() in ("en_us.utf8", "en_us.utf-8")), None)
 
 
 def hooks(home, script):
@@ -160,9 +165,54 @@ def test_update_refuses_while_the_catalog_has_a_broken_link(linked):
         "1\nprotect\n", f"git hooks: {linked}/.local/share/git-hooks/protect is a broken link; run dots apply first\n")
 
 
+@pytest.mark.skipif(COLLATING is None, reason="no en_US.UTF-8 locale")
+def test_hooks_list_and_run_in_byte_order_under_a_collating_locale(linked):
+    proc = hooks(linked, f"export LC_ALL={COLLATING}; printf '%s\\n' no-commit-on nocommit | sort | head -1 && "
+                         "d=.git/hooks/pre-commit.d && git hooks install whitespace >/dev/null && "
+                         "for n in nocommit no-commit-on B a; do printf '#!/bin/sh\\necho $0 $LC_ALL\\n' >$d/$n; done && "
+                         "chmod +x $d/* && git hooks | awk '{print $3}' | tr '\\n' ' ' && echo && "
+                         "git commit -q --allow-empty -m two 2>&1 | sed 's,.*/,,' && "
+                         "git hooks available | awk '{print $2}' | tr '\\n' ' '")
+    assert (proc.stdout, proc.stderr) == (
+        "nocommit\nB a no-commit-on nocommit whitespace \n"
+        f"B {COLLATING}\na {COLLATING}\nno-commit-on {COLLATING}\nnocommit {COLLATING}\n"
+        + "".join(f"{name} " for name in packaged()), "")
+
+
+TEMPLATE_DRIFT = {
+    "hook-added": "cp $C/protect $C/zz-new",
+    "hook-dropped": "rm $C/lint",
+    "hook-renamed": "mv $C/lint $C/lint2",
+    "event-gained": "cp --remove-destination \"$(realpath $C/protect)\" $C/protect && "
+                    "sed -i 's/^# events: pre-push$/# events: pre-push pre-commit/' $C/protect",
+    "dispatcher-gone": "rm $T/hooks/pre-push",
+}
+
+
+@pytest.mark.parametrize("drift", TEMPLATE_DRIFT.values(), ids=TEMPLATE_DRIFT.keys())
+def test_every_command_warns_while_the_template_is_behind_and_template_fixes_it(linked, drift):
+    proc = hooks(linked, "C=$HOME/.local/share/git-hooks T=$HOME/.local/share/git-template; "
+                         "git hooks available >/dev/null && git hooks template >/dev/null && git hooks >/dev/null && "
+                         f"{drift} && git hooks >/dev/null && git hooks show whitespace >/dev/null && "
+                         "git hooks template >/dev/null && git hooks available >/dev/null && git hooks; echo $?")
+    warning = f"git hooks: {linked}/.local/share/git-template is behind the packaged hooks; run git hooks template\n"
+    assert (proc.stdout, proc.stderr) == ("0\n", 2 * warning)
+
+
+def test_update_rewrites_an_existing_template_and_says_so_once(linked):
+    proc = hooks(linked, "C=$HOME/.local/share/git-hooks; git hooks install lint >/dev/null && "
+                         "git hooks template >/dev/null && rm $C/lint && cp $C/protect $C/zz-new && "
+                         "git hooks update && git hooks update && ls $HOME/.local/share/git-template/hooks/*.d | "
+                         "grep -cx -e lint.off -e zz-new.off; cd .. && rm $C/zz-new && git hooks update && git hooks available >/dev/null")
+    assert (proc.stdout, proc.stderr) == (
+        "lint removed from pre-commit: no longer packaged\n"
+        f"template updated: {linked}/.local/share/git-template\n1\n"
+        f"template updated: {linked}/.local/share/git-template\n", "")
+
+
 def test_available_and_show_work_outside_a_repository(linked):
     proc = git_script(linked, f'export PATH="{linked}/.local/bin:$PATH"; '
-                              "git hooks available | awk '{print $1, $2}' | LC_ALL=C sort && "
+                              "git hooks available | awk '{print $1, $2}' && "
                               "git hooks show test-push | tail -3")
     assert proc.stdout == "".join(f"- {name}\n" for name in packaged()) + (
         "\nhooks.test = (unset)\nhere: not in a git repository\n")
@@ -637,7 +687,7 @@ def test_template_holds_what_install_leaves_linked_through_the_home(linked):
                          "while read -r p; do echo \"$p $(test -L \"$p\" && realpath \"$p\")\"; done); }; "
                          "git hooks install >/dev/null && tree .git/hooks >../installed && "
                          "git hooks template >/dev/null && git hooks template && "
-                         "git init -q --template=$HOME/.local/share/git-template ../t && cd ../t && "
+                         "env -u GIT_TEMPLATE_DIR git init -q ../t && cd ../t && "
                          "tree .git/hooks >../templated && diff ../installed ../templated && grep -c . ../templated && "
                          "readlink .git/hooks/pre-push .git/hooks/pre-push.d/protect.off && "
                          "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")

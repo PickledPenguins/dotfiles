@@ -9,12 +9,21 @@ real home directory.
 
 import importlib.util
 import os
+import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
+
+# core.gitconfig names ~/.local/share/git-template, which a throwaway home
+# lacks until git hooks template writes it: every git init there would warn.
+# The tests' children take git's own template instead, next to its exec
+# path (--template, or GIT_TEMPLATE_DIR unset, brings back the setting).
+os.environ.setdefault("GIT_TEMPLATE_DIR", str(
+    Path(subprocess.run(["git", "--exec-path"], capture_output=True, text=True, check=True).stdout.strip())
+    .parent.parent / "share" / "git-core" / "templates"))
 DOTS = REPO / "dots"
 
 
@@ -94,8 +103,6 @@ def linked(home):
 
 def run_subprocess(home, src, *args, env=None):
     """The CLI as a real process, for exit codes and argparse behavior."""
-    import subprocess
-
     environment = dict(os.environ, HOME=str(home), DOTS_SOURCE=str(src))
     environment.update(env or {})
     return subprocess.run([sys.executable, str(DOTS), *args], env=environment,

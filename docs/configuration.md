@@ -205,7 +205,7 @@ Read-only variables the loader sets for modules and for you:
 
 | File | Provides |
 |------|----------|
-| `core.gitconfig` | pager, `excludesFile` (the global ignore, named), whitespace, `autocrlf=input`, `defaultBranch=main`, push current+autoSetupRemote+followTags, `pull.rebase`, `fetch.prune`, rebase autoStash/autoSquash/updateRefs, `diff3`, `commit.verbose`, rerere, status, log, branch/tag sort, columns, autocorrect prompt, `transfer.fsckObjects`, credential cache. Off: `core.editor` (git opens `$EDITOR`), `quotePath`, `fsmonitor`, `untrackedCache`, `hooksPath`, `sshCommand`, `compression=9`, `init.templateDir` (every packaged hook installed, off, in each new repository; `git hooks template` writes it), `useForceIfIncludes`, `pull.ff=only`, `fetch.all`, `fetch.pruneTags`, commit graph, `missingCommitsCheck`, `merge.ff=only`, `merge.ff=false`, `merge.autoStash`, `remote.origin.tagOpt=--tags`, commit template, submodules, `log.follow`, libsecret/store credentials, advice, `singleKey`, grep, `safe.directory`, LFS |
+| `core.gitconfig` | pager, `excludesFile` (the global ignore, named), whitespace, `autocrlf=input`, `defaultBranch=main`, push current+autoSetupRemote+followTags, `pull.rebase`, `fetch.prune`, rebase autoStash/autoSquash/updateRefs, `diff3`, `commit.verbose`, rerere, status, log, branch/tag sort, columns, autocorrect prompt, `transfer.fsckObjects`, credential cache, `init.templateDir` (every packaged hook installed, off, in each new repository; `git hooks template` writes it). Off: `core.editor` (git opens `$EDITOR`), `quotePath`, `fsmonitor`, `untrackedCache`, `hooksPath`, `sshCommand`, `compression=9`, `useForceIfIncludes`, `pull.ff=only`, `fetch.all`, `fetch.pruneTags`, commit graph, `missingCommitsCheck`, `merge.ff=only`, `merge.ff=false`, `merge.autoStash`, `remote.origin.tagOpt=--tags`, commit template, submodules, `log.follow`, libsecret/store credentials, advice, `singleKey`, grep, `safe.directory`, LFS |
 | `color.gitconfig` | `color.ui=auto` and per-command colors. Off: moved-line colors, blame by age |
 | `aliases.gitconfig` | `st a aa ap unstage discard staged conflicts cm cma ca cae fixup undo wip co sw cob br brdel brclean gone recent default pr mr lg lga llg ds last hist who fl contains root outgoing incoming standup find bl rd rdu df dfs dfw dfn dfst f pl ps pst psf up sl sp ss snapshot ours theirs aliases ignored ignore assume unassume assumed tags cp rb rbi rbc rba whoami` |
 | `diff.gitconfig` | histogram, colorMoved, renames+copies, mnemonic prefixes, vimdiff as difftool/mergetool. Off: `noprefix`, submodule log, difftastic, delta, diff-so-fancy, meld, VS Code, PDF and docx text diffs |
@@ -300,13 +300,16 @@ git hooks on test-push       # refused until a hook's required setting is made
 git hooks                    # this repository's hooks: state, event, name, file
 git hooks off                # everything that is on
 git hooks remove             # back to the hooks the repository had
-git hooks update             # after dots apply brought new or changed packaged hooks
+git hooks update             # after dots apply brought new or changed packaged hooks; the template too
 git hooks template           # ~/.local/share/git-template, for init.templateDir
 ```
 
 git runs one file per event, so `install` links `.git/hooks/EVENT` to
 `dispatch`, which runs each `.git/hooks/EVENT.d/NAME` in name order with
-git's arguments, its stdin and `GIT_HOOK_EVENT` set. A hook is off while
+git's arguments, its stdin and `GIT_HOOK_EVENT` set. Name order is byte
+order (C) whatever `LC_ALL` or `LC_COLLATE` says, so `no-commit-on` runs
+before `nocommit` everywhere; the hooks themselves run under the caller's
+locale, and `git hooks` lists in the same order. A hook is off while
 its name ends in `.off`. A pre- event stops at the first hook that fails,
 which fails the commit, merge or push; a post- event runs every hook.
 `HOOKS_SKIP="NAME..."` skips hooks for one command; `--no-verify` skips
@@ -346,8 +349,14 @@ first.
 `init.templateDir` in `core.gitconfig`. Its links go through
 `~/.local/share/git-hooks`, as `install`'s do, and `git init` copies them
 as they are, so a repository made from it keeps working after the
-checkout moves, once `dots apply` runs. Run it again after an update; it
-keeps every hook off and leaves out a hook no longer packaged.
+checkout moves, once `dots apply` runs. It keeps every hook off, leaves
+out a hook no longer packaged and puts back a missing dispatcher. A hook
+added to or dropped from the catalog, or an event a hook gained, leaves the
+template behind: `git hooks update` rewrites it too when it exists, and
+says `template updated` when that changed it, also outside a repository;
+every other `git hooks` command warns in one line, naming `git hooks
+template`, while the template's hooks and events differ from the packaged
+ones. `dots` stays out of it: it links files and knows nothing of git.
 
 | Hook | Event | Does | Settings |
 |------|-------|------|----------|
