@@ -92,6 +92,8 @@ def test_catalog_has_enough_variety():
 if __name__ == "__main__":
     import tempfile
 
+    import conftest  # noqa: F401 (sets GIT_TEMPLATE_DIR, as under pytest)
+
     write = "--write" in sys.argv
     names = [a for a in sys.argv[1:] if a != "--write"]
     for case in cases():

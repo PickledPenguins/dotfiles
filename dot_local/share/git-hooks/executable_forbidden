@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# forbidden: refuse files and text that must never reach a repository.
+# events: pre-commit commit-msg pre-push
+# config: hooks.forbiddenPaths hooks.forbiddenText
+#
+# hooks.forbiddenPaths is an extended regular expression matched against
+# the path of each added, copied or renamed file. hooks.forbiddenText is one
+# matched, ignoring case, against text: the lines a commit adds (not those
+# of a forbidden file, already reported), its message, its author and
+# committer, the name a push gives a branch or tag on the remote, and an
+# annotated tag's message and tagger. pre-commit checks the staged files and
+# the author, commit-msg the message, and pre-push all of it for each
+# commit the remote lacks (every commit, pushing to a URL), which catches
+# what git am, a rebase or --no-verify let through. A line holding
+# hooks:allow-forbidden is passed. Unset, nothing is checked, so the
+# settings can live where they apply, such as every repository cloned from
+# one owner (git 2.36+):
+#     [includeIf "hasconfig:remote.*.url:git@github.com:owner/**"]
+#         path = ~/.config/git/forbidden.gitconfig
+set -euo pipefail
+# The checks below end pipelines and set status, so they run in this shell
+shopt -s lastpipe
+
+paths=$(git config hooks.forbiddenPaths || true)
+text=$(git config hooks.forbiddenText || true)
+[[ -n $paths || -n $text ]] || exit 0
+event=${GIT_HOOK_EVENT:-${0##*/}}
+lines=$(mktemp)
+trap 'command rm -f "$lines"' EXIT
+status=0
+
+# check_paths < PATHS: report each path forbidden
+check_paths() {
+    local found
+    [[ -n $paths ]] || return 0
+    found=$(grep -E -e "$paths" || true)
+    [[ -n $found ]] || return 0
+    printf 'forbidden: file %s\n' "${found//$'\n'/$'\n'forbidden: file }" >&2
+    status=1
+}
+
+# check_text < WHERE<TAB>TEXT lines: report each TEXT forbidden, by WHERE
+check_text() {
+    local found
+    [[ -n $text ]] || return 0
+    grep -av 'hooks:allow-forbidden' >"$lines" || true
+    found=$(cut -f2- "$lines" | grep -naEi -e "$text" | cut -d: -f1 |
+        awk 'NR == FNR {hit[$1]; next} FNR in hit' - "$lines" || true)
+    [[ -n $found ]] || return 0
+    found=${found//$'\t'/: }
+    printf 'forbidden: %s\n' "${found//$'\n'/$'\n'forbidden: }" >&2
+    status=1
+}
+
+# added GIT-ARGS...: PATH<TAB>TEXT for each line the diff or log adds
+added() {
+    git "$@" --no-color --no-ext-diff -U0 --no-renames --src-prefix=a/ --dst-prefix=b/ |
+        FORBIDDEN=$paths awk '
+            /^\+\+\+ / { path = substr($0, 7); skip = ENVIRON["FORBIDDEN"] != "" && path ~ ENVIRON["FORBIDDEN"]; next }
+            /^\+/ && !skip { print path "\t" substr($0, 2) }'
+}
+
+ident() { sed -E 's/ [0-9]+ [-+][0-9]{4}$//'; }
+
+case $event in
+    pre-commit)
+        git diff --cached --name-only --diff-filter=ACR | check_paths
+        { added diff --cached; printf 'author\t%s\n' "$(git var GIT_AUTHOR_IDENT | ident)"; } | check_text
+        ;;
+    commit-msg)
+        sed '/^. -\{24\} >8 -\{24\}$/,$d' "$1" | git stripspace --strip-comments |
+            sed 's/^/message\t/' | check_text
+        ;;
+    pre-push)
+        while read -r _ local_sha remote_ref remote_sha; do
+            [[ $local_sha == *[!0]* ]] || continue
+            printf 'name\t%s\n' "${remote_ref#refs/*/}" | check_text
+            if [[ $remote_sha == *[!0]* ]] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+                range=("$remote_sha..$local_sha")
+            else
+                range=("$local_sha" --not --remotes="$1")
+            fi
+            git log --format= --name-only --diff-filter=ACR "${range[@]}" | sort -u | check_paths
+            {
+                added log -p --no-merges --format= "${range[@]}"
+                git log --format='%x01%h%n%an <%ae>%n%cn <%ce>%n%B' "${range[@]}" |
+                    awk '/^\001/ {hash = substr($0, 2); n = 0; next}
+                         {n++; print hash " " (n == 1 ? "author" : n == 2 ? "committer" : "message") "\t" $0}'
+                if [[ $(git cat-file -t "$local_sha") == tag ]]; then
+                    git cat-file tag "$local_sha" | sed -n '/^tagger /{s/^tagger //;p}; /^$/,${/^$/d;p}' |
+                        ident | sed "s|^|tag ${remote_ref#refs/tags/}\t|"
+                fi
+            } | check_text
+        done
+        ;;
+esac
+((status == 0)) || echo "forbidden: reword or remove them, or skip this hook with --no-verify" >&2
+exit "$status"

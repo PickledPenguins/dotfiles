@@ -694,7 +694,7 @@ def test_template_holds_what_install_leaves_linked_through_the_home(linked):
                          "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")
     catalog = f"{linked}/.local/share/git-hooks"
     assert (proc.stdout, proc.stderr) == (
-        f"{1 + 10 * 2 + 46}\n{catalog}/protect\nwhitespace on\n1\n", "")
+        f"{1 + 10 * 2 + 49}\n{catalog}/protect\nwhitespace on\n1\n", "")
 
 
 def stub_text(home):

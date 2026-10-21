@@ -378,6 +378,7 @@ ones. `dots` stays out of it: it links files and knows nothing of git.
 | `no-commit-on` | pre-commit | refuses a commit straight on a protected branch | `hooks.protect` (`main master`) |
 | `identity` | pre-commit | refuses a commit whose author email does not match the rule for a remote's host | `hooks.email` (one `HOST REGEX` per value) |
 | `nocommit` | pre-commit | refuses added lines matching the pattern | `hooks.nocommitPattern` (`NOCOMMIT\|DO NOT COMMIT`) |
+| `forbidden` | pre-commit, commit-msg, pre-push | refuses added files matching `hooks.forbiddenPaths`, and text matching `hooks.forbiddenText` (ignoring case) in added lines, messages, author and committer, and, pushing, branch and tag names and tag messages; `hooks:allow-forbidden` on a line passes it | `hooks.forbiddenPaths`, `hooks.forbiddenText` |
 | `exec-bit` | pre-commit | refuses a staged file starting with `#!` but not executable | |
 | `portable-names` | pre-commit | refuses an added path that differs only in case from a tracked one, a Windows reserved name, a component ending in a space or period, one of `<>:"\|?*`, or a character outside printable ASCII | |
 | `notebook` | pre-commit | refuses a staged `.ipynb` with outputs or execution counts | |
@@ -413,14 +414,22 @@ linters only report, never rewrite a file, and read the files as the work
 tree has them, as `lint` does; `shell-lint` is not named `shellcheck`
 because shellcheck takes a `# shellcheck:` comment for a directive.
 
-`identity` rules, and `branch-tag` for GitLab's issue branches
-(`123-fix-login`), which want a trailer rather than a prefix:
+`identity` rules, `branch-tag` for GitLab's issue branches
+(`123-fix-login`), which want a trailer rather than a prefix, and
+`forbidden` settings for one owner's repositories only. To run `forbidden`
+in every repository, not just where `git hooks on` switched it on, link it
+into the private directory for each of its events, as
+`~/.config/git/hooks.private/pre-commit.d/forbidden`; it checks nothing
+where its settings are unset:
 
 ```sh
 git config --global --add hooks.email 'github.com @users\.noreply\.github\.com$'
 git config --global --add hooks.email 'gitlab.example.com @example\.com$'
 git config hooks.tagPattern '^[0-9]+'
 git config hooks.tagTrailer 'Refs: #%s'   # git's trailers are "Key: value"; "Refs #%s" is not one
+# in ~/.gitconfig.local, for every repository cloned from one owner (git 2.36+)
+[includeIf "hasconfig:remote.*.url:git@github.com:owner/**"]
+    path = ~/.config/git/forbidden.gitconfig
 ```
 
 `deps-changed`, `pyc-clean` and `submodules` skip a file checkout, an
