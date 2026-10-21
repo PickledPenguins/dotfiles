@@ -1502,6 +1502,16 @@ def test_git_brclean_deletes_a_merged_branch_whose_name_contains_main(linked):
     assert (proc.stdout, proc.stderr) == ("main\n", "")
 
 
+def test_git_pr_and_mr_check_out_a_github_pull_request_and_a_gitlab_merge_request(linked):
+    proc = git_script(linked, "git init -q --bare -b main o.git && git clone -q o.git c 2>/dev/null && cd c && "
+                              "git commit -q --allow-empty -m one && git push -q -u origin main && "
+                              "git commit -q --allow-empty -m pull && git push -q origin HEAD:refs/pull/3/head && "
+                              "git commit -q --allow-empty -m merge && git push -q origin HEAD:refs/merge-requests/7/head && "
+                              "git reset -q --hard main && git pr 3 2>/dev/null && git log --format=%s -1 && "
+                              "git mr 7 2>/dev/null && git log --format=%s -1 && git branch --show-current")
+    assert (proc.stdout, proc.stderr) == ("pull\nmerge\nmr-7\n", "")
+
+
 def test_git_gone_skips_the_current_branch_and_deletes_the_rest(linked):
     proc = git_script(linked, "git init -q --bare -b main o.git && git clone -q o.git c 2>/dev/null && cd c && "
                               "git commit -q --allow-empty -m one && git push -q -u origin main && "
