@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# portable-names: refuse a commit that adds a path Windows or macOS cannot check out.
+# events: pre-commit
+#
+# Looks at the paths the staged changes add for:
+#   - a path that differs only in case from another tracked path (or a
+#     directory of one), which macOS and Windows take for the same file
+#   - a component named CON, PRN, AUX, NUL, COM1-9 or LPT1-9, with any
+#     extension
+#   - a component ending in a space or a period
+#   - one of the characters < > : " \ | ? *
+#   - a character outside printable ASCII (a control character, or any
+#     non-ASCII one, which macOS may store in another Unicode form)
+set -euo pipefail
+export LC_ALL=C
+
+mapfile -d '' added < <(git diff --cached --name-only -z --no-renames --diff-filter=A)
+((${#added[@]})) || exit 0
+
+# show PATH: PATH, or quoted as $'...' when it holds a character not printable.
+show() { if [[ $1 == *[![:print:]]* ]]; then echo "${1@Q}"; else echo "$1"; fi; }
+
+problems=()
+declare -A mine=()      # lower-case added path or directory of one -> itself
+for path in "${added[@]}"; do
+    p=$path
+    while :; do
+        mine[${p,,}]=$p
+        [[ $p == */* ]] || break
+        p=${p%/*}
+    done
+    shown=$(show "$path")
+    rest=$path
+    while [[ -n $rest ]]; do
+        part=${rest%%/*}
+        [[ $rest == */* ]] && rest=${rest#*/} || rest=
+        base=${part%%.*}
+        [[ ${base^^} =~ ^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$ ]] && problems+=("$shown: $part is a reserved name on Windows")
+        [[ $part == *[\ .] ]] && problems+=("$shown: $part ends in a space or a period")
+    done
+    [[ $path == *[\<\>:\"\\\|?*]* ]] && problems+=("$shown: holds one of < > : \" \\ | ? *")
+    [[ $path == *[![:print:]]* ]] && problems+=("$shown: holds a character outside printable ASCII")
+done
+
+declare -A clash=()
+while IFS= read -r -d '' path; do
+    p=$path
+    while :; do
+        other=${mine[${p,,}]-}
+        [[ -n $other && $other != "$p" ]] && clash["$(show "$other") and $(show "$p") differ only in case"]=1
+        [[ $p == */* ]] || break
+        p=${p%/*}
+    done
+done < <(git ls-files -z)
+if ((${#clash[@]})); then
+    mapfile -t clashes < <(printf '%s\n' "${!clash[@]}" | sort)
+    problems+=("${clashes[@]}")
+fi
+
+((${#problems[@]})) || exit 0
+printf 'portable-names: %s\n' "${problems[@]}" >&2
+echo "portable-names: rename them, or commit with --no-verify" >&2
+exit 1

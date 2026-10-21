@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# eol: refuse a commit that adds CRLF line ends or a file without a final newline.
+# events: pre-commit
+#
+# Looks at the staged changes: an added line ending in CR (a CRLF line
+# end), and a changed file whose last line now lacks its newline. A file
+# git takes for binary is not looked at, nor one whose .gitattributes says
+# -diff or binary. What is checked is what would be committed: with
+# core.autocrlf or eol attributes, git stores LF and the work tree's CRLF
+# passes.
+set -euo pipefail
+
+found=$(git diff --cached -U0 --no-color --no-ext-diff --no-renames --diff-filter=AM --src-prefix=a/ --dst-prefix=b/ |
+    awk '/^\+\+\+ /{file = substr($0, 7); sub(/\t$/, "", file); prev = ""; next}
+        /^\+/ && /\r$/ {crlf[file]++; if (!(file in order)) {order[file] = ++n; names[n] = file}}
+        /^\\/ && prev == "+" {nonl[file] = 1; if (!(file in order)) {order[file] = ++n; names[n] = file}}
+        {prev = substr($0, 1, 1)}
+        END {
+            for (i = 1; i <= n; i++) {
+                f = names[i]
+                if (f in crlf) print f ": " crlf[f] " added lines end in CRLF"
+                if (f in nonl) print f ": no newline at the end"
+            }
+        }')
+[[ -z $found ]] && exit 0
+printf 'eol: %s\n' "${found//$'\n'/$'\n'eol: }" >&2
+echo "eol: fix them, or commit with --no-verify" >&2
+exit 1

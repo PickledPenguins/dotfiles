@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# nocommit: refuse a commit that adds a line marked not to be committed.
+# events: pre-commit
+# config: hooks.nocommitPattern
+#
+# Looks at the lines the staged changes add for hooks.nocommitPattern, an
+# extended regular expression (default NOCOMMIT|DO NOT COMMIT, case
+# sensitive): a marker left on a temporary change so that it cannot slip
+# into a commit.
+set -euo pipefail
+
+# The bracket keeps this line from matching itself.
+pattern=$(git config hooks.nocommitPattern || echo 'NO[C]OMMIT|DO NOT [C]OMMIT')
+found=$(git diff --cached -U0 --no-color --no-ext-diff --no-renames --diff-filter=AM --src-prefix=a/ --dst-prefix=b/ |
+    pattern=$pattern awk '/^\+\+\+ /{file = substr($0, 7); sub(/\t$/, "", file); next}
+        /^\+/ && substr($0, 2) ~ ENVIRON["pattern"] {print file ": " substr($0, 2)}')
+[[ -z $found ]] && exit 0
+printf 'nocommit: %s\n' "${found//$'\n'/$'\n'nocommit: }" >&2
+echo "nocommit: remove them, or commit with --no-verify" >&2
+exit 1

@@ -16,6 +16,11 @@
 #
 #   [includeIf "gitdir:~/work/"]
 #       path = ~/.gitconfig.work
+#
+# Or by remote, for every repository cloned from GitHub (git 2.36+):
+#
+#   [includeIf "hasconfig:remote.*.url:https://github.com/**"]
+#       path = ~/.gitconfig.github
 
 [include]
     # How git behaves: editor, push, pull, merge, rebase, status.

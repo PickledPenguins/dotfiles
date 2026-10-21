@@ -357,6 +357,12 @@ keeps every hook off and leaves out a hook no longer packaged.
 | `debug-left` | pre-commit | refuses added `breakpoint()`, `pdb`/`ipdb`, `debugger;`, `binding.pry`; `hooks:allow-debug` on a line passes it | |
 | `lint` | pre-commit | runs `hooks.lint` with the staged paths | `hooks.lint` (required), `hooks.lintFiles` (pathspecs) |
 | `no-commit-on` | pre-commit | refuses a commit straight on a protected branch | `hooks.protect` (`main master`) |
+| `identity` | pre-commit | refuses a commit whose author email does not match the rule for a remote's host | `hooks.email` (one `HOST REGEX` per value) |
+| `nocommit` | pre-commit | refuses added lines matching the pattern | `hooks.nocommitPattern` (`NOCOMMIT\|DO NOT COMMIT`) |
+| `exec-bit` | pre-commit | refuses a staged file starting with `#!` but not executable | |
+| `portable-names` | pre-commit | refuses an added path that differs only in case from a tracked one, a Windows reserved name, a component ending in a space or period, one of `<>:"\|?*`, or a character outside printable ASCII | |
+| `notebook` | pre-commit | refuses a staged `.ipynb` with outputs or execution counts | |
+| `eol` | pre-commit | refuses added CRLF lines and a changed file left without a final newline; binary files skipped | |
 | `shell-lint` | pre-commit | `shellcheck` on the staged `*.sh`, `*.bash` and sh or bash `#!` scripts | |
 | `ruff` | pre-commit | `ruff check --no-fix` on the staged `*.py`, `*.pyi` | |
 | `yamllint` | pre-commit | `yamllint` on the staged `*.yml`, `*.yaml` | |
@@ -366,6 +372,7 @@ keeps every hook off and leaves out a hook no longer packaged.
 | `pre-commit-framework` | pre-commit | `pre-commit run` where `.pre-commit-config.yaml` exists, in place of `pre-commit install` | |
 | `branch-tag` | prepare-commit-msg | starts the message with the ticket in the branch name (`ABC-123: `), or ends it with a trailer naming it | `hooks.tagPattern` (`[A-Z][A-Z0-9]+-[0-9]+`), `hooks.tagFormat` (`%s: `), `hooks.tagTrailer` |
 | `msg-format` | commit-msg | subject at most `hooks.subjectMax` characters, no trailing period, blank line 2; skips `fixup!`, `squash!`, `amend!` | `hooks.subjectMax` (72) |
+| `signoff` | commit-msg | refuses a message without the committer's `Signed-off-by:` trailer (`git commit -s`); skips `fixup!`, `squash!`, `amend!` | |
 | `test-merge` | pre-merge-commit | runs `hooks.test` on the merged tree before git commits a merge (not a fast-forward, a conflicted merge or `--no-commit`) | `hooks.test` (required) |
 | `test-push` | pre-push | runs `hooks.test` in a clean temporary worktree of each pushed branch tip | `hooks.test` (required) |
 | `perf-push` | pre-push | runs `hooks.perf`, a timing check against a kept baseline, the same way; `test-push` for a check too slow or noisy to want on every push | `hooks.perf` (required) |
@@ -380,17 +387,19 @@ keeps every hook off and leaves out a hook no longer packaged.
 | `ctags` | post-checkout, post-merge, post-rewrite, post-commit | `git ctags --hook` in the background | |
 
 A hook that runs a tool (`shell-lint`, `ruff`, `yamllint`, `hadolint`,
-`actionlint`, `syntax`, `pre-commit-framework`, `lfs`,
+`actionlint`, `syntax`, `notebook`, `pre-commit-framework`, `lfs`,
 `gitlab-ci`) does nothing when there is nothing for it to check, and fails
 with `NAME: TOOL not on PATH` when there is and the tool is missing. The
 linters only report, never rewrite a file, and read the files as the work
 tree has them, as `lint` does; `shell-lint` is not named `shellcheck`
 because shellcheck takes a `# shellcheck:` comment for a directive.
 
-`branch-tag` for GitLab's issue branches
+`identity` rules, and `branch-tag` for GitLab's issue branches
 (`123-fix-login`), which want a trailer rather than a prefix:
 
 ```sh
+git config --global --add hooks.email 'github.com @users\.noreply\.github\.com$'
+git config --global --add hooks.email 'gitlab.example.com @example\.com$'
 git config hooks.tagPattern '^[0-9]+'
 git config hooks.tagTrailer 'Refs: #%s'   # git's trailers are "Key: value"; "Refs #%s" is not one
 ```

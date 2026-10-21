@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# notebook: refuse a commit of a Jupyter notebook that holds outputs.
+# events: pre-commit
+#
+# A staged *.ipynb whose cells hold outputs or an execution count carries
+# results, often large and sometimes private, and changes on every run.
+# Clear them first (jupyter nbconvert --clear-output --inplace FILE). The
+# staged content is checked, not the work tree's, with python3's json
+# module. With a notebook staged and no python3 on PATH, the commit fails.
+set -euo pipefail
+
+mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.ipynb')
+((${#paths[@]})) || exit 0
+command -v python3 >/dev/null || { echo "notebook: python3 not on PATH" >&2; exit 1; }
+python3 - "${paths[@]}" <<'PY' && exit 0
+import json, subprocess, sys
+
+status = 0
+for path in sys.argv[1:]:
+    blob = subprocess.run(["git", "cat-file", "blob", ":" + path], capture_output=True, check=True).stdout
+    try:
+        cells = json.loads(blob).get("cells", [])
+    except (ValueError, AttributeError):
+        print(f"notebook: {path} is not a notebook (not a JSON object)", file=sys.stderr)
+        status = 1
+        continue
+    run = sum(1 for c in cells if c.get("outputs") or c.get("execution_count") is not None)
+    if run:
+        print(f"notebook: {path}: {run} of {len(cells)} cells hold outputs or an execution count", file=sys.stderr)
+        status = 1
+sys.exit(status)
+PY
+echo "notebook: clear them, or commit with --no-verify" >&2
+exit 1

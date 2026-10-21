@@ -451,6 +451,92 @@ BARE_PATH = ('mkdir -p ~/bare && for t in bash git mktemp cat rm sort; do ln -sf
 REFUSES_BAD = 'for f; do [ -f "$f" ] && grep -q bad "$f" && exit 1; done; exit 0'
 
 
+def test_identity_checks_the_email_against_the_rule_for_the_remote_host(linked):
+    proc = hooks(linked, "unset GIT_AUTHOR_EMAIL && git config user.email t@example.com && use identity && "
+                         "git config --add hooks.email 'github.com @good\\.org$' && "
+                         "git config --add hooks.email 'gitlab.com @other\\.org$' && "
+                         "git commit -q --allow-empty -m local && echo local && "
+                         "git remote add origin git@github.com:o/r.git && git commit -q --allow-empty -m gh; echo $?; "
+                         "git config user.email me@good.org && git commit -q --allow-empty -m good && echo good && "
+                         "git remote set-url origin https://u@GitHub.com/o/r && git config user.email x@bad.org && "
+                         "git commit -q --allow-empty -m bad; echo $?; git config user.email me@good.org && "
+                         "git config url.git@gitlab.com:.insteadOf gl: && git remote add gl gl:o/r && "
+                         "git commit -q --allow-empty -m gl; echo $?")
+    assert proc.stdout == "local\n1\ngood\n1\n1\n"
+    assert proc.stderr == (
+        "identity: t@example.com does not match @good\\.org$, which hooks.email asks for on github.com\n"
+        "identity: x@bad.org does not match @good\\.org$, which hooks.email asks for on github.com\n"
+        "identity: me@good.org does not match @other\\.org$, which hooks.email asks for on gitlab.com\n")
+
+
+def test_nocommit_refuses_a_marked_line_and_takes_a_pattern(linked):
+    proc = hooks(linked, "git config diff.noprefix true && use nocommit && printf 'x = 1  # NOCOMMIT\\n' >a.py && "
+                         "git add a.py && git commit -qm f; echo $?; git config hooks.nocommitPattern '^XXX' && "
+                         "git commit -qm f && echo committed && printf 'a XXX\\nXXX here\\n' >b && git add b && "
+                         "git commit -qm g; echo $?")
+    assert proc.stdout == "1\ncommitted\n1\n"
+    note = "nocommit: remove them, or commit with --no-verify\n"
+    assert proc.stderr == "nocommit: a.py: x = 1  # NOCOMMIT\n" + note + "nocommit: b: XXX here\n" + note
+
+
+def test_exec_bit_refuses_a_script_staged_without_it(linked):
+    proc = hooks(linked, "use exec-bit && printf '#!/bin/sh\\n' >s && printf '#!/bin/sh\\n' >x && chmod +x x && "
+                         "printf 'ELF' >p && chmod +x p && git add s x p && git commit -qm f; echo $?; "
+                         "git add --chmod=+x s && git commit -qm f && echo committed")
+    assert proc.stdout == "1\ncommitted\n"
+    assert proc.stderr == ("exec-bit: s starts with #! but is not executable (git add --chmod=+x s)\n"
+                           "exec-bit: fix them, or commit with --no-verify\n")
+
+
+def test_portable_names_refuses_paths_other_systems_cannot_check_out(linked):
+    proc = hooks(linked, "mkdir Docs docs dir. && touch Readme Docs/a && git add . && git commit -qm f && "
+                         "use portable-names && touch README a:b con.txt docs/b dir./x $'\\303\\251' && git add . && "
+                         "git commit -qm g; echo $?; git reset -q && touch ok && git add ok && "
+                         "git commit -qm ok && echo committed")
+    assert proc.stdout == "1\ncommitted\n"
+    assert proc.stderr == (
+        'portable-names: a:b: holds one of < > : " \\ | ? *\n'
+        "portable-names: con.txt: con.txt is a reserved name on Windows\n"
+        "portable-names: dir./x: dir. ends in a space or a period\n"
+        "portable-names: $'\\303\\251': holds a character outside printable ASCII\n"
+        "portable-names: README and Readme differ only in case\n"
+        "portable-names: docs and Docs differ only in case\n"
+        "portable-names: rename them, or commit with --no-verify\n")
+
+
+def test_notebook_refuses_staged_outputs(linked):
+    run = '{"cells": [{"cell_type": "code", "execution_count": 1, "outputs": []}, {"cell_type": "markdown"}]}'
+    clear = '{"cells": [{"cell_type": "code", "execution_count": null, "outputs": []}]}'
+    proc = hooks(linked, f"use notebook && echo '{run}' >a.ipynb && echo '{clear}' >b.ipynb && echo '[]' >c.ipynb && "
+                         f"git add . && echo '{clear}' >a.ipynb && git commit -qm f; echo $?; "
+                         "git add . && git rm -q --cached c.ipynb && git commit -qm f && echo committed")
+    assert proc.stdout == "1\ncommitted\n"
+    assert proc.stderr == ("notebook: a.ipynb: 1 of 2 cells hold outputs or an execution count\n"
+                           "notebook: c.ipynb is not a notebook (not a JSON object)\n"
+                           "notebook: clear them, or commit with --no-verify\n")
+
+
+def test_eol_refuses_crlf_and_a_missing_final_newline_in_text_files(linked):
+    proc = hooks(linked, "use eol && printf 'a\\r\\nb\\r\\n' >crlf.txt && printf x >nonl.txt && "
+                         "printf '\\0\\r\\nx' >bin && git -c core.autocrlf=false add . && git commit -qm f; echo $?; "
+                         "printf 'a\\nb\\n' >crlf.txt && printf 'x\\n' >nonl.txt && git add . && "
+                         "git commit -qm f && echo committed")
+    assert proc.stdout == "1\ncommitted\n"
+    assert proc.stderr == ("eol: crlf.txt: 2 added lines end in CRLF\neol: nonl.txt: no newline at the end\n"
+                           "eol: fix them, or commit with --no-verify\n")
+
+
+def test_signoff_needs_the_committers_trailer(linked):
+    proc = hooks(linked, "use signoff && git commit -q --allow-empty -m one; echo $?; "
+                         "git commit -q --allow-empty -m one -m 'Signed-off-by: X <x@example.com>'; echo $?; "
+                         "git commit -q --allow-empty -s -m one && git commit -q --allow-empty -m 'fixup! one' && "
+                         "echo committed")
+    assert proc.stdout == "1\n1\ncommitted\n"
+    message = ("signoff: the message lacks Signed-off-by: T <t@example.com>; commit with -s, or with --no-verify\n"
+               "signoff: the message is kept in .git/COMMIT_EDITMSG\n")
+    assert proc.stderr == message * 2
+
+
 def test_branch_tag_adds_a_trailer_or_a_formatted_prefix(linked):
     # A GitLab issue branch: the number first, a trailer GitLab links to the issue
     proc = hooks(linked, "use branch-tag && git switch -q -c 123-fix-login && git config hooks.tagPattern '^[0-9]+' && "
@@ -527,6 +613,7 @@ def test_gitlab_ci_lints_the_file_each_pushed_tip_holds(linked):
     ("hadolint", "hadolint", "touch Dockerfile"),
     ("actionlint", "actionlint", "mkdir -p .github/workflows && touch .github/workflows/a.yml"),
     ("syntax", "python3", "touch a.json"),
+    ("notebook", "python3", "touch a.ipynb"),
     ("pre-commit-framework", "pre-commit", "touch .pre-commit-config.yaml"),
 ])
 def test_a_commit_hook_fails_when_its_tool_is_missing(linked, hook, tool, make):
@@ -556,7 +643,7 @@ def test_template_holds_what_install_leaves_linked_through_the_home(linked):
                          "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")
     catalog = f"{linked}/.local/share/git-hooks"
     assert (proc.stdout, proc.stderr) == (
-        f"{1 + 10 * 2 + 39}\n{catalog}/dispatch\n{catalog}/protect\nwhitespace on\n1\n", "")
+        f"{1 + 10 * 2 + 46}\n{catalog}/dispatch\n{catalog}/protect\nwhitespace on\n1\n", "")
 
 
 # ----------------------------------------------------------------------

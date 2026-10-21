@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# signoff: refuse a commit message without the committer's Signed-off-by.
+# events: commit-msg
+#
+# The message must hold a Signed-off-by: trailer naming the committer, as
+# git var GIT_COMMITTER_IDENT gives it (user.name and user.email): what
+# git commit -s adds, the Developer Certificate of Origin sign-off some
+# projects require. A fixup!, squash! or amend! commit is not checked, nor
+# an empty message (git refuses that itself).
+set -euo pipefail
+
+message=$(sed '/^. -\{24\} >8 -\{24\}$/,$d' "$1" | git stripspace --strip-comments)
+[[ -n $message ]] || exit 0
+case $message in fixup!* | squash!* | amend!*) exit 0 ;; esac
+ident=$(git var GIT_COMMITTER_IDENT)
+want="Signed-off-by: ${ident%> *}>"
+trailers=$(git interpret-trailers --parse <<<"$message")
+grep -qxF -e "$want" <<<"$trailers" && exit 0
+echo "signoff: the message lacks $want; commit with -s, or with --no-verify" >&2
+echo "signoff: the message is kept in $(git rev-parse --git-path COMMIT_EDITMSG)" >&2
+exit 1

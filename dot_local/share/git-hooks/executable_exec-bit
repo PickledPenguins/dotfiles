@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# exec-bit: refuse a commit of a script that is not executable.
+# events: pre-commit
+#
+# A staged file whose content starts with #! is meant to be run, so it must
+# be staged executable (mode 100755), not 100644. The fix is
+# git add --chmod=+x FILE. An executable file without #! passes: a compiled program is one.
+# The staged content and mode are checked, not the work tree's.
+set -euo pipefail
+
+status=0
+while IFS= read -r -d '' meta && IFS= read -r -d '' path; do
+    read -r _ mode _ sha _ <<<"$meta"
+    [[ $mode == 100644 && $(git cat-file blob "$sha" | head -c 2) == '#!' ]] || continue
+    echo "exec-bit: $path starts with #! but is not executable (git add --chmod=+x $path)" >&2
+    status=1
+done < <(git diff --cached --raw -z --no-abbrev --no-renames --diff-filter=AMT)
+((status == 0)) || echo "exec-bit: fix them, or commit with --no-verify" >&2
+exit "$status"
