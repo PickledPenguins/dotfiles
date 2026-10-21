@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# hadolint: run hadolint on the staged Dockerfiles before a commit.
+# events: pre-commit
+#
+# Checks the staged (added, copied, modified, renamed) files named
+# Dockerfile, *.Dockerfile or Containerfile, in any directory. hadolint
+# only reports and changes no file. As with lint, it reads the files as the
+# work tree has them, so a file staged in part is checked whole. With a
+# file to check and no hadolint on PATH, the commit fails.
+set -euo pipefail
+
+mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR -- \
+    ':(glob)**/Dockerfile' ':(glob)**/*.Dockerfile' ':(glob)**/Containerfile')
+((${#paths[@]})) || exit 0
+command -v hadolint >/dev/null || { echo "hadolint: hadolint not on PATH" >&2; exit 1; }
+hadolint -- "${paths[@]}" && exit 0
+echo "hadolint: fix the files above, or commit with --no-verify" >&2
+exit 1

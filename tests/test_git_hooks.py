@@ -66,14 +66,14 @@ def test_install_moves_the_existing_hook_aside_lists_switches_and_remove_puts_it
                          "readlink .git/hooks/pre-push.off && ls .git/hooks | grep -v sample")
     r, cat = linked.resolve() / "r", CATALOG
     assert (proc.stdout, proc.stderr) == (
-        f"on  post-commit        post-commit   {r}/.git/hooks/post-commit\n"
-        f"off pre-push           pre-push      {r}/tests/pre-push\n"
+        f"on  post-commit        post-commit          {r}/.git/hooks/post-commit\n"
+        f"off pre-push           pre-push             {r}/tests/pre-push\n"
         "pre-push: the hook that was there moved to pre-push.d/pre-push.off\nprotect installed, off\n"
         "test-push installed, off\nprotect is already installed\npre-push on\nprotect on\n"
-        f"on  post-commit        post-commit   {r}/.git/hooks/post-commit\n"
-        f"on  pre-push           pre-push      {r}/tests/pre-push\n"
-        f"on  pre-push           protect       {cat}/executable_protect\n"
-        f"off pre-push           test-push     {cat}/executable_test-push\n"
+        f"on  post-commit        post-commit          {r}/.git/hooks/post-commit\n"
+        f"on  pre-push           pre-push             {r}/tests/pre-push\n"
+        f"on  pre-push           protect              {cat}/executable_protect\n"
+        f"off pre-push           test-push            {cat}/executable_test-push\n"
         "post-commit off\npre-push off\nprotect off\n"
         "protect removed\ntest-push removed\nprotect is not installed\n"
         "../../tests/pre-push\npost-commit.off\npre-push.off\n", "")
@@ -102,7 +102,7 @@ def test_remove_puts_back_an_existing_hook_that_sorts_last_in_the_event_director
 
 
 def test_install_without_names_installs_every_packaged_hook_off(linked):
-    proc = hooks(linked, "git hooks install >/dev/null && git hooks | awk '{print $1, $3}' | sort -u -k2")
+    proc = hooks(linked, "git hooks install >/dev/null && git hooks | awk '{print $1, $3}' | LC_ALL=C sort -u -k2")
     assert proc.stdout == "".join(f"off {name}\n" for name in packaged())
 
 
@@ -110,7 +110,7 @@ def test_on_needs_the_required_setting_and_off_alone_leaves_dispatchers(linked):
     proc = hooks(linked, "git hooks install lint >/dev/null && git hooks on lint whitespace; echo $?; "
                          "git hooks available | grep '^... lint '; git config hooks.lint true && "
                          "git hooks on lint && git hooks off && test -L .git/hooks/pre-commit && echo kept")
-    assert proc.stdout == ("1\noff lint          run this repository's linter on the staged files before a commit.\n"
+    assert proc.stdout == ("1\noff lint                 run this repository's linter on the staged files before a commit.\n"
                            "lint on\nlint off\nkept\n")
     assert proc.stderr == "git hooks: lint needs git config hooks.lint; set it first (git hooks show lint)\n"
 
@@ -162,7 +162,8 @@ def test_update_refuses_while_the_catalog_has_a_broken_link(linked):
 
 def test_available_and_show_work_outside_a_repository(linked):
     proc = git_script(linked, f'export PATH="{linked}/.local/bin:$PATH"; '
-                              "git hooks available | awk '{print $1, $2}' && git hooks show test-push | tail -3")
+                              "git hooks available | awk '{print $1, $2}' | LC_ALL=C sort && "
+                              "git hooks show test-push | tail -3")
     assert proc.stdout == "".join(f"- {name}\n" for name in packaged()) + (
         "\nhooks.test = (unset)\nhere: not in a git repository\n")
 
@@ -313,19 +314,6 @@ def test_branch_tag_prefixes_a_message_written_in_the_editor(linked):
     assert proc.stdout == "ABC-12: fix\n"
 
 
-def test_branch_tag_adds_a_trailer_or_a_formatted_prefix(linked):
-    # A GitLab issue branch: the number first, a trailer GitLab links to the issue
-    proc = hooks(linked, "use branch-tag && git switch -q -c 123-fix-login && git config hooks.tagPattern '^[0-9]+' && "
-                         "git config hooks.tagTrailer 'Refs: #%s' && git commit -q --allow-empty -m fix && "
-                         "git commit -q --allow-empty -m again -m $'Refs: #123\\nSigned-off-by: X <x@example.com>' && "
-                         "GIT_EDITOR='sed -i 1s/\\$/edited/' git commit -q --allow-empty && "
-                         "git config --unset hooks.tagTrailer && git config hooks.tagFormat '[%s] ' && "
-                         "git commit -q --allow-empty -m pre && git log --format='%B--' -4")
-    assert proc.stdout == ("[123] pre\n--\nedited\n\nRefs: #123\n--\n"
-                           "again\n\nRefs: #123\nSigned-off-by: X <x@example.com>\n--\n"
-                           "fix\n\nRefs: #123\n--\n")
-
-
 def test_msg_format_checks_the_subject_and_the_blank_line(linked):
     long = "x" * 73
     proc = hooks(linked, f"use msg-format && git commit -q --allow-empty -m 'Ends.' -m body; echo $?; "
@@ -449,6 +437,114 @@ def test_submodules_follow_a_switch(linked):
     assert proc.stdout == "l1\n"
 
 
+def stub(name, then="exit 0"):
+    """Script that puts first on PATH a NAME logging its arguments to ~/NAME.log, then running then."""
+    return (f"mkdir -p ~/stubs && cat >~/stubs/{name} <<'STUB'\n"
+            f'#!/bin/sh\necho "$*" >>"$HOME/{name}.log"\n{then}\nSTUB\n'
+            f'chmod +x ~/stubs/{name} && export PATH="$HOME/stubs:$PATH" && ')
+
+
+# Only what the hooks and git need, so a tool is missing whether or not this machine has it
+BARE_PATH = ('mkdir -p ~/bare && for t in bash git mktemp cat rm sort; do ln -sf "$(command -v $t)" ~/bare/; done && '
+             'bare=$HOME/bare && ')
+
+REFUSES_BAD = 'for f; do [ -f "$f" ] && grep -q bad "$f" && exit 1; done; exit 0'
+
+
+def test_branch_tag_adds_a_trailer_or_a_formatted_prefix(linked):
+    # A GitLab issue branch: the number first, a trailer GitLab links to the issue
+    proc = hooks(linked, "use branch-tag && git switch -q -c 123-fix-login && git config hooks.tagPattern '^[0-9]+' && "
+                         "git config hooks.tagTrailer 'Refs: #%s' && git commit -q --allow-empty -m fix && "
+                         "git commit -q --allow-empty -m again -m $'Refs: #123\\nSigned-off-by: X <x@example.com>' && "
+                         "GIT_EDITOR='sed -i 1s/\\$/edited/' git commit -q --allow-empty && "
+                         "git config --unset hooks.tagTrailer && git config hooks.tagFormat '[%s] ' && "
+                         "git commit -q --allow-empty -m pre && git log --format='%B--' -4")
+    assert proc.stdout == ("[123] pre\n--\nedited\n\nRefs: #123\n--\n"
+                           "again\n\nRefs: #123\nSigned-off-by: X <x@example.com>\n--\n"
+                           "fix\n\nRefs: #123\n--\n")
+
+
+@pytest.mark.parametrize("hook,tool,files,args", [
+    ("shell-lint", "shellcheck", {"a.sh": "", "b.bash": "", "run": "#!/usr/bin/env bash", "z": "#!/bin/zsh",
+                                  "d.txt": ""}, "-- a.sh b.bash run"),
+    ("ruff", "ruff", {"a.py": "", "b.pyi": "", "c.txt": ""}, "check --no-fix -- a.py b.pyi"),
+    ("yamllint", "yamllint", {"a.yml": "", "b.yaml": "", "c.txt": ""}, "-- a.yml b.yaml"),
+    ("hadolint", "hadolint", {"Dockerfile": "", "sub/Dockerfile": "", "x.Dockerfile": "", "Containerfile": "",
+                              "Dockerfile.txt": ""}, "-- Containerfile Dockerfile sub/Dockerfile x.Dockerfile"),
+    ("actionlint", "actionlint", {".github/workflows/ci.yml": "", ".github/workflows/b.yaml": "",
+                                  ".github/other.yml": ""}, "-- .github/workflows/b.yaml .github/workflows/ci.yml"),
+])
+def test_linter_hooks_run_their_tool_on_their_staged_files(linked, hook, tool, files, args):
+    make = " && ".join(f"mkdir -p ./$(dirname {f}) && echo '{body}' >{f}" for f, body in files.items())
+    first = args.split()[-1]
+    proc = hooks(linked, stub(tool, REFUSES_BAD) + f"use {hook} && {make} && git add . && git commit -qm f && "
+                         f"cat ~/{tool}.log && echo bad >>{first} && git add {first} && git commit -qm g; echo $?")
+    assert proc.stdout == f"{args}\n1\n"
+    assert proc.stderr == f"{hook}: fix the files above, or commit with --no-verify\n"
+
+
+def test_syntax_names_the_file_and_line_of_a_parse_error(linked):
+    proc = hooks(linked, "use syntax && printf '{\"a\": 1,\\n \"b\": }\\n' >a.json && printf 'a = 1\\nb =\\n' >b.toml && "
+                         "printf '<a>\\n<b></a>\\n' >c.xml && echo '{}' >ok.json && git add . && git commit -qm f; echo $?; "
+                         "echo '{}' >a.json && echo 'b = 1' >b.toml && echo '<a/>' >c.xml && git add . && "
+                         "git commit -qm f && echo committed")
+    assert proc.stdout == "1\ncommitted\n"
+    assert proc.stderr == ("syntax: a.json:2: Expecting value\nsyntax: b.toml:2: Invalid value\n"
+                           "syntax: c.xml:2: mismatched tag\nsyntax: fix the files above, or commit with --no-verify\n")
+
+
+def test_pre_commit_framework_runs_where_the_project_configures_it(linked):
+    proc = hooks(linked, stub("pre-commit", "exit 1") + "use pre-commit-framework && git commit -q --allow-empty -m a && "
+                         "touch .pre-commit-config.yaml && git add . && git commit -qm b; echo $?; cat ~/pre-commit.log")
+    assert proc.stdout == "1\nrun\n"
+    assert proc.stderr == "pre-commit-framework: pre-commit run failed; fix the files, or commit with --no-verify\n"
+
+
+def test_lfs_runs_git_lfs_with_the_arguments_and_the_pushed_refs(linked):
+    proc = hooks(linked, with_origin(stub("git-lfs", 'cat >>"$HOME/git-lfs.log"') +
+                                     "use lfs && git commit -q --allow-empty -m none && git push -q && "
+                                     "echo '*.bin filter=lfs' >.gitattributes && git add . && git commit -qm lfs && "
+                                     "git push -q && sed \"s/$(git rev-parse HEAD)/SHA/; s/$(git rev-parse HEAD~)/OLD/\" "
+                                     "~/git-lfs.log"))
+    assert proc.stdout == ("post-commit\npre-push origin ../origin.git\n"
+                           "refs/heads/main SHA refs/heads/main OLD\n")
+
+
+def test_gitlab_ci_lints_the_file_each_pushed_tip_holds(linked):
+    proc = hooks(linked, with_origin(stub("glab", 'cat "$3" >>"$HOME/glab.log"; ! grep -q bad "$3"') +
+                                     "use gitlab-ci && echo good >.gitlab-ci.yml && git add . && git commit -qm a && "
+                                     "echo bad >.gitlab-ci.yml && git push -q && git commit -qam b && "
+                                     "git push -q 2>&1 | sed 's/at [0-9a-f]*/at SHA/'; sed 's/ [^ ]*$/ FILE/' ~/glab.log"))
+    assert proc.stdout == ("gitlab-ci: .gitlab-ci.yml at SHA fails glab ci lint; push stopped\n"
+                           "error: failed to push some refs to '../origin.git'\n"
+                           "ci lint FILE\ngood\nci lint FILE\nbad\n")
+
+
+@pytest.mark.parametrize("hook,tool,make", [
+    ("shell-lint", "shellcheck", "touch a.sh"),
+    ("ruff", "ruff", "touch a.py"),
+    ("yamllint", "yamllint", "touch a.yml"),
+    ("hadolint", "hadolint", "touch Dockerfile"),
+    ("actionlint", "actionlint", "mkdir -p .github/workflows && touch .github/workflows/a.yml"),
+    ("syntax", "python3", "touch a.json"),
+    ("pre-commit-framework", "pre-commit", "touch .pre-commit-config.yaml"),
+])
+def test_a_commit_hook_fails_when_its_tool_is_missing(linked, hook, tool, make):
+    proc = hooks(linked, BARE_PATH + f"use {hook} && {make} && git add . && PATH=$bare git commit -qm f; echo $?")
+    assert (proc.stdout, proc.stderr) == ("1\n", f"{hook}: {tool} not on PATH\n")
+
+
+@pytest.mark.parametrize("hook,tool,make", [
+    ("lfs", "git-lfs", "echo '*.bin filter=lfs' >.gitattributes"),
+    ("gitlab-ci", "glab", "touch .gitlab-ci.yml"),
+])
+def test_a_push_hook_fails_when_its_tool_is_missing(linked, hook, tool, make):
+    proc = hooks(linked, with_origin(BARE_PATH + f"{make} && git add . && git commit -qm f && use {hook} && "
+                                                 "PATH=$bare git push -q; echo $?"))
+    assert (proc.stdout, proc.stderr) == ("1\n", f"{hook}: {tool} not on PATH\n"
+                                                 "error: failed to push some refs to '../origin.git'\n")
+
+
 def test_template_holds_what_install_leaves_linked_through_the_home(linked):
     proc = hooks(linked, "tree() { (cd \"$1\" && find . ! -name '*.sample' | sort | "
                          "while read -r p; do echo \"$p $(test -L \"$p\" && realpath \"$p\")\"; done); }; "
@@ -460,7 +556,7 @@ def test_template_holds_what_install_leaves_linked_through_the_home(linked):
                          "git hooks on whitespace && echo 'x ' >f && git add f && git commit -qm f 2>/dev/null; echo $?")
     catalog = f"{linked}/.local/share/git-hooks"
     assert (proc.stdout, proc.stderr) == (
-        f"{1 + 10 * 2 + 27}\n{catalog}/dispatch\n{catalog}/protect\nwhitespace on\n1\n", "")
+        f"{1 + 10 * 2 + 39}\n{catalog}/dispatch\n{catalog}/protect\nwhitespace on\n1\n", "")
 
 
 # ----------------------------------------------------------------------

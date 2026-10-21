@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# shell-lint: run shellcheck on the staged shell scripts before a commit.
+# events: pre-commit
+#
+# Checks the staged (added, copied, modified, renamed) *.sh and *.bash
+# files, and any other staged file whose first line is a #! line for sh or
+# bash. shellcheck only reports and changes no file. As with lint, it reads
+# the files as the work tree has them, so a file staged in part is checked
+# whole. With a file to check and no shellcheck on PATH, the commit fails.
+# The hook is not called shellcheck because shellcheck reads a comment
+# starting "# shellcheck:" as a directive, and refuses this file.
+set -euo pipefail
+
+shebang='^#!.*[/ ](ba)?sh([[:space:]]|$)'
+mapfile -d '' staged < <(git diff --cached --name-only -z --diff-filter=ACMR)
+paths=()
+for path in "${staged[@]}"; do
+    first=
+    case $path in
+        *.sh | *.bash) paths+=("$path") ;;
+        *) [[ -f $path ]] && IFS= read -r -n 256 first <"$path" || true
+           [[ $first =~ $shebang ]] && paths+=("$path") ;;
+    esac
+done
+((${#paths[@]})) || exit 0
+command -v shellcheck >/dev/null || { echo "shell-lint: shellcheck not on PATH" >&2; exit 1; }
+shellcheck -- "${paths[@]}" && exit 0
+echo "shell-lint: fix the files above, or commit with --no-verify" >&2
+exit 1

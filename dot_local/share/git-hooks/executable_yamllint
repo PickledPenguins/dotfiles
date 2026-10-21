@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# yamllint: run yamllint on the staged YAML files before a commit.
+# events: pre-commit
+#
+# Checks the staged (added, copied, modified, renamed) *.yml and *.yaml
+# files with yamllint, under the project's .yamllint where it has one.
+# yamllint only reports and changes no file. As with lint, it reads the
+# files as the work tree has them, so a file staged in part is checked
+# whole. With a file to check and no yamllint on PATH, the commit fails.
+set -euo pipefail
+
+mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.yml' '*.yaml')
+((${#paths[@]})) || exit 0
+command -v yamllint >/dev/null || { echo "yamllint: yamllint not on PATH" >&2; exit 1; }
+yamllint -- "${paths[@]}" && exit 0
+echo "yamllint: fix the files above, or commit with --no-verify" >&2
+exit 1

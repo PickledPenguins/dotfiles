@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# actionlint: run actionlint on the staged GitHub Actions workflows before a commit.
+# events: pre-commit
+#
+# Checks the staged (added, copied, modified, renamed) .github/workflows/
+# *.yml and *.yaml files with actionlint, which runs shellcheck on their
+# run: scripts when shellcheck is on PATH. actionlint only reports and
+# changes no file. As with lint, it reads the files as the work tree has them,
+# so a file staged in part is checked whole. With a file to check and no
+# actionlint on PATH, the commit fails.
+set -euo pipefail
+
+mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR -- \
+    ':(glob).github/workflows/*.yml' ':(glob).github/workflows/*.yaml')
+((${#paths[@]})) || exit 0
+command -v actionlint >/dev/null || { echo "actionlint: actionlint not on PATH" >&2; exit 1; }
+actionlint -- "${paths[@]}" && exit 0
+echo "actionlint: fix the files above, or commit with --no-verify" >&2
+exit 1

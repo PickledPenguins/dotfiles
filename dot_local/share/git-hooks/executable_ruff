@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# ruff: run ruff check on the staged Python files before a commit.
+# events: pre-commit
+#
+# Checks the staged (added, copied, modified, renamed) *.py and *.pyi files
+# with ruff check --no-fix, which reports and changes no file whatever the
+# project's ruff configuration says. Formatting is not checked. As with
+# lint, it reads the files as the work tree has them, so a file staged in
+# part is checked whole. With a file to check and no ruff on PATH, the
+# commit fails.
+set -euo pipefail
+
+mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.py' '*.pyi')
+((${#paths[@]})) || exit 0
+command -v ruff >/dev/null || { echo "ruff: ruff not on PATH" >&2; exit 1; }
+ruff check --no-fix -- "${paths[@]}" && exit 0
+echo "ruff: fix the files above, or commit with --no-verify" >&2
+exit 1

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# gitlab-ci: refuse a push whose .gitlab-ci.yml GitLab says is invalid.
+# events: pre-push
+#
+# For each pushed branch or tag tip holding a .gitlab-ci.yml at the top,
+# runs glab ci lint on that file as the tip has it, not as the work tree
+# does. GitLab's API does the check, so it needs the network and a glab
+# logged in to the GitLab of this repository's remote (glab auth login).
+# A tip without the file is not checked. With one and no glab on PATH, the
+# push fails.
+set -euo pipefail
+
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+declare -A seen=()
+status=0
+while read -r _ sha _ _; do
+    [[ ${sha//0/} ]] || continue        # a deletion
+    blob=$(git rev-parse -q --verify "$sha:.gitlab-ci.yml" 2>/dev/null) || continue
+    [[ -z ${seen[$blob]+x} ]] || continue
+    seen[$blob]=1
+    command -v glab >/dev/null || { echo "gitlab-ci: glab not on PATH" >&2; exit 1; }
+    git cat-file blob "$blob" >"$tmp"
+    glab ci lint "$tmp" </dev/null && continue
+    echo "gitlab-ci: .gitlab-ci.yml at ${sha:0:12} fails glab ci lint; push stopped" >&2
+    status=1
+done
+exit "$status"

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# lfs: run Git LFS's own hooks in a repository that uses it.
+# events: pre-push post-checkout post-commit post-merge
+#
+# git lfs install writes these four hooks, but refuses to replace a hook
+# already there, and the dispatcher is one: without this hook LFS objects
+# would silently not be pushed, leaving the remote with pointers to
+# nothing. In a repository whose .gitattributes (at the top or in a
+# directory) names filter=lfs, runs git lfs EVENT with git's arguments and,
+# for pre-push, the refs git sends on stdin. Elsewhere nothing runs. There,
+# with no git-lfs on PATH, it fails, which stops a push.
+set -euo pipefail
+
+git grep -q --untracked -F filter=lfs -- ':(glob)**/.gitattributes' || exit 0
+command -v git-lfs >/dev/null || { echo "lfs: git-lfs not on PATH" >&2; exit 1; }
+exec git lfs "$GIT_HOOK_EVENT" "$@"

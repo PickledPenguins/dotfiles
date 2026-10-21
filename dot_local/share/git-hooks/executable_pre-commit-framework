@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# pre-commit-framework: run the project's pre-commit framework checks before a commit.
+# events: pre-commit
+#
+# In a repository with a .pre-commit-config.yaml at the top, runs
+# pre-commit run: the hooks that file configures, on the staged files.
+# This takes the place of pre-commit install, which would take over
+# .git/hooks/pre-commit from the dispatcher. What the configured hooks do,
+# a formatter rewriting files included, is the project's choice. Without
+# the file nothing runs. With it and no pre-commit on PATH, the commit fails.
+set -euo pipefail
+
+[[ -f .pre-commit-config.yaml ]] || exit 0
+command -v pre-commit >/dev/null || { echo "pre-commit-framework: pre-commit not on PATH" >&2; exit 1; }
+pre-commit run && exit 0
+echo "pre-commit-framework: pre-commit run failed; fix the files, or commit with --no-verify" >&2
+exit 1

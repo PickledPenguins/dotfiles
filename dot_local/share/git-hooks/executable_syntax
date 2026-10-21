@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# syntax: refuse a commit with a JSON, TOML or XML file that does not parse.
+# events: pre-commit
+#
+# Parses the staged (added, copied, modified, renamed) *.json, *.toml and
+# *.xml files with python3's own json, tomllib and xml.etree modules, and
+# names the file and line of each parse error. Nothing is checked beyond
+# parsing, and no file is changed. As with lint, it reads the files as the
+# work tree has them, so a file staged in part is checked whole. TOML needs
+# python 3.11 or later. With a file to check and no python3 on PATH, the
+# commit fails.
+set -euo pipefail
+
+mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.json' '*.toml' '*.xml')
+((${#paths[@]})) || exit 0
+command -v python3 >/dev/null || { echo "syntax: python3 not on PATH" >&2; exit 1; }
+python3 - "${paths[@]}" <<'PY' && exit 0
+import json, re, sys
+import xml.etree.ElementTree as ET
+from xml.parsers.expat import ErrorString
+
+try:
+    import tomllib
+except ImportError:
+    tomllib = None
+
+
+def error(path):
+    """None when path parses, else (line, message)."""
+    try:
+        with open(path, "rb") as f:
+            if path.endswith(".json"):
+                json.loads(f.read())
+            elif path.endswith(".toml"):
+                if tomllib is None:
+                    return 0, "TOML needs python 3.11 or later (tomllib)"
+                tomllib.load(f)
+            else:
+                ET.parse(f)
+    except json.JSONDecodeError as e:
+        return e.lineno, e.msg
+    except ET.ParseError as e:
+        return e.position[0], ErrorString(e.code)
+    except ValueError as e:     # TOMLDecodeError, UnicodeDecodeError
+        m = re.search(r"^(.*) \(at line (\d+), column \d+\)$", str(e))
+        return (int(m[2]), m[1]) if m else (0, str(e))
+    except RecursionError:
+        return 0, "nested too deeply to parse"
+    return None
+
+
+status = 0
+for path in sys.argv[1:]:
+    found = error(path)
+    if found:
+        line, message = found
+        print(f"syntax: {path}:{line}: {message}" if line else f"syntax: {path}: {message}", file=sys.stderr)
+        status = 1
+sys.exit(status)
+PY
+echo "syntax: fix the files above, or commit with --no-verify" >&2
+exit 1

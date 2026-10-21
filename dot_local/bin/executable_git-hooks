@@ -259,12 +259,12 @@ case ${1-} in
                     entry_name=${entry##*/}
                     state=on
                     [[ $entry_name == *.off ]] && state=off
-                    printf '%-3s %-18s %-13s %s\n' "$state" "${name%.off}" "${entry_name%.off}" "$(realpath -m -- "$entry")"
+                    printf '%-3s %-18s %-20s %s\n' "$state" "${name%.off}" "${entry_name%.off}" "$(realpath -m -- "$entry")"
                 done
             else
                 state=on
                 [[ $name == *.off ]] && state=off
-                printf '%-3s %-18s %-13s %s\n' "$state" "${name%.off}" "${name%.off}" "$(realpath -m -- "$path")"
+                printf '%-3s %-18s %-20s %s\n' "$state" "${name%.off}" "${name%.off}" "$(realpath -m -- "$path")"
             fi
         done
         ;;
@@ -273,7 +273,7 @@ case ${1-} in
         for name in $(packaged); do
             here=-
             [[ -n $dir ]] && here=$(state "$name")
-            printf '%-3s %-13s %s\n' "$here" "$name" "$(sed -n '2s/^# [^ ]*: //p' "$catalog/$name")"
+            printf '%-3s %-20s %s\n' "$here" "$name" "$(sed -n '2s/^# [^ ]*: //p' "$catalog/$name")"
         done
         ;;
     show)
