@@ -144,6 +144,17 @@ HISTTIMEFORMAT="%F %T  "
 # Move the old file there first, or history starts empty.
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/bash/history"; command mkdir -p "${HISTFILE%/*}"
 
+# In fast mode (05-fast.sh, as the shell starts), history goes to a file
+# of this host's own next to the shared one, history.HOST: on an NFS home
+# the append at each prompt waits on the server, and appends from several
+# hosts to one file can interleave. Its first use starts it as a copy of
+# the shared file. History is then no longer shared between hosts, and a
+# change of mode later in the shell keeps the file it started with.
+if [[ ${DOTS_FAST_ACTIVE-} == 1 && -n ${HISTFILE-} ]]; then
+    [[ -e $HISTFILE.${HOSTNAME%%.*} || ! -f $HISTFILE ]] || command cp -- "$HISTFILE" "$HISTFILE.${HOSTNAME%%.*}"
+    HISTFILE+=.${HOSTNAME%%.*}
+fi
+
 # Save each command to the history file as soon as it runs, not when the
 # shell exits: a crash or a closed window loses nothing, and a new shell
 # sees the commands of shells still open. Per machine off, in

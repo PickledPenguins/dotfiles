@@ -628,6 +628,23 @@ def test_fast_mode_dots_fast_applies_in_the_shell_that_ran_it(linked):
     assert proc.stderr == NOTICE + "forced: dots fast on\nfast mode off"
 
 
+def test_fast_mode_keeps_history_in_a_file_of_the_hosts_own_started_from_the_shared_one(linked):
+    # Without a shared file it starts empty, quietly
+    proc = bash(linked, "true", env={"DOTS_FAST": "on"})
+    assert re.sub(r"\x1b\[[0-9;]*m", "", proc.stderr).split() == "FAST MODE ON forced: DOTS_FAST=on".split()
+    shared = linked / ".local/state/bash/history"
+    shared.write_text("echo shared\n")
+    host = socket.gethostname().split(".")[0]
+    script = 'history -s "echo $DOTS_FAST"; history -a; echo "$HISTFILE"'
+    assert bash(linked, script, env={"DOTS_FAST": "on"}).stdout == f"{shared}.{host}\n"
+    assert bash(linked, script, env={"DOTS_FAST": "on"}).stdout == f"{shared}.{host}\n"
+    assert bash(linked, script, env={"DOTS_FAST": "off"}).stdout == f"{shared}\n"
+    def commands(path):
+        return [line for line in path.read_text().splitlines() if not line.startswith("#")]
+    assert commands(shared.with_name(f"history.{host}")) == ["echo shared", "echo on", "echo on"]
+    assert commands(shared) == ["echo shared", "echo off"]
+
+
 def test_fast_paths_switch_the_directory_hooks_at_the_prompt_after_a_cd(linked):
     # A trailing slash, ~ and a path that is only a prefix of another are all handled
     script = ('command mkdir -p slow/sub slower; on_dir() { echo "hook $1"; }; dots_fast_dir_hook on_dir; '
