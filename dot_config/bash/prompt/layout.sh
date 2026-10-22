@@ -82,10 +82,44 @@ prompt_segment exit             _ps_seg_exit
 # of the shell. 0 waits until git is done.
 _git_budget() { if (( $1 )); then prompt_git_budget 0.2; else prompt_git_budget 1; fi; }
 
+# In fast mode and under DOTS_FAST_PATHS, git status looks at less: the
+# prompt's lists untracked files without going into untracked directories
+# (-unormal, even where status.showUntrackedFiles is all), and every git
+# command in the shell gets core.untrackedCache=true (untracked files
+# remembered per directory in the index), core.trustctime=false (a
+# changed inode time alone does not make git read a file again) and
+# core.checkStat=minimal (whole-second times and size only), through
+# GIT_CONFIG_COUNT (git 2.31+; older git ignores it). A count already set
+# is kept: these go after it, and go again on leaving.
+_git_fast_base=""
+_git_fast() {
+    local i
+    if (( $1 )); then
+        [[ -z $_git_fast_base ]] || return 0
+        _git_fast_base=${GIT_CONFIG_COUNT:-0}
+        i=$_git_fast_base
+        export "GIT_CONFIG_KEY_$i=core.untrackedCache" "GIT_CONFIG_VALUE_$i=true"
+        i=$(( i + 1 ))
+        export "GIT_CONFIG_KEY_$i=core.trustctime" "GIT_CONFIG_VALUE_$i=false"
+        i=$(( i + 1 ))
+        export "GIT_CONFIG_KEY_$i=core.checkStat" "GIT_CONFIG_VALUE_$i=minimal"
+        export GIT_CONFIG_COUNT=$(( i + 1 ))
+        git_info_untracked normal
+    elif [[ -n $_git_fast_base ]]; then
+        for (( i = _git_fast_base; i < _git_fast_base + 3; i++ )); do
+            unset "GIT_CONFIG_KEY_$i" "GIT_CONFIG_VALUE_$i"
+        done
+        if (( _git_fast_base )); then export GIT_CONFIG_COUNT=$_git_fast_base; else unset GIT_CONFIG_COUNT; fi
+        _git_fast_base=""
+        git_info_untracked ""
+    fi
+}
+
 # Fast mode's view of the prompt: git status timed for auto (a slow one is
 # a sample), the host signals read every 10 s for the fast segment.
 if declare -F dots_fast_hook >/dev/null; then
     dots_fast_hook _git_budget
+    dots_fast_dir_hook _git_fast
     prompt_collector git 0 _dots_fast_collect_git
     prompt_collector fast 10 _dots_fast_collect
 else

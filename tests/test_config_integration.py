@@ -1896,6 +1896,18 @@ def test_ls_under_dots_fast_paths_reads_the_directory_and_stats_nothing(linked):
     assert proc.stdout.split() == ["5", "0", "5", "restored"]
 
 
+def test_git_under_dots_fast_paths_looks_at_less_and_keeps_a_config_count_set_before(linked):
+    script = ('show() { echo "${GIT_CONFIG_COUNT-unset} ${GIT_CONFIG_KEY_1-unset} $_GIT_UNTRACKED" '
+              '"$(git config core.checkStat)" "$(git config core.trustctime)" "$(git config core.untrackedCache)" '
+              '"$(git config color.ui)"; }; '
+              'command mkdir slow; show; cd slow; _dots_fast_cwd; show; cd ~; _dots_fast_cwd; show')
+    env = {"DOTS_FAST_PATHS": "~/slow", "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "color.ui",
+           "GIT_CONFIG_VALUE_0": "never"}
+    proc = bash(linked, script, env=env)
+    assert proc.stdout.splitlines() == ["1 unset     never", "4 core.untrackedCache normal minimal false true never",
+                                        "1 unset     never"]
+
+
 def test_tab_under_dots_fast_paths_lists_without_colors_or_type_marks(linked):
     script = ('stats() { bind -v | command grep -E " (colored|visible)-stats " | tr "\\n" " "; echo; }; '
               'command mkdir slow; stats; cd slow; _dots_fast_cwd; stats; cd ~; _dots_fast_cwd; stats')
