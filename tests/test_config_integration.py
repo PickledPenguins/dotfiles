@@ -1884,6 +1884,27 @@ def test_dircolors_parses(linked):
     assert proc.returncode == 0 and proc.stdout.startswith("LS_COLORS=")
 
 
+@needs("dircolors")
+def test_ls_under_dots_fast_paths_reads_the_directory_and_stats_nothing(linked):
+    # In a directory that can be read but not searched, every stat fails with an error
+    script = ('command mkdir -p slow/locked; touch slow/locked/f{1..5}; chmod +x slow/locked/f1; '
+              'chmod a-x slow/locked; full=$LS_COLORS; ls_errors() { '
+              'command ls --color=always ~/slow/locked 2>&1 >/dev/null | wc -l; }; '
+              'ls_errors; cd slow; _dots_fast_cwd; ls_errors; cd ~; _dots_fast_cwd; ls_errors; '
+              '[[ $LS_COLORS == "$full" ]] && echo restored; chmod u+x slow/locked')
+    proc = bash(linked, script, env={"DOTS_FAST_PATHS": "~/slow"})
+    assert proc.stdout.split() == ["5", "0", "5", "restored"]
+
+
+@needs("dircolors")
+def test_ls_fast_colors_links_as_links_when_the_colors_follow_them(linked):
+    dircolors = linked / ".dircolors"
+    dircolors.unlink()
+    dircolors.write_text("LINK target\nEXEC 01;32\n")
+    proc = bash(linked, 'echo "$LS_COLORS"', env={"DOTS_FAST": "on"})
+    assert proc.stdout.endswith(":ln=01;36:ex=00:su=00:sg=00:ca=00:tw=00:ow=00:st=00:or=00:mi=00:mh=00\n")
+
+
 def test_pythonrc_imports_and_history(linked):
     env = dict(os.environ, HOME=str(linked), PYTHONSTARTUP=str(linked / ".config/python/pythonrc.py"))
     proc = subprocess.run(["python3", "-i"], input="print(pp.__name__, Path.__name__, json.__name__)\n",

@@ -7,6 +7,9 @@
 # has the rule). Aliases for tools that may be missing live with the tool
 # (75-python, 80-tools, 85-hpc).
 #
+# Fast mode (05-fast.sh), and under DOTS_FAST_PATHS: ls colors by file type
+# only, so ls reads the directory and stats nothing.
+#
 # Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off. `dots options WORD` searches every file.
@@ -24,6 +27,28 @@ if ls --color=auto >/dev/null 2>&1; then
     fi
 else
     export CLICOLOR=1
+fi
+
+# In fast mode and under DOTS_FAST_PATHS, the colors that need a stat of
+# every file (executable, setuid, setgid, capability, sticky, writable by
+# others, orphan and missing links, hard links) are off and links are
+# colored as links, not as what they point to: ls --color then reads only
+# the directory, which on a slow disk is the difference between instant and
+# seconds. Directories, links, sockets and pipes keep their colors, from
+# the directory entry. ls -F (ll, l) and --group-directories-first for
+# links still stat.
+_ls_fast_added=""
+_ls_fast() {
+    LS_COLORS=${LS_COLORS%"$_ls_fast_added"}
+    _ls_fast_added=""
+    if (( $1 )); then
+        _ls_fast_added=":ex=00:su=00:sg=00:ca=00:tw=00:ow=00:st=00:or=00:mi=00:mh=00"
+        [[ $LS_COLORS == *ln=target* ]] && _ls_fast_added=":ln=01;36$_ls_fast_added"
+        LS_COLORS+=$_ls_fast_added
+    fi
+}
+if [[ -n ${LS_COLORS-} ]] && declare -F dots_fast_dir_hook >/dev/null; then
+    dots_fast_dir_hook _ls_fast
 fi
 
 # ll: long listing of everything, with type markers (/ * @) and sizes in K, M, G.
