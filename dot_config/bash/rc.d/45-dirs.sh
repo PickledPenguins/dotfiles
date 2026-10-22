@@ -1,6 +1,10 @@
 # 45-dirs.sh: moving between directories: bookmarks, CDPATH, the pushd
 # stack, and what cd does.
 #
+# Fast mode (05-fast.sh), and under DOTS_FAST_PATHS: after a cd, the new
+# directory is read in the background, so the ls or Tab that follows finds
+# it in the kernel's cache.
+#
 #   mark NAME     remember the current directory as NAME; asks before
 #                 moving a NAME that points elsewhere
 #   jump NAME     go there (Tab completes names)
@@ -17,6 +21,9 @@
 # Knobs (set in ~/.bashrc.before):
 #   DOTFILES_MARKS_DIR   where the bookmarks live   default: ~/.local/share/marks
 #   DOTFILES_CDPATH      extra CDPATH entries        default: none
+#   DOTS_FAST_PREFETCH   after a cd in fast mode:    default: readdir
+#                        readdir, stat (each entry
+#                        too) or off
 
 # ── Bookmarks ─────────────────────────────────────────────────────────────
 
@@ -82,3 +89,28 @@ complete -F _jump_complete jump unmark
     #else builtin pushd "$@"
     #fi >/dev/null
 #}
+
+# ── Prefetch in fast mode ─────────────────────────────────────────────────
+
+# In fast mode and under DOTS_FAST_PATHS, the first prompt in a new
+# directory starts `ls -f` on it in the background (the names only: no
+# stat, no sort), so the ls or Tab that follows finds them in the kernel's
+# cache instead of waiting on the disk or NFS. One at a time: while the
+# last one still runs (a hung mount), no other starts. No job line and no
+# job in `jobs`. DOTS_FAST_PREFETCH=stat stats each entry too (ls -l), for
+# ls colors and Tab marks, at the cost of more I/O; off starts nothing.
+_dirs_prefetch_pid=""
+_dirs_prefetch() {
+    (( $1 )) && [[ ${DOTS_FAST_PREFETCH-} != off ]] || return 0
+    [[ -n $_dirs_prefetch_pid ]] && kill -0 "$_dirs_prefetch_pid" 2>/dev/null && return 0
+    if [[ ${DOTS_FAST_PREFETCH-} == stat ]]; then
+        { command ls -AUl -- "$PWD" >/dev/null 2>&1 & } 2>/dev/null
+    else
+        { command ls -f -- "$PWD" >/dev/null 2>&1 & } 2>/dev/null
+    fi
+    _dirs_prefetch_pid=$!
+    disown 2>/dev/null
+}
+if declare -F dots_fast_cd_hook >/dev/null; then
+    dots_fast_cd_hook _dirs_prefetch
+fi

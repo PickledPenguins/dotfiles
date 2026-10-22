@@ -41,6 +41,7 @@ start again.
 | every git command (*directory*) | your git config | also `core.untrackedCache=true`, `core.trustctime=false`, `core.checkStat=minimal` through `GIT_CONFIG_COUNT` (git 2.31+): fewer stats and file reads per status; a change of the same size within the same second can go unseen |
 | vim swap files | `~/.vim/tmp/swap`, synced at each write | tmpfs (`$XDG_RUNTIME_DIR/vim-swap`, else `/dev/shm/vim-swap-USER`), never synced; ones older than 14 days go, looked for once a day. Taken from `DOTS_FAST_ACTIVE` when vim starts. Recovery works after vim dies, not after the machine does |
 | Tab list (*directory*) | colors and `/ * @` marks (`colored-stats`, `visible-stats` in `~/.inputrc`) | neither: Tab stats nothing; the `/` after a completed directory name stays |
+| after a cd (*directory*) | nothing | the first prompt there starts `ls -f` on it in the background, so the ls or Tab that follows reads the kernel's cache; one at a time, so a hung mount holds one process (`DOTS_FAST_PREFETCH`: `readdir`, `stat` each entry too, `off`) |
 | ls colors (*directory*) | by type and by what a stat shows: executable, setuid, writable by others, orphan links | by type only, from the directory entry: ls stats nothing (`ls -F`, `ll` and links under `--group-directories-first` still do) |
 
 Each module that has a fast form lists it in its header and here. The
@@ -153,7 +154,8 @@ dots_fast_hook _my_fast      # called now with 1 or 0, and on every change
 A feature that depends on the directory registers with
 `dots_fast_dir_hook` instead: it is called with 1 in fast mode or under
 `DOTS_FAST_PATHS`, 0 otherwise, now and whenever a mode change or a `cd`
-changes that.
+changes that. `dots_fast_cd_hook` is called at the first prompt in each
+new directory, with the same 1 or 0.
 
 Modules after `05-fast.sh` read `DOTS_FAST_ACTIVE` or register a hook;
 `layout.sh` uses one for the git budget.

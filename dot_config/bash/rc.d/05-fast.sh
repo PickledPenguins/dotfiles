@@ -68,6 +68,7 @@ declare -a _dots_fast_hooks=()  # functions called with 1 or 0 when the mode cha
 declare -A _dots_fast_val=()    # host signal values from the last look
 declare -a _dots_fast_paths=()  # DOTS_FAST_PATHS, one directory each
 declare -a _dots_fast_dir_hooks=()  # functions called with 1 or 0 when fast mode or the directory changes them
+declare -a _dots_fast_cd_hooks=()   # functions called with 1 or 0 at the first prompt in a new directory
 _dots_fast_here=0               # 1 while $PWD is under DOTS_FAST_PATHS
 _dots_fast_dir_on=0             # what the directory hooks were last told
 _dots_fast_pwd=""               # $PWD at the last look
@@ -337,15 +338,22 @@ dots_fast_dir_hook() {
     "$1" "$(( ${DOTS_FAST_ACTIVE:-0} || _dots_fast_here ))"
 }
 
+# A module's action at the first prompt in a new directory: FUNC is called
+# with 1 in fast mode or under DOTS_FAST_PATHS, else 0.
+dots_fast_cd_hook() {
+    _dots_fast_cd_hooks+=("$1")
+}
+
 # In PROMPT_COMMAND: after a cd, look again. Builtins only, and only a
 # string compare at a prompt that did not change directory. Returns the $?
 # it found.
 _dots_fast_cwd() {
-    local rc=$?
+    local rc=$? f
     if [[ $PWD != "$_dots_fast_pwd" ]]; then
         _dots_fast_pwd=$PWD
         _dots_fast_where
         _dots_fast_dir_apply
+        for f in "${_dots_fast_cd_hooks[@]}"; do "$f" "$_dots_fast_dir_on"; done
     fi
     return "$rc"
 }

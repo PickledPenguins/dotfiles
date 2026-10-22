@@ -1954,6 +1954,30 @@ def test_tab_under_dots_fast_paths_lists_without_colors_or_type_marks(linked):
     assert proc.stdout.splitlines() == [on, off, on]
 
 
+@pytest.mark.parametrize("knob, expected", [
+    (None, ["-f -- {h}/slow", "-f -- {h}/slow/sub"]),
+    ("stat", ["-AUl -- {h}/slow", "-AUl -- {h}/slow/sub"]),
+    ("off", []),
+])
+def test_a_cd_under_dots_fast_paths_reads_the_new_directory_in_the_background(linked, knob, expected):
+    # ls records its arguments (not the color check at start). Nothing runs outside the
+    # fast directories, at a second prompt in the same directory, or while the last one
+    # is still running ($$ stands in)
+    (linked / "stub").mkdir()
+    (linked / "stub/ls").write_text('#!/bin/sh\ncase $1 in --color*) exit;; esac\necho "$*" >>"$HOME/ls.log"\n')
+    (linked / "stub/ls").chmod(0o755)
+    script = ('command mkdir -p slow/sub other; done_() { while kill -0 "$_dirs_prefetch_pid" 2>/dev/null; do :; done; }; '
+              'cd other; _dots_fast_cwd; cd ~/slow; _dots_fast_cwd; done_; _dots_fast_cwd; '
+              'cd sub; _dots_fast_cwd; done_; _dirs_prefetch_pid=$$; cd ~/slow; _dots_fast_cwd; jobs')
+    env = {"DOTS_FAST_PATHS": "~/slow", "PATH": f"{linked}/stub:{os.environ['PATH']}"}
+    if knob:
+        env["DOTS_FAST_PREFETCH"] = knob
+    proc = bash(linked, script, env=env)
+    assert (proc.stdout, proc.stderr) == ("", "")
+    log = linked / "ls.log"
+    assert (log.read_text().splitlines() if log.exists() else []) == [e.format(h=linked) for e in expected]
+
+
 @needs("dircolors")
 def test_ls_fast_colors_links_as_links_when_the_colors_follow_them(linked):
     dircolors = linked / ".dircolors"
