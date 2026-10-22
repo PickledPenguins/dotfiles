@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.14
+**Version:** 0.1.15
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -145,6 +145,8 @@ copied and customized, not left as a black box.
   4.x still works via a `$SECONDS`-based fallback with its own (weaker)
   defense against that specific case — see the [version history](#version-history).
 - **Linux** — this targets Linux. It has not been tested on BSD/macOS.
+- **git 2.11+** for the git segments (`status --porcelain=v2`); git
+  2.35+ for the stash count (`--show-stash`), which reads 0 before that.
 - **Runtime dependencies** (all optional except `git`; every segment
   that needs one degrades to silent/empty if it's missing): `git`,
   `tmux`, `nvidia-smi`, `df`, `nproc`, `mktemp`, `tput`, `date`, `awk`,
@@ -361,6 +363,10 @@ under the user's own control.
 - **The git cache reads loose refs.** A packed branch ref reads as empty
   until the next commit writes it loose again; under git's reftable
   backend no ref is loose, and only the index and the TTL catch a change.
+  A packed upstream ref costs one more `git rev-parse` per refresh for
+  its SHA.
+- **Short SHAs are 7 hex digits.** `git rev-parse --short` can give more
+  in a big repository, where 7 may not be unique.
 
 - **Disk usage uses `df`, not real quotas.** Quota semantics vary too
   much across NFS/Lustre/GPFS to handle generically.
@@ -453,7 +459,10 @@ Git state is cached per-process (`git_info.sh`). A cache hit starts no
 process: it reads `HEAD`, the branch's ref and the upstream's ref with
 the `read` builtin, compares the index against a timestamp file with
 `-nt`, and checks the TTL. A `cd` within the same work tree keeps the
-cache.
+cache. A miss runs two processes: `git rev-parse` for the directories,
+and one `git status --porcelain=v2 --branch --show-stash` for the
+branch, its commit, the upstream, ahead/behind, the stash and every
+count, parsed with builtins.
 
 ## Project structure
 
@@ -482,7 +491,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**162 tests across 9 files**, all passing against v0.1.14:
+**168 tests across 9 files**, all passing against v0.1.15:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -490,7 +499,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 
 | `collectors.bats` | 27 | collector planning by layout, built-in segments under other names, declared needs, TTLs, run order, argument checks, collected data reaching the parent shell, `install.sh` copying `segments/` |
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
-| `git_info.bats` | 28 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
+| `git_info.bats` | 34 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone, two git processes per refresh (one outside a repository), packed and gone upstreams, git without `--show-stash`, `.git` under errexit; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 27 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
 | `prompt_segments.bats` | 33 | pwd and tmux sanitizing with no program on `PATH`, tmux silent outside tmux or with no server, venv name, pwd truncation, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df`, PBS node count; registration, `_ps_expand` token scanning, `PS_DEBUG_SEGMENTS` |
@@ -543,6 +552,19 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.15
+
+**Changed:** a git refresh runs two processes instead of seven to nine:
+`git rev-parse` for the directories, then one `git status
+--porcelain=v2 --branch --show-stash`, parsed with builtins, in place of
+`rev-parse` three times, `symbolic-ref`, `rev-list`, `status`, `awk` and
+`stash list`. Each git process reads every config file again, so on a
+slow home disk this was most of a refresh. Needs git 2.11; before 2.35
+the stash count reads 0 (status is retried without `--show-stash`, once
+per shell). Short SHAs are now always 7 digits. The refs the cache
+compares are read after status rather than before; a commit made while
+status runs is caught by the TTL.
 
 ### v0.1.14
 

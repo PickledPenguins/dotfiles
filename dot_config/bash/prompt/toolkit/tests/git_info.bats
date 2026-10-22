@@ -289,3 +289,76 @@ stale() { ! git_info_cache_valid; }
     [[ "$GIT_IN_REPO" == "1" ]]
     [[ "$GIT_BRANCH" == "main" ]]
 }
+
+# A git on PATH that logs each call's arguments to $GIT_LOG, then runs the
+# real one. REJECT, when set, is an option it fails on the way git before
+# 2.35 fails on --show-stash.
+logging_git() {
+    local real; real=$(command -v git)
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    cat > "$BATS_TEST_TMPDIR/bin/git" <<STUB
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$BATS_TEST_TMPDIR/git.log"
+for a; do [[ -n "\${REJECT-}" && "\$a" == "\$REJECT" ]] && exit 129; done
+exec "$real" "\$@"
+STUB
+    chmod +x "$BATS_TEST_TMPDIR/bin/git"
+    PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+    : > "$BATS_TEST_TMPDIR/git.log"
+}
+
+@test "a refresh runs two git processes, upstream and stash included" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    fake_upstream
+    git commit -q --allow-empty -m second
+    echo y >> f.txt && git stash -q
+    logging_git
+    git_info_refresh
+    [[ "$(wc -l < "$BATS_TEST_TMPDIR/git.log")" == 2 ]]
+    [[ "$GIT_AHEAD" == 1 && "$GIT_STASH" == 1 && -n "$GIT_REMOTE_SHA" ]]
+}
+
+@test "outside a repository a refresh runs one git process" {
+    cd "$BATS_TEST_TMPDIR"
+    logging_git
+    git_info_refresh || true
+    [[ "$(wc -l < "$BATS_TEST_TMPDIR/git.log")" == 1 ]]
+}
+
+@test "a packed upstream ref still gives GIT_REMOTE_SHA" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    fake_upstream
+    git commit -q --allow-empty -m second
+    git pack-refs --all
+    [[ ! -e .git/refs/remotes/origin/main ]]
+    git_info_refresh
+    [[ "$GIT_REMOTE_SHA" == "$(git rev-parse --short=7 '@{u}')" ]]
+    [[ "$GIT_SHA" == "$(git rev-parse --short=7 HEAD)" ]]
+}
+
+@test "an upstream that is gone leaves GIT_REMOTE empty" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    fake_upstream
+    git update-ref -d refs/remotes/origin/main
+    git_info_refresh
+    [[ -z "$GIT_REMOTE" && -z "$GIT_REMOTE_SHA" ]]
+    [[ "$GIT_AHEAD" == 0 && "$GIT_BEHIND" == 0 ]]
+}
+
+@test "git without --show-stash: counts still come, and later refreshes leave it out" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    echo y >> f.txt
+    logging_git
+    REJECT=--show-stash git_info_refresh
+    [[ "$GIT_MODIFIED" == 1 && "$GIT_STASH" == 0 ]]
+    : > "$BATS_TEST_TMPDIR/git.log"
+    REJECT=--show-stash git_info_refresh
+    ! grep -q -- --show-stash "$BATS_TEST_TMPDIR/git.log"
+}
+
+@test "inside .git under errexit the branch still shows: rev-parse fails there, and must not end the refresh" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    run bash -ec "source '$DOTFILES_ROOT/lib/git_info.sh'; cd '$REPO_DIR/.git'; git_info_refresh; echo \"\$GIT_BRANCH \$GIT_SHA\""
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "main $(git rev-parse --short=7 HEAD)" ]]
+}

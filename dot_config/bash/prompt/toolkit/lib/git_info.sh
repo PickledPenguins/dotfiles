@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.14
+# Toolkit version: 0.1.15
 # ════════════════════════════════════════════════════════════════════════════
 # lib/git_info.sh — Cached git repository state for bash scripts
 #
@@ -145,6 +145,122 @@ git_info_cache_valid() {
 
 # ── Refresh ───────────────────────────────────────────────────────────────
 
+declare -ga   _GIT_LINES=()            # what _git_info_collect printed
+declare -gi _GIT_NO_SHOW_STASH=0     # git before 2.35: status has no --show-stash
+
+# Print the state for _git_info_parse: rev-parse's .git directory (per
+# worktree), common directory (which holds the refs) and top level, a "--"
+# line, then `git status --porcelain=v2 --branch --show-stash`. Two
+# processes in all; nothing after rev-parse when this is no repository.
+# Inside .git the top level fails, and rev-parse with it, after printing the
+# other two; status fails there too, and says so with a "status-failed"
+# line. GIT_OPTIONAL_LOCKS=0: a background status must not refresh and
+# write the index, or a git add/commit in another shell can hit index.lock
+# (--no-optional-locks does the same but is git 2.15+; old git ignores the
+# variable).
+_git_info_collect() {
+    local dirs
+    dirs=$(git rev-parse --git-dir --git-common-dir --show-toplevel 2>/dev/null) || true
+    [[ -n "$dirs" ]] || return 0
+    printf '%s\n--\n' "$dirs"
+    local -a args=(--porcelain=v2 --branch)
+    (( _GIT_NO_SHOW_STASH )) || args+=(--show-stash)
+    GIT_OPTIONAL_LOCKS=0 git status "${args[@]}" 2>/dev/null && return 0
+    # git before 2.35 rejects --show-stash: once more without it, and tell
+    # the parser so later refreshes leave it out.
+    if (( ! _GIT_NO_SHOW_STASH )) && GIT_OPTIONAL_LOCKS=0 git status --porcelain=v2 --branch 2>/dev/null; then
+        printf '# no-show-stash\n'
+        return 0
+    fi
+    printf 'status-failed\n'
+}
+
+# Fill the GIT_* globals and the cache keys from _GIT_LINES. Returns 1
+# outside a repository, or when HEAD cannot be read.
+_git_info_parse() {
+    local n=${#_GIT_LINES[@]} i=0
+    local -a dirs=()
+    while (( i < n )) && [[ "${_GIT_LINES[i]}" != -- ]]; do
+        dirs+=("${_GIT_LINES[i]}"); i=$(( i + 1 ))
+    done
+    i=$(( i + 1 ))
+    [[ -n "${dirs[0]-}" ]] || return 1
+    GIT_IN_REPO=1
+    local git_dir="${dirs[0]}" common_dir="${dirs[1]-${dirs[0]}}"
+    [[ "$git_dir" == /* ]]    || git_dir="$PWD/$git_dir"
+    [[ "$common_dir" == /* ]] || common_dir="$PWD/$common_dir"
+    _GIT_CACHE_GIT_DIR="$git_dir"
+    _GIT_CACHE_TOP="${dirs[2]-}"
+
+    # One pass over status: the branch headers, then one line per path
+    # ("1"/"2" changed, "u" unmerged, "?" untracked). XY is the staged and
+    # the unstaged state, "." for unchanged.
+    local line oid="" branch="" up="" ab="" failed=0 xy
+    for (( ; i < n; i++ )); do
+        line="${_GIT_LINES[i]}"
+        case "$line" in
+            '? '*)                 GIT_UNTRACKED+=1 ;;
+            [12]' '*)
+                xy="${line:2:2}"
+                [[ "${xy:0:1}" == [MADRCT] ]] && GIT_STAGED+=1
+                [[ "${xy:1:1}" == [MD] ]] && GIT_MODIFIED+=1 ;;
+            'u '*)                 GIT_CONFLICTS+=1 ;;
+            '# branch.oid '*)      oid="${line#\# branch.oid }" ;;
+            '# branch.head '*)     branch="${line#\# branch.head }" ;;
+            '# branch.upstream '*) up="${line#\# branch.upstream }" ;;
+            '# branch.ab '*)       ab="${line#\# branch.ab }" ;;
+            '# stash '*)           GIT_STASH="${line#\# stash }" ;;
+            '# no-show-stash')     _GIT_NO_SHOW_STASH=1 ;;
+            status-failed)         failed=1 ;;
+        esac
+    done
+
+    # The branch's loose ref file, from HEAD, for the cache check.
+    local head=""; { IFS= read -r head < "$git_dir/HEAD"; } 2>/dev/null || true
+    [[ "$head" != "ref: "* ]] || _GIT_CACHE_HEAD_REF="$common_dir/${head#ref: }"
+
+    # Inside .git (or a bare repository) status fails: the branch and its
+    # commit come from HEAD and the branch's loose ref instead.
+    if (( failed )); then
+        if [[ "$head" == "ref: refs/heads/"* ]]; then
+            branch="${head#ref: refs/heads/}"
+            oid=""; { IFS= read -r oid < "$_GIT_CACHE_HEAD_REF"; } 2>/dev/null || oid="(initial)"
+        elif [[ "$head" =~ ^[0-9a-f]{40,}$ ]]; then
+            branch="(detached)"; oid="$head"
+        else
+            GIT_IN_REPO=0; return 1      # unreadable HEAD
+        fi
+    fi
+
+    # Short SHAs are the first 7 hex digits: git's own --short can be longer
+    # in a big repository, where 7 may not be unique.
+    if [[ "$branch" == "(detached)" ]]; then
+        GIT_BRANCH="${oid:0:7}"; GIT_SHA="$GIT_BRANCH"
+    else
+        GIT_BRANCH="$branch"
+        [[ "$oid" == "(initial)" ]] || GIT_SHA="${oid:0:7}"
+    fi
+
+    # branch.ab is there only when the upstream exists: one that is gone
+    # leaves GIT_REMOTE empty. Its commit comes from its loose ref file,
+    # which the cache check reads anyway; a packed ref needs one rev-parse.
+    if [[ "$ab" =~ ^\+([0-9]+)\ -([0-9]+)$ ]]; then
+        GIT_AHEAD=${BASH_REMATCH[1]}
+        GIT_BEHIND=${BASH_REMATCH[2]}
+        GIT_REMOTE="$up"
+        _GIT_CACHE_UP_REF="$common_dir/refs/remotes/$up"
+        [[ -e "$_GIT_CACHE_UP_REF" ]] || [[ ! -e "$common_dir/refs/heads/$up" ]] \
+            || _GIT_CACHE_UP_REF="$common_dir/refs/heads/$up"
+        local sha=""; { IFS= read -r sha < "$_GIT_CACHE_UP_REF"; } 2>/dev/null || true
+        if [[ -n "$sha" ]]; then
+            GIT_REMOTE_SHA="${sha:0:7}"
+        else
+            GIT_REMOTE_SHA=$(git rev-parse --short=7 '@{u}' 2>/dev/null) || true
+        fi
+    fi
+    return 0
+}
+
 # Collect all git state in one pass. Call via:
 #   git_info_cache_valid || git_info_refresh
 git_info_refresh() {
@@ -156,31 +272,9 @@ git_info_refresh() {
     # Always record current dir so non-repo directories are cached too
     _GIT_CACHE_DIR="$PWD"
 
-    # One call for the .git directory (per worktree), the common directory
-    # that holds the refs, and the top level. Inside .git the top level
-    # fails, and the call with it, after printing the other two.
-    local -a dirs; mapfile -t dirs < <(git rev-parse --git-dir --git-common-dir --show-toplevel 2>/dev/null)
-    [[ -n "${dirs[0]-}" ]] || return 1
-    GIT_IN_REPO=1
-    local git_dir="${dirs[0]}" common_dir="${dirs[1]-${dirs[0]}}"
-    [[ "$git_dir" == /* ]]    || git_dir="$PWD/$git_dir"
-    [[ "$common_dir" == /* ]] || common_dir="$PWD/$common_dir"
-    _GIT_CACHE_GIT_DIR="$git_dir"
-    _GIT_CACHE_TOP="${dirs[2]-}"
-
-    # The ref files the cache check reads: the branch's, from HEAD, and the
-    # upstream's, from the same call that names it.
-    local head=""; { IFS= read -r head < "$git_dir/HEAD"; } 2>/dev/null || true
-    [[ "$head" != "ref: "* ]] || _GIT_CACHE_HEAD_REF="$common_dir/${head#ref: }"
-    local -a up; mapfile -t up < <(git rev-parse --symbolic-full-name '@{u}' --abbrev-ref '@{u}' 2>/dev/null)
-    if (( ${#up[@]} == 2 )); then
-        _GIT_CACHE_UP_REF="$common_dir/${up[0]}"
-        GIT_REMOTE="${up[1]}"
-    fi
-
-    # Record the refs and the time before reading the state they describe,
-    # so a change made while this runs shows up as stale next time. One
-    # timestamp file per shell: a subshell gets its own.
+    # The time before reading the state it describes, so an index written
+    # while git runs shows up as stale next time. One timestamp file per
+    # shell: a subshell gets its own.
     if [[ "$_GIT_CACHE_STAMP_PID" != "$BASHPID" ]]; then
         local tmp="${XDG_RUNTIME_DIR-}"
         [[ -d "$tmp" && -w "$tmp" ]] || tmp="${TMPDIR:-/tmp}"
@@ -188,54 +282,13 @@ git_info_refresh() {
         _GIT_CACHE_STAMP_PID="$BASHPID"
     fi
     [[ -z "$_GIT_CACHE_STAMP" ]] || { echo > "$_GIT_CACHE_STAMP"; } 2>/dev/null || true
+
+    mapfile -t _GIT_LINES < <(_git_info_collect)
+    _git_info_parse || return 1
+
+    # The refs as they are now. A commit made while status ran reads as
+    # current here. The TTL catches it.
     _git_info_refs
     _GIT_CACHE_REFS="$_GIT_REFS"
-
-    # Branch name; falls back to short SHA in detached-HEAD state
-    if GIT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null); then
-        GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null) || true   # none before the first commit
-    else
-        GIT_BRANCH=$(git rev-parse --short HEAD 2>/dev/null) || {
-            GIT_IN_REPO=0; return 1  # corrupted/unreadable HEAD, or bare-repo edge case
-        }
-        GIT_SHA="$GIT_BRANCH"
-    fi
-
-    # Upstream SHA, and ahead/behind in a single rev-list call — "behind<TAB>ahead"
-    if [[ -n "$GIT_REMOTE" ]]; then
-        GIT_REMOTE_SHA=$(git rev-parse --short '@{u}' 2>/dev/null) || true
-        local counts
-        counts=$(git rev-list --count --left-right '@{u}...HEAD' 2>/dev/null) || true
-        if [[ "$counts" =~ ^([0-9]+)$'\t'([0-9]+)$ ]]; then
-            GIT_BEHIND=${BASH_REMATCH[1]}
-            GIT_AHEAD=${BASH_REMATCH[2]}
-        fi
-    fi
-
-    # File-status counts from a single --porcelain call, classified in one
-    # awk pass (previously 3 grep forks; `grep -c` also exits 1 on zero
-    # matches, which tripped the old `|| echo 0` fallback and left each
-    # GIT_* var holding two lines instead of one — a bash arithmetic error
-    # on nearly every clean-file-status refresh). Unmerged paths get their
-    # own category so a conflicted repo doesn't read as "clean".
-    # GIT_OPTIONAL_LOCKS=0: a background status must not refresh and write
-    # the index, or a git add/commit in another shell can hit index.lock.
-    # (--no-optional-locks does the same but is git 2.15+; old git ignores
-    # the variable.)
-    local porcelain; porcelain=$(GIT_OPTIONAL_LOCKS=0 git status --porcelain 2>/dev/null) || true
-    if [[ -n "$porcelain" ]]; then
-        local counts; counts=$(awk '
-            { xy = substr($0,1,2) }
-            xy == "??" { untracked++; next }
-            xy=="DD"||xy=="AU"||xy=="UD"||xy=="UA"||xy=="DU"||xy=="AA"||xy=="UU" { conflicts++; next }
-            substr(xy,1,1) ~ /[MADRCT]/ { staged++ }
-            substr(xy,2,1) ~ /[MD]/     { modified++ }
-            END { printf "%d %d %d %d", staged+0, modified+0, untracked+0, conflicts+0 }
-        ' <<< "$porcelain")
-        read -r GIT_STAGED GIT_MODIFIED GIT_UNTRACKED GIT_CONFLICTS <<< "$counts"
-    fi
-    local -a _stash_lines; mapfile -t _stash_lines < <(git stash list 2>/dev/null)
-    GIT_STASH=${#_stash_lines[@]}
-
     cache_touch git_info
 }

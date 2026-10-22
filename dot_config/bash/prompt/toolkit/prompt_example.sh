@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.14
+# Toolkit version: 0.1.15
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.example.sh — Prompt configuration using prompt.sh
 #
