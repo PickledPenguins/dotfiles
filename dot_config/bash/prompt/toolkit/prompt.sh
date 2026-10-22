@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.16
+# Toolkit version: 0.1.17
 # ════════════════════════════════════════════════════════════════════════════
 # prompt.sh — Composable bash prompt builder
 # Architecture: Segment → Row → Layout → PS1

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.16
+# Toolkit version: 0.1.17
 # ════════════════════════════════════════════════════════════════════════════
 # lib/git_info.sh — Cached git repository state for bash scripts
 #
@@ -338,7 +338,7 @@ _git_info_stamp_init() {
 _git_info_job_start() {
     _GIT_JOB_OUT="$_GIT_CACHE_STAMP.$_GIT_JOB_N"
     _GIT_JOB_DIR="$PWD"
-    exec {_GIT_JOB_FD}< <(_git_info_collect > "$_GIT_JOB_OUT" 2>/dev/null; echo)
+    exec {_GIT_JOB_FD}< <(_git_info_collect >| "$_GIT_JOB_OUT" 2>/dev/null; echo)
 }
 
 # Wait at most SECS for the job. Returns 0 once it is done, its output in
@@ -415,7 +415,8 @@ git_info_refresh() {
 
     # The time before reading the state it describes, so an index written
     # while git runs shows up as stale next time.
-    [[ -z "$_GIT_CACHE_STAMP" ]] || { echo > "$_GIT_CACHE_STAMP"; } 2>/dev/null || true
+    # >|: the user's noclobber would leave both files as the first refresh wrote them.
+    [[ -z "$_GIT_CACHE_STAMP" ]] || { echo >| "$_GIT_CACHE_STAMP"; } 2>/dev/null || true
 
     if [[ "$_GIT_BUDGET" == 0 || -z "$_GIT_CACHE_STAMP" ]]; then
         mapfile -t _GIT_LINES < <(_git_info_collect)

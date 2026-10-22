@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.16
+# Toolkit version: 0.1.17
 # ════════════════════════════════════════════════════════════════════════════
 # segments/command.sh — the last command's result, and the clock
 #

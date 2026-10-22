@@ -464,6 +464,19 @@ STUB
     [[ "$status" == 1 && "$output" == "git_info_budget: SECS must be a number, not 1s" ]]
 }
 
+@test "under noclobber every refresh with a budget still reads git, and touches the stamp" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    set -o noclobber
+    git_info_budget 5
+    git_info_refresh
+    touch -d @1000 "$_GIT_CACHE_STAMP"
+    echo y >> f.txt
+    git_info_refresh 2>"$BATS_TEST_TMPDIR/err"
+    set +o noclobber
+    [[ ! -s "$BATS_TEST_TMPDIR/err" && "$GIT_MODIFIED" == 1 ]]
+    (( $(stat -c %Y "$_GIT_CACHE_STAMP") > 1000 ))
+}
+
 @test "the first refresh removes files of shells that are gone, and keeps live ones" {
     local tmp="$BATS_TEST_TMPDIR/rt"
     mkdir "$tmp"

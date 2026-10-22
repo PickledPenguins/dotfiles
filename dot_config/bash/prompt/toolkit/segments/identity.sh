@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.16
+# Toolkit version: 0.1.17
 # ════════════════════════════════════════════════════════════════════════════
 # segments/identity.sh — who and where: user, host, root marker, directory
 #

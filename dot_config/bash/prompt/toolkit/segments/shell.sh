@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.16
+# Toolkit version: 0.1.17
 # ════════════════════════════════════════════════════════════════════════════
 # segments/shell.sh — this shell's surroundings: tmux, X display, ssh,
 # python and conda environments, background jobs, nesting depth

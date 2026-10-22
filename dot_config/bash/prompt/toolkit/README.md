@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.16
+**Version:** 0.1.17
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -515,7 +515,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**175 tests across 9 files**, all passing against v0.1.16:
+**176 tests across 9 files**, all passing against v0.1.17:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -523,7 +523,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 
 | `collectors.bats` | 27 | collector planning by layout, built-in segments under other names, declared needs, TTLs, run order, argument checks, collected data reaching the parent shell, `install.sh` copying `segments/` |
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
-| `git_info.bats` | 41 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone, two git processes per refresh (one outside a repository), packed and gone upstreams, git without `--show-stash`, `.git` under errexit; time budget: pending, old values kept, result taken later without waiting, `-uno` for a slow tree, `cd` while pending, the pending segment, `-uMODE`, argument checks, files of gone shells removed; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
+| `git_info.bats` | 42 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone, two git processes per refresh (one outside a repository), packed and gone upstreams, git without `--show-stash`, `.git` under errexit; time budget: pending, old values kept, result taken later without waiting, `-uno` for a slow tree, `cd` while pending, the pending segment, `-uMODE`, argument checks, files of gone shells removed, `noclobber`; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 27 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
 | `prompt_segments.bats` | 33 | pwd and tmux sanitizing with no program on `PATH`, tmux silent outside tmux or with no server, venv name, pwd truncation, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df`, PBS node count; registration, `_ps_expand` token scanning, `PS_DEBUG_SEGMENTS` |
@@ -576,6 +576,13 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.17
+
+**Fixed:** with `set -o noclobber` in the user's shell, a refresh under a
+budget after the first one failed with `cannot overwrite existing file`
+and the prompt kept the state the first one read, and the timestamp file
+was never rewritten. Both files are written with `>|`.
 
 ### v0.1.16
 
