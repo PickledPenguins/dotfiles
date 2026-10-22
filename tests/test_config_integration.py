@@ -115,7 +115,7 @@ def test_bashrc_sourced_again_leaves_prompt_command_as_it_was(linked):
         except OSError:                 # EIO: the terminal's other side is closed
             break
     os.close(main)
-    first = "_title_prompt; prompt_build; _prompt_gap; history -a"
+    first = "_dots_fast_cwd; _title_prompt; prompt_build; _prompt_gap; history -a"
     assert (proc.returncode, out.decode().splitlines()) == (0, [first, first])
 
 
@@ -628,7 +628,26 @@ def test_fast_mode_dots_fast_applies_in_the_shell_that_ran_it(linked):
     assert proc.stderr == NOTICE + "forced: dots fast on\nfast mode off"
 
 
-def test_prompt_top_row_shows_fast_mode_and_signals_over_threshold(linked):
+def test_fast_paths_switch_the_directory_hooks_at_the_prompt_after_a_cd(linked):
+    # A trailing slash, ~ and a path that is only a prefix of another are all handled
+    script = ('command mkdir -p slow/sub slower; on_dir() { echo "hook $1"; }; dots_fast_dir_hook on_dir; '
+              'cd slow/sub; _dots_fast_cwd; _dots_fast_cwd; cd ~/slower; _dots_fast_cwd; '
+              'cd ~/slow; _dots_fast_cwd; (exit 3); _dots_fast_cwd; echo "rc $?"')
+    proc = bash(linked, script, env={"DOTS_FAST_PATHS": "/nowhere::~/slow/"})
+    assert (proc.stdout, proc.stderr) == ("hook 0\nhook 1\nhook 0\nhook 1\nrc 3\n", "")
+
+
+def test_fast_paths_hooks_follow_the_mode_too(linked):
+    # In fast mode every directory is fast: a cd changes nothing; turning the mode
+    # off outside DOTS_FAST_PATHS does
+    (linked / ".config/bash/fast").write_text("on\n")
+    script = ('command mkdir slow; on_dir() { told+=" $1"; }; dots_fast_dir_hook on_dir; cd slow; _dots_fast_cwd; '
+              'cd ~; _dots_fast_cwd; dots fast off >/dev/null; echo "$told"; echo "$PROMPT_COMMAND"')
+    proc = bash(linked, script, env={"DOTS_FAST_PATHS": "~/slow"})
+    told, prompt_command = proc.stdout.splitlines()
+    assert told == " 1 0"
+    # Ahead of the prompt's collectors, so the git status of the new directory sees it
+    assert prompt_command.index("_dots_fast_cwd") < prompt_command.index("prompt_build")
     user_host = f"{os.environ['USER']}@{socket.gethostname().split('.')[0]}:~"
     def top(env):
         proc = bash(linked, 'prompt_build; printf "%s\\n" "${PS1@P}"', env=env)
@@ -640,6 +659,8 @@ def test_prompt_top_row_shows_fast_mode_and_signals_over_threshold(linked):
     assert re.fullmatch(rf"╭ blk\d+ ld[\d.]+ mem\d+% git\d+ \| {re.escape(user_host)}",
                         top({"DOTS_FAST_PROMPT": "always"}))
     assert top({}) == f"╭ {user_host}"
+    assert top({"DOTS_FAST_PATHS": str(linked)}) == f"╭ fast-dir | {user_host}"
+    assert top({"DOTS_FAST_PATHS": str(linked), "DOTS_FAST": "on"}) == f"╭ FAST! | {user_host}"
 
 
 def test_simple_prompt_module_when_enabled(linked):

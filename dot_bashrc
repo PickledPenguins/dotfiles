@@ -57,8 +57,9 @@ for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
 done
 unset _rc _name _t0 _dotfiles_off
 
-# How long this start took, a sample for fast mode's auto (rc.d/05-fast.sh).
-declare -F _dots_fast_started >/dev/null && _dots_fast_started
+# Fast mode's look at the directory first at each prompt, and how long this
+# start took, a sample for its auto (rc.d/05-fast.sh).
+declare -F _dots_fast_loaded >/dev/null && _dots_fast_loaded
 
 # Startup is over: from here path_prepend and path_append warn about name
 # clashes (20-path.sh).

@@ -28,6 +28,10 @@
 # else /tmp/dots-UID), a fixed few lines per host: nothing grows, and
 # nothing waits for a reboot to go.
 #
+# Under the directories in DOTS_FAST_PATHS the features that depend on the
+# directory (ls colors, Tab, git status) take their fast form even while
+# the mode is off; the prompt shows fast-dir there.
+#
 # Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off. `dots options WORD` searches every file.
@@ -44,6 +48,10 @@
 #   DOTS_FAST_MEM         memory available, percent            default: 10
 #   DOTS_FAST_SWAPIN      pages swapped in per second          default: 100
 #   DOTS_FAST_PROMPT      always: the prompt shows the values  default: unset
+#   DOTS_FAST_PATHS       directories, colon-separated, where   default: unset
+#                         the features that depend on the
+#                         directory take their fast form even
+#                         while the mode is off
 
 # ── State ─────────────────────────────────────────────────────────────────
 
@@ -58,6 +66,11 @@ _dots_fast_recent=""            # this shell's last 5 git refreshes: 1 slow, 0 n
 _dots_fast_git_last=""          # this shell's last git refresh, ms
 declare -a _dots_fast_hooks=()  # functions called with 1 or 0 when the mode changes
 declare -A _dots_fast_val=()    # host signal values from the last look
+declare -a _dots_fast_paths=()  # DOTS_FAST_PATHS, one directory each
+declare -a _dots_fast_dir_hooks=()  # functions called with 1 or 0 when fast mode or the directory changes them
+_dots_fast_here=0               # 1 while $PWD is under DOTS_FAST_PATHS
+_dots_fast_dir_on=0             # what the directory hooks were last told
+_dots_fast_pwd=""               # $PWD at the last look
 _dots_fast_prev=""              # /proc counters at the last look: uptime_cs total iowait steal pswpin
 
 # The directory and per-host file prefix for samples, made private on
@@ -267,6 +280,7 @@ _dots_fast_set() {
     local f
     if (( $1 )); then export DOTS_FAST_ACTIVE=1; else unset DOTS_FAST_ACTIVE; fi
     for f in "${_dots_fast_hooks[@]}"; do "$f" "$1"; done
+    _dots_fast_dir_apply
 }
 
 # A module's fast-mode switch: FUNC is called now with 1 or 0, and again
@@ -275,6 +289,68 @@ dots_fast_hook() {
     _dots_fast_hooks+=("$1")
     "$1" "${DOTS_FAST_ACTIVE:-0}"
 }
+
+# ── Directories ───────────────────────────────────────────────────────────
+
+# DOTS_FAST_PATHS into _dots_fast_paths: a leading ~ is $HOME, trailing
+# slashes go, empty entries are left out.
+_dots_fast_paths_read() {
+    local -a list
+    local p
+    _dots_fast_paths=()
+    IFS=: read -ra list <<< "${DOTS_FAST_PATHS-}"
+    for p in "${list[@]}"; do
+        [[ $p == "~" || $p == "~/"* ]] && p=$HOME${p:1}
+        while [[ $p == */ ]]; do p=${p%/}; done
+        [[ -z $p ]] || _dots_fast_paths+=("$p")
+    done
+}
+
+# _dots_fast_here is 1 when $PWD is one of them or under one. Only the
+# string: a directory reached through a symbolic link counts by the path
+# it was reached by.
+_dots_fast_where() {
+    local p
+    _dots_fast_here=0
+    for p in "${_dots_fast_paths[@]}"; do
+        if [[ $PWD == "$p" || $PWD == "$p"/* ]]; then
+            _dots_fast_here=1
+            return
+        fi
+    done
+}
+
+# Tell every directory hook, when it changed: 1 in fast mode or under
+# DOTS_FAST_PATHS, else 0.
+_dots_fast_dir_apply() {
+    local f on=$(( ${DOTS_FAST_ACTIVE:-0} || _dots_fast_here ))
+    (( on != _dots_fast_dir_on )) || return 0
+    _dots_fast_dir_on=$on
+    for f in "${_dots_fast_dir_hooks[@]}"; do "$f" "$on"; done
+}
+
+# A module's switch for a feature that depends on the directory (ls colors,
+# Tab, git status): FUNC is called now with 1 or 0, and again whenever fast
+# mode or a cd changes it.
+dots_fast_dir_hook() {
+    _dots_fast_dir_hooks+=("$1")
+    "$1" "$(( ${DOTS_FAST_ACTIVE:-0} || _dots_fast_here ))"
+}
+
+# In PROMPT_COMMAND: after a cd, look again. Builtins only, and only a
+# string compare at a prompt that did not change directory. Returns the $?
+# it found.
+_dots_fast_cwd() {
+    local rc=$?
+    if [[ $PWD != "$_dots_fast_pwd" ]]; then
+        _dots_fast_pwd=$PWD
+        _dots_fast_where
+        _dots_fast_dir_apply
+    fi
+    return "$rc"
+}
+
+# ── Shell start ───────────────────────────────────────────────────────────
 
 # The notice: bold, reversed, on stderr
 _dots_fast_notice() {
@@ -291,6 +367,9 @@ _dots_fast_init() {
     _dots_fast_host
     [[ -z ${_dots_fast_file-} ]] || { printf '%s\n' "$_dots_fast_prev" >| "$_dots_fast_file.base"; } 2>/dev/null
     _dots_fast_asked
+    _dots_fast_paths_read
+    _dots_fast_pwd=$PWD
+    _dots_fast_where
     case $_dots_fast_mode in
         on)   on=1; _dots_fast_why="forced: ${_dots_fast_from/env/DOTS_FAST=on}"
               _dots_fast_why=${_dots_fast_why/file/dots fast on} ;;
@@ -310,10 +389,15 @@ _dots_fast_init() {
 
 # ── Samples from this shell ───────────────────────────────────────────────
 
-# Shell startup time, from the process start in /proc/$$/stat to now
-# (10 ms steps), as a sample. The loader calls this after the last module.
-_dots_fast_started() {
+# The loader calls this after the last module. It puts _dots_fast_cwd first
+# in PROMPT_COMMAND, ahead of the prompt's collectors (which go in after
+# this module), so a cd into DOTS_FAST_PATHS is in effect for the git
+# status of the same prompt and by the next Tab. Then the shell startup
+# time, from the process start in /proc/$$/stat to now (10 ms steps), as a
+# sample.
+_dots_fast_loaded() {
     local s up _
+    [[ "${PROMPT_COMMAND-}" == *_dots_fast_cwd* ]] || PROMPT_COMMAND="_dots_fast_cwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
     { read -r s < "/proc/$$/stat" && read -r up _ < /proc/uptime; } 2>/dev/null || return 0
     local -a f
     read -ra f <<< "${s##*) }"
@@ -372,6 +456,8 @@ _dots_fast_status() {
     _dots_fast_store
     _dots_fast_host; sleep 1; _dots_fast_host
     _dots_fast_asked
+    _dots_fast_paths_read
+    _dots_fast_where
     case $_dots_fast_from in
         env)     k="DOTS_FAST=$_dots_fast_mode in the environment" ;;
         file)    k="${DOTFILES_BASH_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/bash}/fast" ;;
@@ -399,6 +485,12 @@ _dots_fast_status() {
         fi
         printf '%-10s %-10s at %s%s %s (DOTS_FAST_%s)%s\n' "$n" "$v${unit:+ $unit}" "$t" "$unit" "$op" "$k" "$mark"
     done
+    if (( ${#_dots_fast_paths[@]} == 0 )); then
+        printf 'paths      none (DOTS_FAST_PATHS)\n'
+    else
+        printf 'paths      %s (DOTS_FAST_PATHS)\n' "$DOTS_FAST_PATHS"
+        (( _dots_fast_here )) && printf '           %s is under one: fast-dir\n' "$PWD"
+    fi
     _dots_fast_ring_read
     if (( ${#_dots_fast_ring[@]} == 0 )); then
         printf 'samples    none yet on %s\n' "${HOSTNAME%%.*}"

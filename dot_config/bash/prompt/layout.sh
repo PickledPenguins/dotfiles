@@ -37,13 +37,14 @@ _user_host_seg() {
 }
 
 # Fast mode (rc.d/05-fast.sh) and the host signals over threshold: FAST in
-# reverse red when auto turned it on, FAST! when forced, yellow "slow" with
-# the values while they are over and the mode is off; nothing while all is
-# well, or every value with DOTS_FAST_PROMPT=always. Values: blk tasks
+# reverse red when auto turned it on, FAST! when forced, cyan fast-dir under
+# DOTS_FAST_PATHS while the mode is off, yellow "slow" with the values while
+# they are over and the mode is off; nothing while all is well, or every
+# value with DOTS_FAST_PROMPT=always. Values: blk tasks
 # blocked on I/O, io iowait, ld load per CPU, st steal, mem memory
 # available, swp pages swapped in per second, git the last git status ms.
 _fast_shows() {
-    [[ -n ${DOTS_FAST_ACTIVE-} || -n ${_dots_fast_over-} ]] ||
+    [[ -n ${DOTS_FAST_ACTIVE-} || -n ${_dots_fast_over-} ]] || (( ${_dots_fast_here:-0} )) ||
         [[ ${DOTS_FAST_PROMPT-} == always && -n ${_dots_fast_all-} ]]
 }
 _fast_seg() {
@@ -52,6 +53,9 @@ _fast_seg() {
     if [[ -n ${DOTS_FAST_ACTIVE-} ]]; then
         [[ $_dots_fast_mode == on ]] && printf '%sFAST!%s' "$rv" "$PS_R" || printf '%sFAST%s' "$rv" "$PS_R"
         printf '%s' "${_dots_fast_over}"
+    elif (( ${_dots_fast_here:-0} )); then
+        printf '%sfast-dir%s' "$PS_CYAN" "$PS_R"
+        [[ -z ${_dots_fast_over-} ]] || printf ' %sslow%s%s' "$PS_YELLOW" "$_dots_fast_over" "$PS_R"
     elif [[ -n ${_dots_fast_over-} ]]; then
         printf '%sslow%s%s' "$PS_YELLOW" "$_dots_fast_over" "$PS_R"
     else

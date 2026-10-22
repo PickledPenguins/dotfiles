@@ -37,7 +37,30 @@ start again.
 |-------|--------|--------------|
 | prompt git status | waits at most 1 s, then shows `…` and picks the result up later | waits at most 0.2 s |
 
-Each module that has a fast form lists it in its header and here.
+Each module that has a fast form lists it in its header and here. The
+rows marked *directory* also take their fast form under
+`DOTS_FAST_PATHS` (below) while the mode is off.
+
+## Fast directories
+
+```bash
+export DOTS_FAST_PATHS=/nfs/proj:/data:~/scratch   # in ~/.bashrc.before
+```
+
+Under these directories (each one and everything below it) the features
+that depend on the directory take their fast form even while fast mode is
+off: a slow NFS project does not need the whole shell in fast mode. A
+leading `~` is `$HOME`; trailing slashes do not matter.
+
+The shell looks again at each prompt whose directory changed, with a
+string compare and no system call, before the prompt's git status. So the
+prompt and Tab after a `cd` already see it; a command on the same line as
+the `cd` (`cd /nfs/proj && ls`) does not. A directory reached through a
+symbolic link counts by the path it was reached by (`$PWD`), not where
+the link points.
+
+The prompt shows cyan `fast-dir` there, and `dots fast` lists the paths
+and says when the current directory is under one.
 
 ## Auto
 
@@ -98,6 +121,7 @@ variables.
     second, git the last git status in ms);
   - reverse red `FAST` and the values when auto turned it on;
   - reverse red `FAST!` when forced on;
+  - cyan `fast-dir` under `DOTS_FAST_PATHS` while the mode is off;
   - `DOTS_FAST_PROMPT=always`: the values, dim, even when all is well.
 
   The values are read every 10 s.
@@ -119,6 +143,11 @@ those directories auto has the host signals only.
 _my_fast() { if (( $1 )); then cheap_form; else full_form; fi; }
 dots_fast_hook _my_fast      # called now with 1 or 0, and on every change
 ```
+
+A feature that depends on the directory registers with
+`dots_fast_dir_hook` instead: it is called with 1 in fast mode or under
+`DOTS_FAST_PATHS`, 0 otherwise, now and whenever a mode change or a `cd`
+changes that.
 
 Modules after `05-fast.sh` read `DOTS_FAST_ACTIVE` or register a hook;
 `layout.sh` uses one for the git budget.

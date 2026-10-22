@@ -169,8 +169,9 @@ applies it at once. Other open shells keep their mode.
 
 With no argument, print the mode, where it comes from (`DOTS_FAST`, the
 file, or the default), auto's verdict and reason, each host signal against
-its threshold (a line over it ends in `!`), and the samples kept on this
-host. The host is sampled over 1 s. The thresholds come from the
+its threshold (a line over it ends in `!`), `DOTS_FAST_PATHS` and whether
+the current directory is under one, and the samples kept on this host.
+The host is sampled over 1 s. The thresholds come from the
 environment and `~/.bashrc.before`. [fast-mode.md](fast-mode.md) has what
 each line means.
 
@@ -180,6 +181,8 @@ reason     iowait 23% >= 20
 blocked    0          at 2 or more (DOTS_FAST_BLOCKED)
 iowait     23 %       at 20% or more (DOTS_FAST_IOWAIT)  !
 ...
+paths      /nfs/proj:/data (DOTS_FAST_PATHS)
+           /nfs/proj/run4 is under one: fast-dir
 samples    1 of the last 5 slow (on at 2), 1 of the last 10 (off at 0 of 10)
 ```
 

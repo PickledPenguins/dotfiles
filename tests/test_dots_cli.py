@@ -637,7 +637,18 @@ def test_fast_with_no_mode_reports_the_mode_and_each_signal(home, no_fast_env):
     lines = proc.stdout.splitlines()
     assert lines[0] == f"fast mode  off (default: no {home}/.config/bash/fast)"
     assert [line.split()[0] for line in lines[1:7]] == ["blocked", "iowait", "load", "steal", "mem", "swapin"]
-    assert lines[7] == "samples    none yet on " + os.uname().nodename.split(".")[0]
+    assert lines[7] == "paths      none (DOTS_FAST_PATHS)"
+    assert lines[8] == "samples    none yet on " + os.uname().nodename.split(".")[0]
+
+
+def test_fast_report_says_when_the_directory_is_under_dots_fast_paths(home, no_fast_env):
+    (home / ".bashrc.before").write_text('DOTS_FAST_PATHS="~/none:$PWD/"\n')
+    lines = run_subprocess(home, REPO, "fast").stdout.splitlines()
+    assert lines[7:9] == [f"paths      ~/none:{os.getcwd()}/ (DOTS_FAST_PATHS)",
+                          f"           {os.getcwd()} is under one: fast-dir"]
+    (home / ".bashrc.before").write_text('DOTS_FAST_PATHS="$PWD/elsewhere"\n')
+    lines = run_subprocess(home, REPO, "fast").stdout.splitlines()
+    assert lines[8].startswith("samples ")
 
 
 def test_fast_report_exits_with_the_status_of_its_bash(dots, home, no_fast_env, capfd):
