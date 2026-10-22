@@ -37,6 +37,7 @@ start again.
 |-------|--------|--------------|
 | prompt git status | waits at most 1 s, then shows `…` and picks the result up later | waits at most 0.2 s |
 | prompt git status (*directory*) | untracked files as `status.showUntrackedFiles` says | `-unormal`: untracked directories are not gone into |
+| git looking for a repository | stops at `/home` and `/net` (`DOTFILES_GIT_CEILING`, `00-env.sh`): no lookup in an automounter or a slow NFS parent | the same |
 | every git command (*directory*) | your git config | also `core.untrackedCache=true`, `core.trustctime=false`, `core.checkStat=minimal` through `GIT_CONFIG_COUNT` (git 2.31+): fewer stats and file reads per status; a change of the same size within the same second can go unseen |
 | vim swap files | `~/.vim/tmp/swap`, synced at each write | tmpfs (`$XDG_RUNTIME_DIR/vim-swap`, else `/dev/shm/vim-swap-USER`), never synced; ones older than 14 days go, looked for once a day. Taken from `DOTS_FAST_ACTIVE` when vim starts. Recovery works after vim dies, not after the machine does |
 | Tab list (*directory*) | colors and `/ * @` marks (`colored-stats`, `visible-stats` in `~/.inputrc`) | neither: Tab stats nothing; the `/` after a completed directory name stays |

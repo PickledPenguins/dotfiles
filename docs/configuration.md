@@ -100,6 +100,7 @@ Identity, hostnames and secrets go in these files, never in the repository.
 | Knob | Module | Default | Effect |
 |------|--------|---------|--------|
 | `DOTFILES_EDITOR` | env | `vim` if installed, else `vi` | `$EDITOR`, `$VISUAL`, `$SUDO_EDITOR` |
+| `DOTFILES_GIT_CEILING` | env | `/home:/net` | `GIT_CEILING_DIRECTORIES`: where git stops looking for a repository; empty: nowhere. One already set is kept |
 | `DOTFILES_HISTSIZE` | options | `50000` | lines of history in memory |
 | `DOTFILES_HISTFILESIZE` | options | `100000` | lines on disk |
 | `DOTFILES_HISTIGNORE` | options | none | extra `:`-separated patterns not recorded |
@@ -161,7 +162,7 @@ Read-only variables the loader sets for modules and for you:
 
 | Module | Provides |
 |--------|----------|
-| `00-env.sh` | `EDITOR`, `PAGER`, `LESS` with the mouse wheel, `SYSTEMD_LESS` (ours plus systemd's `-SMK`), colored man pages, `GREP_COLORS`, `COLORTERM`, XDG variables, `RIPGREP_CONFIG_PATH`, `PYTHONSTARTUP`, locale fallback, `TIME_STYLE`, `BROWSER`. Off: less chop/centering, bat or vim as `MANPAGER`, `MANWIDTH`, `NO_COLOR`, moves of tool files out of `$HOME` (the toolchains' and version managers' among them, which `20-path.sh` and `80-tools.sh` follow), `LC_COLLATE=C`, `PYTHONPYCACHEPREFIX`, `PYTHONDONTWRITEBYTECODE`, `GPG_TTY` |
+| `00-env.sh` | `EDITOR`, `PAGER`, `GIT_CEILING_DIRECTORIES` (`/home:/net`), `LESS` with the mouse wheel, `SYSTEMD_LESS` (ours plus systemd's `-SMK`), colored man pages, `GREP_COLORS`, `COLORTERM`, XDG variables, `RIPGREP_CONFIG_PATH`, `PYTHONSTARTUP`, locale fallback, `TIME_STYLE`, `BROWSER`. Off: less chop/centering, bat or vim as `MANPAGER`, `MANWIDTH`, `NO_COLOR`, moves of tool files out of `$HOME` (the toolchains' and version managers' among them, which `20-path.sh` and `80-tools.sh` follow), `LC_COLLATE=C`, `PYTHONPYCACHEPREFIX`, `PYTHONDONTWRITEBYTECODE`, `GPG_TTY` |
 | `05-fast.sh` | Fast mode for a slow server: the mode from `DOTS_FAST`, `~/.config/bash/fast` (`dots fast`) or off; auto from host signals in `/proc` and samples of shell start and prompt git time; the `FAST MODE ON` notice, `DOTS_FAST_PATHS` directories, `dots_fast_hook` and `dots_fast_dir_hook` for modules, a `dots` wrapper that applies `dots fast X` in this shell. [fast-mode.md](fast-mode.md) |
 | `10-options.sh` | `globstar extglob autocd cdspell dirspell checkjobs huponexit histappend cmdhist lithist checkwinsize`, history sizes and control, history written after every command, `stty -ixon`, `umask 022`. Off: `dotglob nocaseglob nullglob failglob nocasematch cdable_vars direxpand notify noclobber pipefail IGNOREEOF histexpand TMOUT histverify histreedit`, XDG history file, live history sharing, no mail check, `umask 077/027`, `ulimit` core and stack |
 | `12-history.sh` | `hgrep PATTERN [N]` searches the command log. Off: one history file per tmux pane (a split starts from its source pane, a new window or session takes over the pane closed last in a session of the same name, else a copy of the shared file), the log of every command with time, host, session and directory, a file a month, the last 12 kept |

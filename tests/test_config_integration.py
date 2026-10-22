@@ -1918,6 +1918,22 @@ def test_ls_under_dots_fast_paths_reads_the_directory_and_stats_nothing(linked):
     assert proc.stdout.split() == ["5", "0", "5", "restored"]
 
 
+@pytest.mark.parametrize("env, ceiling", [
+    ({}, "/home:/net"),
+    ({"DOTFILES_GIT_CEILING": "/data"}, "/data"),
+    ({"DOTFILES_GIT_CEILING": ""}, "unset"),
+    ({"GIT_CEILING_DIRECTORIES": "/mine", "DOTFILES_GIT_CEILING": "/data"}, "/mine"),
+])
+def test_git_stops_looking_for_a_repository_at_the_ceiling(linked, env, ceiling):
+    assert bash(linked, 'echo "${GIT_CEILING_DIRECTORIES-unset}"', env=env).stdout == ceiling + "\n"
+
+
+def test_git_ceiling_hides_a_repository_above_it(linked):
+    script = 'git init -q r; command mkdir -p r/a/b; cd r/a/b; git rev-parse --show-toplevel 2>&1'
+    assert bash(linked, script).stdout == f"{linked}/r\n"
+    assert bash(linked, script, env={"DOTFILES_GIT_CEILING": f"{linked}/r/a"}).stdout.startswith("fatal: ")
+
+
 def test_git_under_dots_fast_paths_looks_at_less_and_keeps_a_config_count_set_before(linked):
     script = ('show() { echo "${GIT_CONFIG_COUNT-unset} ${GIT_CONFIG_KEY_1-unset} $_GIT_UNTRACKED" '
               '"$(git config core.checkStat)" "$(git config core.trustctime)" "$(git config core.untrackedCache)" '

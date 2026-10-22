@@ -8,6 +8,9 @@
 #
 # Knobs (set in ~/.bashrc.before):
 #   DOTFILES_EDITOR   editor for $EDITOR/$VISUAL   default: vim, else vi
+#   DOTFILES_GIT_CEILING  where git stops looking   default: /home:/net
+#                         for a repository; empty:
+#                         nowhere
 
 # ── Editor ────────────────────────────────────────────────────────────────
 
@@ -245,3 +248,14 @@ export TIME_STYLE=long-iso
 
 # The web browser for xdg-open, python -m webbrowser and git web--browse.
 export BROWSER=firefox
+
+# git (and the prompt's git status) stops looking for a repository at these
+# directories: outside one, each git command would otherwise look for .git
+# in every directory up to /, and /home, /net (an automounter) or a hung
+# NFS parent can each cost a slow lookup. Repositories below them are
+# found as before. DOTFILES_GIT_CEILING picks other directories (a colon-
+# separated list), an empty one switches this off; a GIT_CEILING_DIRECTORIES
+# already set is kept.
+if [[ -z ${GIT_CEILING_DIRECTORIES-} && -n ${DOTFILES_GIT_CEILING-/home:/net} ]]; then
+    export GIT_CEILING_DIRECTORIES="${DOTFILES_GIT_CEILING-/home:/net}"
+fi
