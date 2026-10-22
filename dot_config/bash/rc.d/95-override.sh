@@ -71,7 +71,7 @@ _override_swap() {
             printf '%s=%q\n' "${_override_e%%=*}" "${_override_e#*=}"
         done
         printf 'BASH_ARGV0=%q\n' "$0"
-        echo 'unset -f _override_swap _dotfiles_disabled'
+        echo 'unset -f _override_swap'
         printf 'command rm -rf -- %q\n' "$_override_dir"
         trap -p
     } > "$_override_file" 2>/dev/null

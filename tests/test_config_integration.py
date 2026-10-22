@@ -140,6 +140,14 @@ def test_disabled_file_skips_named_modules(linked):
     assert "bashrc: skip functions" in proc.stderr and "bashrc: skip dirs" in proc.stderr
 
 
+def test_disabled_file_last_line_needs_no_newline_and_runs_no_program(linked):
+    (linked / ".config" / "bash" / "disabled").write_text(" func tions\t#x\ndirs")
+    proc = bash(linked, "type -t mkcd || echo no-mkcd; type -t mark || echo no-mark",
+                before="grep() { echo GREP >&2; }; sed() { echo SED >&2; }\n")
+    assert proc.stdout == "no-mkcd\nno-mark\n"
+    assert "GREP" not in proc.stderr and "SED" not in proc.stderr
+
+
 def test_off_suffix_module_is_linked_but_not_loaded(linked):
     assert (linked / ".config/bash/rc.d/61-prompt-simple.sh.off").is_symlink()
     proc = bash(linked, "type -t _ps_simple_git || echo absent")

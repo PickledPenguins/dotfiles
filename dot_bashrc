@@ -31,10 +31,14 @@ export DOTFILES_DIR
 
 # A module is skipped on this machine when its name (without number and
 # .sh) is a line of ~/.config/bash/disabled; # starts a comment there.
-_dotfiles_disabled() {
-    [[ -r "$DOTFILES_BASH_DIR/disabled" ]] || return 1
-    grep -qxF "$1" <(sed 's/#.*//; s/[[:space:]]//g' "$DOTFILES_BASH_DIR/disabled")
-}
+# Read once, with builtins: no process per module on a slow disk.
+declare -A _dotfiles_off=()
+if [[ -r "$DOTFILES_BASH_DIR/disabled" ]]; then
+    while IFS= read -r _name || [[ -n $_name ]]; do
+        _name="${_name%%#*}"; _name="${_name//[[:space:]]/}"
+        [[ -n $_name ]] && _dotfiles_off[$_name]=1
+    done < "$DOTFILES_BASH_DIR/disabled"
+fi
 
 # Every rc.d/*.sh in number order; .sh.off files are not matched. With
 # DOTFILES_DEBUG set, each one's name and load time goes to stderr. A
@@ -43,7 +47,7 @@ unset _dotfiles_started
 for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
     [[ -r "$_rc" ]] || continue
     _name="${_rc##*/}"; _name="${_name%.sh}"; _name="${_name#[0-9][0-9]-}"
-    if _dotfiles_disabled "$_name"; then
+    if [[ -n ${_dotfiles_off[$_name]-} ]]; then
         [[ -n "${DOTFILES_DEBUG-}" ]] && echo "bashrc: skip $_name" >&2
         continue
     fi
@@ -51,8 +55,7 @@ for _rc in "$DOTFILES_BASH_DIR"/rc.d/*.sh; do
     source "$_rc"
     [[ -n "${DOTFILES_DEBUG-}" ]] && printf 'bashrc: %-14s %5d ms\n' "$_name" "$(( (${EPOCHREALTIME/./} - _t0) / 1000 ))" >&2
 done
-unset _rc _name _t0
-unset -f _dotfiles_disabled
+unset _rc _name _t0 _dotfiles_off
 
 # Startup is over: from here path_prepend and path_append warn about name
 # clashes (20-path.sh).
