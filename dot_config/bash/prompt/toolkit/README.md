@@ -1,6 +1,6 @@
 # Bash Prompt Toolkit
 
-**Version:** 0.1.15
+**Version:** 0.1.16
 
 A composable bash `PS1` builder for terminal-centric HPC workflows — cached
 git state, PBS/Slurm awareness, and a segment/row/layout system for
@@ -174,6 +174,7 @@ cheap function call, not a blank space.
 | `_ps_seg_git_full_state` | `(+N ~N ?N ⚑N ⚠N)`, the nonzero ones; `(✓)` when all are zero | outside a git repo |
 | `_ps_seg_git_sha` | Short SHA of HEAD | before the first commit |
 | `_ps_seg_git_remote_sha` | Short SHA of the upstream branch | no upstream configured |
+| `_ps_seg_git_pending` | `…` while `git status` runs past `prompt_git_budget`: the git segments show the last state read | git is done, or no budget is set |
 | `_ps_seg_tmux` | `⧉ session:win.pane` | not inside tmux, or the server does not answer |
 | `_ps_seg_display` | `$DISPLAY` value | unset |
 | `_ps_seg_ssh` | `⇄ ssh` | local session |
@@ -249,6 +250,8 @@ collector never runs for that segment and it renders blank forever.
 
 ```bash
 prompt_cache_ttl 5             # seconds before forcing a git refresh (default 5)
+prompt_git_budget 1            # seconds a prompt waits for git status (default 0: until done)
+prompt_git_untracked normal    # status -unormal; no or all (default: git's own setting)
 ```
 
 **Row templates** use single quotes so `\$` survives as the literal
@@ -308,6 +311,8 @@ executable, and takes one optional positional argument.
 | `prompt_build` | none | Rebuild `PS1`. Called automatically via `PROMPT_COMMAND`; rarely called directly. |
 | `prompt_debug` | none | Print the layout, rows, segments with their needs, and each collector's TTL, whether a shown row needs it, and its age, to stderr. |
 | `prompt_cache_ttl` | `<seconds>` | Set the git-state staleness window (default 5). |
+| `prompt_git_budget` | `<seconds>` | Wait at most this long (a decimal) for `git status` per prompt; `0`, the default, waits until it is done. See [Where data collection happens](#where-data-collection-happens). Bash 4.1 or later; older bash always waits. Returns 1 on anything but a number. |
+| `prompt_git_untracked` | `<no\|normal\|all>` | List untracked files as `git status -uMODE` does; empty, the default, leaves it to `status.showUntrackedFiles`. Returns 1 on another mode. |
 
 
 ### Library functions (usable standalone)
@@ -325,6 +330,8 @@ executable, and takes one optional positional argument.
 | `git_info_refresh` | none | Populate the `GIT_*` globals. |
 | `git_info_cache_valid` | none | Whether the cached git state is still fresh. |
 | `git_info_cache_ttl` | `<seconds>` | Set the git TTL. |
+| `git_info_budget` | `<seconds>` | Set the git time budget (`prompt_git_budget`). |
+| `git_info_untracked` | `<no\|normal\|all>` | Set the untracked mode (`prompt_git_untracked`). |
 
 
 ### install.sh
@@ -358,8 +365,15 @@ under the user's own control.
   already-collected globals. See [Customization](#customization).
 - **Git state is per-process.** Each shell maintains its own cache; ten
   panes in the same repo each run their own `git status` on a cache miss.
-  Each shell also leaves one empty timestamp file, `bash-prompt-git.*`,
-  in `$XDG_RUNTIME_DIR` (else `$TMPDIR` or `/tmp`).
+  Each shell also leaves one empty timestamp file,
+  `bash-prompt-git.PID.*`, in `$XDG_RUNTIME_DIR` (else `$TMPDIR` or
+  `/tmp`), and with a budget one file of `git status` output beside it.
+  The first refresh in a later shell removes those of shells that are
+  gone, so none waits for a reboot.
+- **A status past the budget runs to its end.** A `cd` elsewhere stops
+  waiting for it but does not kill it. A work tree whose status went over
+  the budget lists no untracked files for the rest of the shell, so `?N`
+  stays away there.
 - **The git cache reads loose refs.** A packed branch ref reads as empty
   until the next commit writes it loose again; under git's reftable
   backend no ref is loose, and only the index and the TTL catch a change.
@@ -464,6 +478,16 @@ and one `git status --porcelain=v2 --branch --show-stash` for the
 branch, its commit, the upstream, ahead/behind, the stash and every
 count, parsed with builtins.
 
+With `prompt_git_budget SECS`, those two run in the background, writing
+to a file beside the timestamp file, and the prompt waits for them at
+most SECS (`read -t` on a process substitution that prints a line when
+they are done). Past that the prompt is drawn with the last state read,
+or none after a `cd` to another work tree, and `_ps_seg_git_pending`
+shows `…`. Each later prompt in the same directory takes the result
+once it is there, without waiting again. The work tree is remembered as
+slow, and its later refreshes run `git status -uno`: untracked files are
+what makes status slow on a big tree or a slow disk.
+
 ## Project structure
 
 | File | Purpose |
@@ -491,7 +515,7 @@ bats tests/                    # requires bats-core; apt install bats
 shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 ```
 
-**168 tests across 9 files**, all passing against v0.1.15:
+**175 tests across 9 files**, all passing against v0.1.16:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -499,7 +523,7 @@ shellcheck lib/*.sh prompt.sh segments/*.sh prompt_example.sh install.sh
 
 | `collectors.bats` | 27 | collector planning by layout, built-in segments under other names, declared needs, TTLs, run order, argument checks, collected data reaching the parent shell, `install.sh` copying `segments/` |
 | `colors.bats` | 12 | raw/prompt modes, `NO_COLOR`, tty detection, `PS_*` mirrors, helper name |
-| `git_info.bats` | 34 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone, two git processes per refresh (one outside a repository), packed and gone upstreams, git without `--show-stash`, `.git` under errexit; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
+| `git_info.bats` | 41 | counts, conflicts, detached HEAD, ahead/behind, stash, SHAs, index left alone, two git processes per refresh (one outside a repository), packed and gone upstreams, git without `--show-stash`, `.git` under errexit; time budget: pending, old values kept, result taken later without waiting, `-uno` for a slow tree, `cd` while pending, the pending segment, `-uMODE`, argument checks, files of gone shells removed; cache: no process on a hit, `cd` within a work tree, nested repo, worktree, checkout, commit, fetch, add, TTL with `git_info.sh` sourced on its own |
 | `nounset.bats` | 6 | `set -u` safety across all modules |
 | `prompt_box.bats` | 27 | open/closed boxes, single- and multi-row, `@fill`, layout idempotence, `--box` style parsing, rows left out when their segments print nothing, each `--sides` edge and its errors |
 | `prompt_segments.bats` | 33 | pwd and tmux sanitizing with no program on `PATH`, tmux silent outside tmux or with no server, venv name, pwd truncation, `~` at a path boundary, module counting, exit, conflict and full-state segments, disk usage and a hung `df`, PBS node count; registration, `_ps_expand` token scanning, `PS_DEBUG_SEGMENTS` |
@@ -552,6 +576,19 @@ One measurement gap remains open:
   [Future work](#future-work).
 
 ## Version history
+
+### v0.1.16
+
+**Added:** `prompt_git_budget SECS` (`git_info_budget`): the prompt waits
+at most SECS for git, then shows the last state read and the new
+`_ps_seg_git_pending` segment's `…` until the result is in. A work tree
+that went over the budget runs `git status -uno` from then on.
+`prompt_git_untracked MODE` (`git_info_untracked`) passes `-uMODE` to
+status. Both default to off.
+
+**Changed:** the timestamp file is named `bash-prompt-git.PID.XXXXXX`,
+and the first refresh in a shell removes the files of shells that are
+gone, so a host that is never rebooted does not collect them.
 
 ### v0.1.15
 

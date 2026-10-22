@@ -362,3 +362,120 @@ STUB
     [[ "$status" -eq 0 ]]
     [[ "$output" == "main $(git rev-parse --short=7 HEAD)" ]]
 }
+
+# A git that logs its arguments, and sleeps before status for the seconds in
+# $BATS_TEST_TMPDIR/slow while that file exists
+sleepy_git() {
+    local real; real=$(command -v git)
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    cat > "$BATS_TEST_TMPDIR/bin/git" <<STUB
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$BATS_TEST_TMPDIR/git.log"
+[[ "\$1" != status || ! -e "$BATS_TEST_TMPDIR/slow" ]] || sleep "\$(< "$BATS_TEST_TMPDIR/slow")"
+exec "$real" "\$@"
+STUB
+    chmod +x "$BATS_TEST_TMPDIR/bin/git"
+    PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+    : > "$BATS_TEST_TMPDIR/git.log"
+}
+
+@test "with a budget, a fast status reads as it does without one" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    echo y >> f.txt && touch new.txt
+    git_info_budget 5
+    git_info_refresh
+    [[ "$GIT_PENDING" == 0 && "$GIT_MODIFIED" == 1 && "$GIT_UNTRACKED" == 1 ]]
+    [[ "$GIT_SHA" == "$(git rev-parse --short=7 HEAD)" ]]
+}
+
+@test "over the budget: pending, old values stand, the result comes in later without waiting" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    sleepy_git
+    git_info_budget 0.2
+    git_info_refresh
+    [[ "$GIT_BRANCH" == main && "$GIT_MODIFIED" == 0 ]]
+    echo y >> f.txt
+    echo 1 > "$BATS_TEST_TMPDIR/slow"
+    git_info_refresh
+    [[ "$GIT_PENDING" == 1 && "$GIT_BRANCH" == main && "$GIT_MODIFIED" == 0 ]]
+    ! git_info_cache_valid
+    local t0=$SECONDS
+    git_info_refresh                       # still running: returns at once
+    [[ "$GIT_PENDING" == 1 ]] && (( SECONDS - t0 < 1 ))
+    sleep 1.2
+    git_info_refresh
+    [[ "$GIT_PENDING" == 0 && "$GIT_MODIFIED" == 1 ]]
+}
+
+@test "a work tree that went over the budget is listed with -uno from then on" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    touch new.txt
+    sleepy_git
+    git_info_budget 0.2
+    echo 0.6 > "$BATS_TEST_TMPDIR/slow"
+    git_info_refresh
+    [[ "$GIT_PENDING" == 1 ]]
+    sleep 0.8
+    git_info_refresh
+    [[ "$GIT_PENDING" == 0 ]]
+    command rm "$BATS_TEST_TMPDIR/slow"
+    : > "$BATS_TEST_TMPDIR/git.log"
+    git_info_refresh
+    grep -q -- '^status .*-uno' "$BATS_TEST_TMPDIR/git.log"
+    [[ "$GIT_UNTRACKED" == 0 ]]
+}
+
+@test "a cd to another work tree while pending shows nothing, then that tree" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    local other="$BATS_TEST_TMPDIR/other"
+    git init -q -b side "$other"
+    sleepy_git
+    git_info_budget 0.2
+    git_info_refresh
+    echo 0.5 > "$BATS_TEST_TMPDIR/slow"
+    git_info_refresh
+    [[ "$GIT_PENDING" == 1 && "$GIT_BRANCH" == main ]]
+    command rm "$BATS_TEST_TMPDIR/slow"
+    cd "$other"
+    git_info_refresh
+    [[ "$GIT_PENDING" == 0 && "$GIT_BRANCH" == side ]]
+    echo 0.5 > "$BATS_TEST_TMPDIR/slow"
+    cd "$REPO_DIR"
+    git_info_refresh
+    [[ "$GIT_PENDING" == 1 && "$GIT_IN_REPO" == 0 && -z "$GIT_BRANCH" ]]
+}
+
+@test "the pending segment marks a status still running" {
+    GIT_PENDING=1
+    [[ "$(strip_ansi "$(_ps_seg_git_pending)")" == "…" ]]
+    GIT_PENDING=0
+    [[ -z "$(_ps_seg_git_pending)" ]]
+}
+
+@test "git_info_untracked passes -uMODE to status, and refuses another mode" {
+    echo x > f.txt && git add f.txt && git commit -qm init
+    logging_git
+    git_info_untracked normal
+    git_info_refresh
+    grep -q -- '^status .*-unormal' "$BATS_TEST_TMPDIR/git.log"
+    run git_info_untracked some
+    [[ "$status" == 1 && "$output" == "git_info_untracked: MODE must be no, normal or all, not some" ]]
+    run git_info_budget 1s
+    [[ "$status" == 1 && "$output" == "git_info_budget: SECS must be a number, not 1s" ]]
+}
+
+@test "the first refresh removes files of shells that are gone, and keeps live ones" {
+    local tmp="$BATS_TEST_TMPDIR/rt"
+    mkdir "$tmp"
+    export XDG_RUNTIME_DIR="$tmp"
+    sleep 30 & local live=$!
+    ( exit 0 ) & local dead=$!; wait "$dead"
+    touch "$tmp/bash-prompt-git.$dead.abc123" "$tmp/bash-prompt-git.$dead.abc123.0" \
+          "$tmp/bash-prompt-git.$live.def456" "$tmp/other"
+    _GIT_CACHE_STAMP_PID=""
+    git_info_refresh
+    kill "$live"
+    [[ ! -e "$tmp/bash-prompt-git.$dead.abc123" && ! -e "$tmp/bash-prompt-git.$dead.abc123.0" ]]
+    [[ -e "$tmp/bash-prompt-git.$live.def456" && -e "$tmp/other" ]]
+    [[ "$_GIT_CACHE_STAMP" == "$tmp/bash-prompt-git.$BASHPID."* ]]
+}

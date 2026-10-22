@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.15
+# Toolkit version: 0.1.16
 # ════════════════════════════════════════════════════════════════════════════
 # lib/git_info.sh — Cached git repository state for bash scripts
 #
@@ -30,11 +30,25 @@
 #   GIT_UNTRACKED  — untracked files
 #   GIT_CONFLICTS  — unmerged/conflicted paths (mid-merge or mid-rebase)
 #   GIT_STASH      — stash entries
-#
+#   GIT_PENDING    — 1 while a status that went over the budget still runs:
+#                    the values above are the last ones read, or empty
+#                    after a cd to another work tree
 # Public functions:
 #   git_info_refresh        — collect all git data
 #   git_info_cache_valid    — returns 0 if cached data is still fresh
 #   git_info_cache_ttl <N>  — set the worktree-staleness TTL (default 5 s)
+#   git_info_budget <SECS>  — wait at most SECS for git (default 0: no limit)
+#   git_info_untracked <M>  — status -uM: no, normal or all (default: git's
+#                             own status.showUntrackedFiles)
+#
+# Time budget (bash 4.1+; older bash always waits): with a budget, git runs
+# in the background and the refresh waits at most SECS for it. Past that
+# the refresh returns with GIT_PENDING=1, and each later refresh in the
+# same directory picks the result up once it is there, without waiting.
+# A cd elsewhere drops the pending status: it runs to its end and its
+# output is thrown away. A work tree whose status went over the budget
+# lists no untracked files (-uno) for the rest of the shell, so
+# GIT_UNTRACKED stays 0 there.
 #
 # Cache invalidation triggers:
 #   • cd to a directory in another repo   (a `cd` within the same work tree
@@ -50,8 +64,11 @@
 # loose refs at all — there, only the index and the TTL catch a change.
 # The index is compared against a timestamp file this shell writes at each
 # refresh, created once per shell with mktemp in $XDG_RUNTIME_DIR (else
-# $TMPDIR or /tmp) and left there when the shell exits. Without one the
-# check always fails and every prompt refreshes.
+# $TMPDIR or /tmp), named bash-prompt-git.PID.XXXXXX. A background status
+# writes next to it, to the same name plus a number. The first refresh in a
+# shell removes the files of shells that are gone, so none depends on a
+# reboot to go. Without a timestamp file the index check always fails,
+# every prompt refreshes, and git runs without a budget.
 #
 # Non-repo directories are cached by PWD alone: once confirmed as non-repo,
 # the git rev-parse is skipped on every subsequent prompt in that directory.
@@ -80,6 +97,7 @@ declare -g    GIT_SHA=""      GIT_REMOTE_SHA=""
 declare -gi GIT_AHEAD=0     GIT_BEHIND=0
 declare -gi GIT_STAGED=0    GIT_MODIFIED=0
 declare -gi GIT_UNTRACKED=0 GIT_STASH=0     GIT_CONFLICTS=0
+declare -gi GIT_PENDING=0
 
 # ── Cache keys (private) ──────────────────────────────────────────────────
 declare -g    _GIT_CACHE_DIR=""        # $PWD when cache was last populated
@@ -92,9 +110,27 @@ declare -g    _GIT_CACHE_STAMP=""      # timestamp file written at each refresh
 declare -g    _GIT_CACHE_STAMP_PID=""  # $BASHPID that created it
 declare -g    _GIT_REFS=""             # _git_info_refs' result
 declare -gi _GIT_CACHE_TTL=5       # max seconds between forced full refreshes
+declare -g    _GIT_BUDGET=0            # seconds to wait for git; 0 waits for ever
+declare -g    _GIT_UNTRACKED=""        # status -u mode; "" leaves it to git
+declare -gA   _GIT_SLOW=()             # work tree tops whose status went over budget
 
 # Adjust the worktree-staleness window.
 git_info_cache_ttl() { _GIT_CACHE_TTL="${1:-5}"; }
+
+# Wait at most SECS (a decimal, 0 for no limit) for git at each refresh.
+# Bash before 4.1 has no {fd} redirection, so there it always waits.
+git_info_budget() {
+    [[ "${1-}" =~ ^[0-9]*\.?[0-9]+$ ]] || { printf 'git_info_budget: SECS must be a number, not %q\n' "${1-}" >&2; return 1; }
+    _GIT_BUDGET="$1"
+    (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 1) )) || _GIT_BUDGET=0
+}
+
+# List untracked files as status -uMODE does (no, normal, all), or as git
+# is configured when MODE is empty.
+git_info_untracked() {
+    [[ "${1-}" =~ ^(no|normal|all|)$ ]] || { printf 'git_info_untracked: MODE must be no, normal or all, not %q\n' "$1" >&2; return 1; }
+    _GIT_UNTRACKED="${1-}"
+}
 
 # Set _GIT_REFS to the contents of HEAD, the branch's ref and the upstream's
 # ref, joined: a checkout changes the first, a commit the second, a fetch
@@ -109,20 +145,25 @@ _git_info_refs() {
 
 # ── Cache validity ────────────────────────────────────────────────────────
 
+# Returns 0 when $PWD is the cached directory, or in the cached work tree:
+# the nearest .git above it is the cached top's. -ef, so a symlinked path
+# to the same tree counts.
+_git_info_same_tree() {
+    [[ "$PWD" != "$_GIT_CACHE_DIR" ]] || return 0
+    (( GIT_IN_REPO )) && [[ -n "$_GIT_CACHE_TOP" ]] || return 1
+    local d="$PWD"
+    until [[ -e "$d/.git" ]]; do
+        [[ -n "$d" ]] || return 1
+        d="${d%/*}"
+    done
+    [[ "${d:-/}" -ef "$_GIT_CACHE_TOP" ]]
+}
+
 # Returns 0 (cache is fresh) or 1 (must call git_info_refresh).
 # Starts no process: builtin reads, file tests and string comparisons.
 git_info_cache_valid() {
-    # Another directory: still fresh if the nearest .git above it is the
-    # cached work tree's. -ef, so a symlinked path to the same tree counts.
-    if [[ "$PWD" != "$_GIT_CACHE_DIR" ]]; then
-        (( GIT_IN_REPO )) && [[ -n "$_GIT_CACHE_TOP" ]] || return 1
-        local d="$PWD"
-        until [[ -e "$d/.git" ]]; do
-            [[ -n "$d" ]] || return 1
-            d="${d%/*}"
-        done
-        [[ "${d:-/}" -ef "$_GIT_CACHE_TOP" ]] || return 1
-    fi
+    (( ! GIT_PENDING )) || return 1
+    _git_info_same_tree || return 1
 
     # Non-repo: valid as long as the directory hasn't changed
     (( GIT_IN_REPO )) || return 0
@@ -163,12 +204,18 @@ _git_info_collect() {
     dirs=$(git rev-parse --git-dir --git-common-dir --show-toplevel 2>/dev/null) || true
     [[ -n "$dirs" ]] || return 0
     printf '%s\n--\n' "$dirs"
-    local -a args=(--porcelain=v2 --branch)
+    local -a args=(--porcelain=v2 --branch) top=()
+    mapfile -t top <<< "$dirs"
+    if [[ -n "${top[2]-}" && -n "${_GIT_SLOW[${top[2]}]-}" ]]; then
+        args+=(-uno)
+    elif [[ -n "$_GIT_UNTRACKED" ]]; then
+        args+=("-u$_GIT_UNTRACKED")
+    fi
     (( _GIT_NO_SHOW_STASH )) || args+=(--show-stash)
     GIT_OPTIONAL_LOCKS=0 git status "${args[@]}" 2>/dev/null && return 0
     # git before 2.35 rejects --show-stash: once more without it, and tell
     # the parser so later refreshes leave it out.
-    if (( ! _GIT_NO_SHOW_STASH )) && GIT_OPTIONAL_LOCKS=0 git status --porcelain=v2 --branch 2>/dev/null; then
+    if (( ! _GIT_NO_SHOW_STASH )) && GIT_OPTIONAL_LOCKS=0 git status "${args[@]:0:${#args[@]}-1}" 2>/dev/null; then
         printf '# no-show-stash\n'
         return 0
     fi
@@ -261,29 +308,79 @@ _git_info_parse() {
     return 0
 }
 
-# Collect all git state in one pass. Call via:
-#   git_info_cache_valid || git_info_refresh
-git_info_refresh() {
+# The background status, when one is pending (private)
+declare -g    _GIT_JOB_FD=""           # read end: a line, or EOF, once it is done
+declare -g    _GIT_JOB_OUT=""          # file it writes _git_info_collect's output to
+declare -g    _GIT_JOB_DIR=""          # $PWD it started in
+declare -gi _GIT_JOB_N=0             # out file number: an abandoned job keeps writing to its own
+declare -ga   _GIT_JOB_GONE=()         # out files of abandoned jobs, removed at the next result
+
+# Create this shell's timestamp file, once per $BASHPID (a subshell gets
+# its own), and remove the files of shells that are gone. kill -0 rather
+# than /proc, which not every system has. A pid now taken by another of
+# this user's processes keeps its files until that one goes too.
+_git_info_stamp_init() {
+    local tmp="${XDG_RUNTIME_DIR-}" f pid
+    [[ -d "$tmp" && -w "$tmp" ]] || tmp="${TMPDIR:-/tmp}"
+    local -a gone=()
+    for f in "$tmp"/bash-prompt-git.*; do
+        pid="${f#"$tmp"/bash-prompt-git.}"; pid="${pid%%.*}"
+        [[ "$pid" =~ ^[0-9]+$ ]] && ! kill -0 "$pid" 2>/dev/null && gone+=("$f")
+    done
+    (( ${#gone[@]} == 0 )) || command rm -f -- "${gone[@]}"
+    _GIT_CACHE_STAMP_PID="$BASHPID"
+    _GIT_CACHE_STAMP=$(mktemp "$tmp/bash-prompt-git.$_GIT_CACHE_STAMP_PID.XXXXXX" 2>/dev/null) || _GIT_CACHE_STAMP=""
+    _GIT_JOB_FD=""; GIT_PENDING=0
+}
+
+# Start _git_info_collect in the background, writing to its own file. Its
+# process substitution prints a line when it is done.
+_git_info_job_start() {
+    _GIT_JOB_OUT="$_GIT_CACHE_STAMP.$_GIT_JOB_N"
+    _GIT_JOB_DIR="$PWD"
+    exec {_GIT_JOB_FD}< <(_git_info_collect > "$_GIT_JOB_OUT" 2>/dev/null; echo)
+}
+
+# Wait at most SECS for the job. Returns 0 once it is done, its output in
+# _GIT_LINES and its descriptor closed; 1 while it still runs. read -t 0
+# only looks: 0 once a line or EOF is there, 1 (not over 128) before.
+_git_info_job_wait() {
+    local _
+    if [[ "$1" == 0 ]]; then
+        read -t 0 -u "$_GIT_JOB_FD" _ || return 1
+    else
+        read -r -t "$1" -u "$_GIT_JOB_FD" _ || { (( $? <= 128 )) || return 1; }   # timed out; EOF means done
+    fi
+    exec {_GIT_JOB_FD}<&-
+    _GIT_JOB_FD=""
+    mapfile -t _GIT_LINES < "$_GIT_JOB_OUT"
+    if (( ${#_GIT_JOB_GONE[@]} )); then
+        command rm -f -- "${_GIT_JOB_GONE[@]}"
+        _GIT_JOB_GONE=()
+    fi
+    return 0
+}
+
+# Stop waiting for the job: close its descriptor and give the next one
+# another file, since this one may still write to its own.
+_git_info_job_drop() {
+    exec {_GIT_JOB_FD}<&-
+    _GIT_JOB_FD=""
+    _GIT_JOB_GONE+=("$_GIT_JOB_OUT")
+    _GIT_JOB_N+=1
+}
+
+_git_info_reset() {
     GIT_IN_REPO=0; GIT_BRANCH=""; GIT_REMOTE=""; GIT_SHA=""; GIT_REMOTE_SHA=""
     GIT_AHEAD=0;   GIT_BEHIND=0
     GIT_STAGED=0;  GIT_MODIFIED=0; GIT_UNTRACKED=0; GIT_STASH=0; GIT_CONFLICTS=0
     _GIT_CACHE_TOP=""; _GIT_CACHE_HEAD_REF=""; _GIT_CACHE_UP_REF=""
+}
 
-    # Always record current dir so non-repo directories are cached too
-    _GIT_CACHE_DIR="$PWD"
-
-    # The time before reading the state it describes, so an index written
-    # while git runs shows up as stale next time. One timestamp file per
-    # shell: a subshell gets its own.
-    if [[ "$_GIT_CACHE_STAMP_PID" != "$BASHPID" ]]; then
-        local tmp="${XDG_RUNTIME_DIR-}"
-        [[ -d "$tmp" && -w "$tmp" ]] || tmp="${TMPDIR:-/tmp}"
-        _GIT_CACHE_STAMP=$(mktemp "$tmp/bash-prompt-git.XXXXXX" 2>/dev/null) || _GIT_CACHE_STAMP=""
-        _GIT_CACHE_STAMP_PID="$BASHPID"
-    fi
-    [[ -z "$_GIT_CACHE_STAMP" ]] || { echo > "$_GIT_CACHE_STAMP"; } 2>/dev/null || true
-
-    mapfile -t _GIT_LINES < <(_git_info_collect)
+# Fill the globals from _GIT_LINES and record what the cache checks
+_git_info_finish() {
+    GIT_PENDING=0
+    _git_info_reset
     _git_info_parse || return 1
 
     # The refs as they are now. A commit made while status ran reads as
@@ -291,4 +388,54 @@ git_info_refresh() {
     _git_info_refs
     _GIT_CACHE_REFS="$_GIT_REFS"
     cache_touch git_info
+}
+
+# Collect all git state in one pass. Call via:
+#   git_info_cache_valid || git_info_refresh
+# Returns 1 outside a repository; 0 in one, and while a status is pending.
+git_info_refresh() {
+    [[ "$_GIT_CACHE_STAMP_PID" == "$BASHPID" ]] || _git_info_stamp_init
+
+    # A status still running from an earlier refresh: its result once it is
+    # there, without waiting, as long as this is still where it started.
+    if (( GIT_PENDING )); then
+        if [[ "$PWD" == "$_GIT_JOB_DIR" ]]; then
+            _git_info_job_wait 0 || return 0
+            _git_info_finish
+            return
+        fi
+        _git_info_job_drop
+    fi
+
+    local same=0
+    _git_info_same_tree && same=1
+
+    # Always record current dir so non-repo directories are cached too
+    _GIT_CACHE_DIR="$PWD"
+
+    # The time before reading the state it describes, so an index written
+    # while git runs shows up as stale next time.
+    [[ -z "$_GIT_CACHE_STAMP" ]] || { echo > "$_GIT_CACHE_STAMP"; } 2>/dev/null || true
+
+    if [[ "$_GIT_BUDGET" == 0 || -z "$_GIT_CACHE_STAMP" ]]; then
+        mapfile -t _GIT_LINES < <(_git_info_collect)
+        _git_info_finish
+        return
+    fi
+
+    _git_info_job_start
+    if _git_info_job_wait "$_GIT_BUDGET"; then
+        _git_info_finish
+        return
+    fi
+
+    # Over budget. The work tree, when rev-parse has printed it, lists no
+    # untracked files from now on. The old values stand while this is the
+    # same work tree. In another, nothing shows until the status is in.
+    GIT_PENDING=1
+    local -a head=()
+    { mapfile -t -n 4 head < "$_GIT_JOB_OUT"; } 2>/dev/null || true
+    [[ "${head[3]-}" != -- || -z "${head[2]-}" ]] || _GIT_SLOW[${head[2]}]=1
+    (( same )) || _git_info_reset
+    return 0
 }

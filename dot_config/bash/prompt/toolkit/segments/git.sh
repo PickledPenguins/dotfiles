@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Toolkit version: 0.1.15
+# Toolkit version: 0.1.16
 # ════════════════════════════════════════════════════════════════════════════
 # segments/git.sh — branch, upstream, ahead/behind, working tree, stash,
 # conflicts
@@ -11,10 +11,12 @@
 #
 # Segments: _ps_seg_git_branch  _ps_seg_git_remote  _ps_seg_git_ahead_behind
 #           _ps_seg_git_status  _ps_seg_git_stash   _ps_seg_git_conflicts
-#           _ps_seg_git_sha     _ps_seg_git_remote_sha
+#           _ps_seg_git_sha     _ps_seg_git_remote_sha  _ps_seg_git_pending
 # Collector: git (every prompt; git_info.sh's own ref+index+TTL check
 #            decides whether git actually runs)
 # Settings:  prompt_cache_ttl <seconds>
+#            prompt_git_budget <seconds>
+#            prompt_git_untracked <no|normal|all>
 # ════════════════════════════════════════════════════════════════════════════
 
 source "${_PS_ROOT:?segments/git.sh is sourced by prompt.sh}/lib/git_info.sh"
@@ -25,6 +27,20 @@ prompt_collector git 0 _ps_collect_git
 
 # Seconds git state is reused before a forced refresh (default 5).
 prompt_cache_ttl() { git_info_cache_ttl "$@"; }
+
+# Seconds a prompt waits for git status (default 0: until it is done). Past
+# that the prompt shows the last state read and _ps_seg_git_pending's mark.
+prompt_git_budget() { git_info_budget "$@"; }
+
+# Untracked files as status -uMODE lists them (default: git's own setting)
+prompt_git_untracked() { git_info_untracked "$@"; }
+
+# A mark while git status is still running past the budget: the git
+# segments show the last state read.
+_ps_seg_git_pending() {
+    (( GIT_PENDING )) || return
+    printf '%s…%s' "$C_DIM" "$C_R"
+}
 
 # Current branch name, or short SHA when HEAD is detached.
 _ps_seg_git_branch() {
@@ -114,3 +130,4 @@ prompt_segment_needs _ps_seg_git_conflicts    git
 prompt_segment_needs _ps_seg_git_full_state   git
 prompt_segment_needs _ps_seg_git_sha          git
 prompt_segment_needs _ps_seg_git_remote_sha   git
+prompt_segment_needs _ps_seg_git_pending      git
