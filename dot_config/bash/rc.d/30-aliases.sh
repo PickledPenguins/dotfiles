@@ -23,7 +23,13 @@
 if ls --color=auto >/dev/null 2>&1; then
     alias ls='ls --color=auto --group-directories-first'
     if command -v dircolors >/dev/null; then
-        if [[ -r ~/.dircolors ]]; then eval "$(dircolors -b ~/.dircolors)"; else eval "$(dircolors -b)"; fi
+        _dircolors_key=${TERM-}${COLORTERM:+.$COLORTERM}
+        if [[ -r ~/.dircolors ]]; then
+            dots_eval_cached -f ~/.dircolors -k "$_dircolors_key" dircolors -b ~/.dircolors && source "$REPLY"
+        else
+            dots_eval_cached -k "$_dircolors_key" dircolors -b && source "$REPLY"
+        fi
+        unset _dircolors_key
     fi
 else
     export CLICOLOR=1

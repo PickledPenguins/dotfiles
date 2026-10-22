@@ -1,5 +1,6 @@
 # 00-env.sh: environment variables other programs read: editor, pager,
-# colors, XDG directories, locale. PATH is 20-path.sh.
+# colors, XDG directories, locale. PATH is 20-path.sh. Also
+# dots_eval_cached, for the modules that eval what a program prints.
 #
 # Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
@@ -259,3 +260,54 @@ export BROWSER=firefox
 if [[ -z ${GIT_CEILING_DIRECTORIES-} && -n ${DOTFILES_GIT_CEILING-/home:/net} ]]; then
     export GIT_CEILING_DIRECTORIES="${DOTFILES_GIT_CEILING-/home:/net}"
 fi
+
+# ── Cached set-up output ──────────────────────────────────────────────────
+
+# dots_eval_cached [-f FILE]... [-k KEY] CMD [ARG...]: REPLY names a file
+# holding what CMD ARG... prints, for the caller to source in place of
+# eval "$(CMD ARG...)": `dots_eval_cached fzf --bash && source "$REPLY"`.
+# The output is kept from the last run while CMD's program and each FILE
+# keep the modification time they had then, and the arguments are the
+# same: a start then runs no program at all, which on a loaded server or
+# with the program on NFS can cost tens of ms each. KEY keeps one copy per
+# value (a TERM). Each host has its own copies, under
+# ~/.cache/bash/eval.HOST. Fails, and keeps nothing, when CMD does.
+dots_eval_cached() {
+    local deps=() key=""
+    while :; do
+        case $1 in
+            -f) deps+=("$2"); shift 2 ;;
+            -k) key=.${2//\//_}; shift 2 ;;
+            *) break ;;
+        esac
+    done
+    local bin=$1
+    if [[ $bin != */* ]]; then
+        hash "$bin" 2>/dev/null || return 1
+        bin=${BASH_CMDS[$bin]}
+    fi
+    deps=("$bin" "${deps[@]}")
+    local dir="${XDG_CACHE_HOME:-$HOME/.cache}/bash/eval.${HOSTNAME%%.*}"
+    local file="$dir/${1##*/}$key" line i fresh=1
+    REPLY=$file
+    # Each FILE's time is kept as that of an empty stamp file beside it
+    # (touch -r), so checking needs no program: the times are equal when
+    # neither is newer.
+    if [[ -r $file ]] && IFS= read -r line < "$file" && [[ $line == "# $*" ]]; then
+        for i in "${!deps[@]}"; do
+            [[ -e $file.$i && ! ${deps[i]} -nt $file.$i && ! ${deps[i]} -ot $file.$i ]] || fresh=0
+        done
+        (( fresh )) && return 0
+    fi
+    [[ -d $dir ]] || ( umask 077 && command mkdir -p -- "$dir" ) || return 1
+    command rm -f -- "$file".[0-9]*
+    local out status
+    out=$("$@")
+    status=$?
+    printf '# %s\n%s\n' "$*" "$out" >| "$file"
+    (( status == 0 )) || return "$status"
+    for i in "${!deps[@]}"; do
+        : >| "$file.$i"
+        command touch -r "${deps[i]}" -- "$file.$i"
+    done
+}

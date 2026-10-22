@@ -40,6 +40,7 @@ start again.
 | git looking for a repository | stops at `/home` and `/net` (`DOTFILES_GIT_CEILING`, `00-env.sh`): no lookup in an automounter or a slow NFS parent | the same |
 | every git command (*directory*) | your git config | also `core.untrackedCache=true`, `core.trustctime=false`, `core.checkStat=minimal` through `GIT_CONFIG_COUNT` (git 2.31+): fewer stats and file reads per status; a change of the same size within the same second can go unseen |
 | history file | `~/.local/state/bash/history`, one for every host | `history.HOST` next to it, this host's own (a copy of the shared one when first used), so the append at each prompt never mixes with another host's on an NFS home. Taken at shell start |
+| shell start | the set-up dircolors, lesspipe, `fzf --bash`, `zoxide init` and `direnv hook` print is kept in `~/.cache/bash/eval.HOST` and read from there while each program (and `~/.dircolors`) keeps its modification time: a start runs none of them | the same |
 | vim swap files | `~/.vim/tmp/swap`, synced at each write | tmpfs (`$XDG_RUNTIME_DIR/vim-swap`, else `/dev/shm/vim-swap-USER`), never synced; ones older than 14 days go, looked for once a day. Taken from `DOTS_FAST_ACTIVE` when vim starts. Recovery works after vim dies, not after the machine does |
 | Tab list (*directory*) | colors and `/ * @` marks (`colored-stats`, `visible-stats` in `~/.inputrc`) | neither: Tab stats nothing; the `/` after a completed directory name stays |
 | after a cd (*directory*) | nothing | the first prompt there starts `ls -f` on it in the background, so the ls or Tab that follows reads the kernel's cache; one at a time, so a hung mount holds one process (`DOTS_FAST_PREFETCH`: `readdir`, `stat` each entry too, `off`) |
@@ -157,6 +158,9 @@ A feature that depends on the directory registers with
 `DOTS_FAST_PATHS`, 0 otherwise, now and whenever a mode change or a `cd`
 changes that. `dots_fast_cd_hook` is called at the first prompt in each
 new directory, with the same 1 or 0.
+
+A module that evals what a program prints sources a kept copy instead:
+`dots_eval_cached fzf --bash && source "$REPLY"` (`00-env.sh`).
 
 Modules after `05-fast.sh` read `DOTS_FAST_ACTIVE` or register a hook;
 `layout.sh` uses one for the git budget.

@@ -69,7 +69,7 @@ command -v rbenv >/dev/null && eval "$(rbenv init - bash)"
 # ── Paging and viewing ────────────────────────────────────────────────────
 
 # lesspipe: less opens archives, PDFs, images and packages as text.
-command -v lesspipe >/dev/null && eval "$(SHELL=/bin/sh lesspipe)"
+command -v lesspipe >/dev/null && SHELL=/bin/sh dots_eval_cached lesspipe && source "$REPLY"
 
 # bat: cat with syntax colors. BAT_STYLE=plain leaves out line numbers and
 # the header. Debian installs it as batcat; linuxbin's bin/bat runs it
@@ -114,8 +114,8 @@ fi
 # program on PATH: fd (linuxbin's bin/fd runs fdfind), or fdfind, the name
 # Debian installs.
 if command -v fzf >/dev/null; then
-    if fzf --bash >/dev/null 2>&1; then
-        eval "$(fzf --bash)"                            # fzf >= 0.48
+    if dots_eval_cached fzf --bash 2>/dev/null; then
+        source "$REPLY"                                 # fzf >= 0.48
     else
         for _f in /usr/share/doc/fzf/examples/key-bindings.bash /usr/share/fzf/key-bindings.bash \
                   /usr/share/doc/fzf/examples/completion.bash   /usr/share/fzf/completion.bash; do
@@ -149,7 +149,7 @@ fi
 
 # zoxide: `z NAME` jumps to the most-used directory matching NAME; `zi`
 # picks one with fzf.
-command -v zoxide >/dev/null && eval "$(zoxide init bash)"
+command -v zoxide >/dev/null && dots_eval_cached zoxide init bash && source "$REPLY"
 
 # zoxide takes over cd itself: `cd proj` jumps to ~/work/proj from anywhere.
 # Instead of the line above; cd without a match behaves as usual. Loads
@@ -161,7 +161,7 @@ command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 
 # direnv: a directory's .envrc sets its environment on entry and undoes it
 # on leaving (after `direnv allow`).
-command -v direnv >/dev/null && eval "$(direnv hook bash)"
+command -v direnv >/dev/null && dots_eval_cached direnv hook bash && source "$REPLY"
 
 # ── Prompt and history replacements ───────────────────────────────────────
 

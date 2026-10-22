@@ -1995,6 +1995,48 @@ def test_a_cd_under_dots_fast_paths_reads_the_new_directory_in_the_background(li
     assert (log.read_text().splitlines() if log.exists() else []) == [e.format(h=linked) for e in expected]
 
 
+def test_set_up_output_is_kept_while_the_program_keeps_its_time(linked):
+    # fzf here records each run. A start with the copy runs nothing; a program of
+    # another time (an upgrade) runs again; a failing one is never kept
+    (linked / "stub").mkdir()
+    fzf = linked / "stub/fzf"
+    fzf.write_text('#!/bin/sh\necho run >>"$HOME/fzf.log"\necho fzf_loaded=1\n')
+    fzf.chmod(0o755)
+    env = {"PATH": f"{linked}/stub:{RUNNER_PATH}"}
+    log = linked / "fzf.log"
+    def start():
+        assert bash(linked, 'echo "${fzf_loaded-no}"', env=env).stdout == "1\n"
+        return len(log.read_text().splitlines())
+    assert [start(), start()] == [1, 1]
+    os.utime(fzf, (1_000_000_000, 1_000_000_000))
+    assert [start(), start()] == [2, 2]
+    fzf.write_text('#!/bin/sh\necho run >>"$HOME/fzf.log"\necho fzf_loaded=1\nexit 1\n')
+    proc = bash(linked, 'echo "${fzf_loaded-no}"', env=env)
+    assert (proc.stdout, proc.stderr, len(log.read_text().splitlines())) == ("no\n", "", 3)
+    bash(linked, "true", env=env)
+    assert len(log.read_text().splitlines()) == 4
+    # Other arguments that fail, with the program as it was: still nothing kept
+    script = ('dots_eval_cached -k t sh -c "echo ok" && cat "$REPLY"; '
+              'for _ in 1 2; do dots_eval_cached -k t sh -c "exit 3"; echo "rc $?"; done')
+    assert bash(linked, script).stdout == "# sh -c echo ok\nok\nrc 3\nrc 3\n"
+
+
+@needs("dircolors")
+def test_dircolors_output_is_kept_per_terminal_and_follows_the_dircolors_file(linked):
+    dircolors = linked / ".dircolors"
+    dircolors.unlink()
+    dircolors.write_text("TERM a*\nEXEC 01;32\n")
+    def colors(term):
+        return bash(linked, 'echo "$LS_COLORS"', env={"TERM": term}).stdout
+    assert [colors("abc"), colors("xyz"), colors("abc")] == ["ex=01;32:\n", "\n", "ex=01;32:\n"]
+    dircolors.write_text("TERM a*\nEXEC 01;31\n")
+    os.utime(dircolors, (2_000_000_000, 2_000_000_000))
+    assert colors("abc") == "ex=01;31:\n"
+    # Other arguments: run again, though the program is the same
+    dircolors.unlink()
+    assert "di=" in colors("abc")
+
+
 @needs("dircolors")
 def test_ls_fast_colors_links_as_links_when_the_colors_follow_them(linked):
     dircolors = linked / ".dircolors"
