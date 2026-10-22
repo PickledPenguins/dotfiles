@@ -1,6 +1,7 @@
 " 40-files.vim: swap, backup and undo files, and what happens on read
 " and write. All three kinds live under ~/.vim/tmp/, so a working tree never
-" collects .swp or ~ files.
+" collects .swp or ~ files. In bash's fast mode (DOTS_FAST_ACTIVE=1 from
+" the shell that started vim) swap files go to tmpfs instead, unsynced.
 "
 " Each setting has its description in the comment above it. A setting with
 " " directly in front of it ("set cursorcolumn) is off: delete that " to turn
@@ -19,6 +20,48 @@ endfor
 " Swap files (crash recovery, the "file is open elsewhere" warning) under
 " ~/.vim/tmp/swap; the trailing // names them after the full path.
 set directory=~/.vim/tmp/swap//
+
+" In bash's fast mode, swap files in tmpfs ($XDG_RUNTIME_DIR/vim-swap,
+" else /dev/shm/vim-swap-USER, made mode 700) and never synced to disk:
+" typing does not wait on a slow home disk. Recovery still works after vim
+" or the terminal dies, not after the machine goes down; the "file is open
+" elsewhere" warning only sees other vims started in fast mode. Swap files
+" there older than 14 days go, looked for once a day (a stamp file), so a
+" server that is never rebooted does not keep them.
+function! s:FastSwapDir() abort
+  let l:dirs = empty($XDG_RUNTIME_DIR) ? [] : [$XDG_RUNTIME_DIR . '/vim-swap']
+  for l:d in l:dirs + ['/dev/shm/vim-swap-' . $USER]
+    if isdirectory(fnamemodify(l:d, ':h'))
+      if !isdirectory(l:d)
+        silent! call mkdir(l:d, '', 0700)
+      endif
+      if isdirectory(l:d) && filewritable(l:d) == 2 && getfperm(l:d) ==# 'rwx------'
+        return l:d
+      endif
+    endif
+  endfor
+  return ''
+endfunction
+function! s:FastSwapPrune(dir) abort
+  let l:stamp = a:dir . '/.pruned'
+  if getftime(l:stamp) > localtime() - 86400
+    return
+  endif
+  for l:f in glob(a:dir . '/*', 1, 1)
+    if getftime(l:f) < localtime() - 14 * 86400
+      call delete(l:f)
+    endif
+  endfor
+  call writefile([], l:stamp)
+endfunction
+if $DOTS_FAST_ACTIVE ==# '1'
+  let s:fast_swap = s:FastSwapDir()
+  if !empty(s:fast_swap)
+    let &directory = s:fast_swap . '//'
+    set swapsync=
+    call s:FastSwapPrune(s:fast_swap)
+  endif
+endif
 
 " No swap files at all: no warning when a file is open twice, and no
 " recovery after a crash.

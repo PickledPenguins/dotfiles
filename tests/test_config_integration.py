@@ -1136,15 +1136,16 @@ def test_history_unset_or_null_histfile_keeps_commands_out_of_everything(linked)
 # ----------------------------------------------------------------------
 
 
-def vim(home, *commands, before=None):
+def vim(home, *commands, before=None, env=None):
     if before is not None:
         (home / ".vimrc.before").write_text(before)
     # -es prints :set queries on stdout; anything else needs :verbose, which
     # writes to stderr. One line per command, stripped, "Last set from" dropped.
     cmds = [c for command in commands
             for c in ("-c", command if command.startswith("set ") else "verbose " + command)]
+    environment = fast_mode_apart(dict(os.environ, HOME=str(home), TERM="xterm-256color"), home)
     proc = subprocess.run(["vim", "-es", "-u", str(home / ".vimrc"), *cmds, "-c", "qall!"],
-                          env=dict(os.environ, HOME=str(home), TERM="xterm-256color"),
+                          env=dict(environment, **(env or {})),
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=30,
                           errors="replace")
     lines = [l.strip() for l in proc.stdout.splitlines() if l.strip() and "Last set from" not in l]
@@ -1162,6 +1163,27 @@ def test_vim_modules_each_leave_a_setting(linked):
     assert out.splitlines() == ["hidden", "shiftwidth=2", "hlsearch", "wildmode=longest:full,full",
                            "foldmethod=indent", "undofile", "mouse=a", "laststatus=2"]
     assert (linked / ".vim" / "tmp" / "undo").is_dir()
+
+
+@needs("vim")
+def test_vim_in_fast_mode_keeps_swap_files_in_tmpfs_unsynced_and_prunes_old_ones(linked):
+    swap = linked.parent / "xdg-run" / "vim-swap"
+    out = vim(linked, "set directory?", "set swapsync?", env={"DOTS_FAST_ACTIVE": "1"})
+    assert out.splitlines() == [f"directory={swap}//", "swapsync="]
+    assert oct(swap.stat().st_mode & 0o777) == "0o700" and (swap / ".pruned").exists()
+    old, new = swap / "%old.swp", swap / "%new.swp"
+    old.write_text(""), new.write_text("")
+    day = 86400
+    os.utime(old, (time.time() - 15 * day,) * 2)
+    os.utime(swap / ".pruned", (time.time() - 2 * day,) * 2)
+    vim(linked, "set directory?", env={"DOTS_FAST_ACTIVE": "1"})
+    assert (old.exists(), new.exists()) == (False, True)
+    assert vim(linked, "set directory?", "set swapsync?").splitlines() == ["directory=~/.vim/tmp/swap//",
+                                                                          "swapsync=fsync"]
+    # A directory others can read is not taken; the /dev/shm one cannot be made with this USER
+    swap.chmod(0o755)
+    out = vim(linked, "set directory?", env={"DOTS_FAST_ACTIVE": "1", "USER": "no/such"})
+    assert out == "directory=~/.vim/tmp/swap//"
 
 
 @needs("vim")
