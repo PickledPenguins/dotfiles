@@ -607,12 +607,18 @@ def test_fast_mode_auto_turns_off_only_after_ten_fast_samples(linked):
 
 
 def test_fast_mode_auto_turns_on_mid_session_after_two_slow_git_refreshes(linked):
-    # Every refresh is slow at 0 ms; the cache check is made to fail so each one runs git
+    # Every refresh is slow at 0 ms; the cache check is made to fail so each one runs git.
+    # The sample files exist already, and noclobber (10-options.sh) is on by now
+    write_ring(linked, "git 10 0", state="off")
     script = ('git init -q r; cd r; git_info_cache_valid() { return 1; }; '
               'for i in 1 2 3; do _dots_fast_collect_git; echo "$i ${DOTS_FAST_ACTIVE-unset} $_GIT_BUDGET"; done')
     proc = bash(linked, script, env=dict(CALM, DOTS_FAST_GIT_MS="0"))
     assert proc.stdout == "1 unset 1\n2 1 0.2\n3 1 0.2\n"
     assert re.fullmatch(re.escape(NOTICE) + r"auto: git \d+ ms >= 0, 2 of the last 5 prompts", proc.stderr)
+    files = str(fast_files(linked))
+    ring = Path(files + ".ring").read_text()
+    assert re.fullmatch(r"git 10 0\nstartup \d+ 0\n(git \d+ 1\n){3}", ring)
+    assert Path(files + ".state").read_text() == "on\n"
 
 
 def test_fast_mode_dots_fast_applies_in_the_shell_that_ran_it(linked):

@@ -201,7 +201,7 @@ _dots_fast_sample() {
     _dots_fast_ring+=("$1 $2 $slow")
     local n=${#_dots_fast_ring[@]}
     (( n <= 10 )) || _dots_fast_ring=("${_dots_fast_ring[@]:n-10}")
-    { printf '%s\n' "${_dots_fast_ring[@]}" > "$_dots_fast_file.ring"; } 2>/dev/null
+    { printf '%s\n' "${_dots_fast_ring[@]}" >| "$_dots_fast_file.ring"; } 2>/dev/null
     return 0
 }
 
@@ -289,7 +289,7 @@ _dots_fast_init() {
     _dots_fast_store
     [[ -n ${_dots_fast_file-} && -r $_dots_fast_file.base ]] && read -r _dots_fast_prev < "$_dots_fast_file.base"
     _dots_fast_host
-    [[ -z ${_dots_fast_file-} ]] || { printf '%s\n' "$_dots_fast_prev" > "$_dots_fast_file.base"; } 2>/dev/null
+    [[ -z ${_dots_fast_file-} ]] || { printf '%s\n' "$_dots_fast_prev" >| "$_dots_fast_file.base"; } 2>/dev/null
     _dots_fast_asked
     case $_dots_fast_mode in
         on)   on=1; _dots_fast_why="forced: ${_dots_fast_from/env/DOTS_FAST=on}"
@@ -298,7 +298,7 @@ _dots_fast_init() {
         auto) [[ -n ${_dots_fast_file-} && -r $_dots_fast_file.state ]] && read -r state < "$_dots_fast_file.state"
               _dots_fast_auto "$state" && on=1
               _dots_fast_why="auto: $_dots_fast_why"
-              [[ -z ${_dots_fast_file-} ]] || { (( on )) && echo on || echo off; } > "$_dots_fast_file.state" 2>/dev/null ;;
+              [[ -z ${_dots_fast_file-} ]] || { (( on )) && echo on || echo off; } >| "$_dots_fast_file.state" 2>/dev/null ;;
     esac
     _dots_fast_set "$on"
     if (( on )); then
@@ -338,7 +338,7 @@ _dots_fast_collect_git() {
     (( ${#_dots_fast_recent} <= 5 )) || _dots_fast_recent=${_dots_fast_recent:1}
     if [[ $_dots_fast_mode == auto && -z ${DOTS_FAST_ACTIVE-} && $_dots_fast_recent == *1*1* ]]; then
         _dots_fast_why="auto: git $t1 ms >= $_dots_fast_t_GIT_MS, 2 of the last 5 prompts"
-        [[ -z ${_dots_fast_file-} ]] || { echo on > "$_dots_fast_file.state"; } 2>/dev/null
+        [[ -z ${_dots_fast_file-} ]] || { echo on >| "$_dots_fast_file.state"; } 2>/dev/null
         _dots_fast_set 1
         _dots_fast_notice "$_dots_fast_why"
     fi
