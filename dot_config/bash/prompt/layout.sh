@@ -49,6 +49,12 @@ prompt_segment exit             _ps_seg_exit
 # Lower is fresher, higher is faster in big repositories.
 #prompt_cache_ttl 5
 
+# Seconds a prompt waits for git status. Past that it shows the last state
+# read with a … mark, picks the result up at a later prompt, and lists no
+# untracked files in that work tree for the rest of the shell. 0 waits
+# until git is done.
+prompt_git_budget 1
+
 
 
 # ── Rows ──────────────────────────────────────────────────────────────────
@@ -89,9 +95,14 @@ prompt_segment env_seg _env_seg
 prompt_row env ' @env_seg'
 
 # git: ⎇, the working tree's state, the branch and its commit, the upstream
-# and its commit, ahead/behind. The commit is left out before the first one and
-# on a detached HEAD, where the branch already is the commit.
+# and its commit, ahead/behind, and … while git status runs past the budget.
+# The commit is left out before the first one and on a detached HEAD, where
+# the branch already is the commit.
 _git_seg() {
+    if (( GIT_PENDING )) && ! (( GIT_IN_REPO )); then
+        printf '⎇  '; _ps_seg_git_pending
+        return 0
+    fi
     (( GIT_IN_REPO )) && [[ -n $GIT_BRANCH ]] || return 0
     printf '⎇  '
     _ps_seg_git_full_state
@@ -100,6 +111,7 @@ _git_seg() {
     [[ -n $GIT_REMOTE ]] && printf ' → %s' "$GIT_REMOTE"
     [[ -n $GIT_REMOTE_SHA ]] && printf ' (%s)' "$GIT_REMOTE_SHA"
     [[ -n $GIT_REMOTE ]] && { printf ' ('; _ps_seg_git_ahead_behind; printf ')'; }
+    (( GIT_PENDING )) && { printf ' '; _ps_seg_git_pending; }
     return 0
 }
 prompt_segment git_seg _git_seg
