@@ -6,6 +6,9 @@
 # program at every shell start costs its start-up time each time.
 # 80-tools.sh loads kubectl's and gh's on the first Tab instead.
 #
+# Fast mode (05-fast.sh), and under DOTS_FAST_PATHS: the list of matches
+# without colors or type marks, so Tab stats nothing.
+#
 # Each setting has its description in the comment above it. A setting with
 # "#" directly in front of it is off: delete that "#" to turn it on, or add
 # one to turn a setting off. `dots options WORD` searches every file.
@@ -20,6 +23,34 @@ if ! shopt -oq posix; then
     elif [[ -r /etc/bash_completion ]]; then
         source /etc/bash_completion
     fi
+fi
+
+# In fast mode and under DOTS_FAST_PATHS, Tab lists matches without the
+# colors and the / * @ marks of ~/.inputrc's colored-stats and
+# visible-stats: both stat every match, which in a big directory on a slow
+# disk holds the list up for seconds. mark-directories (the / after a
+# completed directory name) stays, it stats only the one. Leaving puts
+# back what they were.
+_tab_fast_was=""
+_tab_fast() {
+    local line
+    if (( $1 )); then
+        if [[ -z $_tab_fast_was ]]; then
+            while read -r line; do
+                [[ $line == "set colored-stats "* || $line == "set visible-stats "* ]] && _tab_fast_was+="$line"$'\n'
+            done < <(bind -v 2>/dev/null)
+        fi
+        bind 'set colored-stats off' 2>/dev/null
+        bind 'set visible-stats off' 2>/dev/null
+    else
+        while read -r line; do
+            [[ -z $line ]] || bind "$line" 2>/dev/null
+        done <<< "$_tab_fast_was"
+        _tab_fast_was=""
+    fi
+}
+if declare -F dots_fast_dir_hook >/dev/null; then
+    dots_fast_dir_hook _tab_fast
 fi
 
 # Your own completion scripts: every ~/.config/bash/completion.d/*.bash.

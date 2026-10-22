@@ -36,6 +36,7 @@ start again.
 | Where | Always | In fast mode |
 |-------|--------|--------------|
 | prompt git status | waits at most 1 s, then shows `…` and picks the result up later | waits at most 0.2 s |
+| Tab list (*directory*) | colors and `/ * @` marks (`colored-stats`, `visible-stats` in `~/.inputrc`) | neither: Tab stats nothing; the `/` after a completed directory name stays |
 | ls colors (*directory*) | by type and by what a stat shows: executable, setuid, writable by others, orphan links | by type only, from the directory entry: ls stats nothing (`ls -F`, `ll` and links under `--group-directories-first` still do) |
 
 Each module that has a fast form lists it in its header and here. The

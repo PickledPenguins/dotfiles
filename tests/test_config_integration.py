@@ -1896,6 +1896,14 @@ def test_ls_under_dots_fast_paths_reads_the_directory_and_stats_nothing(linked):
     assert proc.stdout.split() == ["5", "0", "5", "restored"]
 
 
+def test_tab_under_dots_fast_paths_lists_without_colors_or_type_marks(linked):
+    script = ('stats() { bind -v | command grep -E " (colored|visible)-stats " | tr "\\n" " "; echo; }; '
+              'command mkdir slow; stats; cd slow; _dots_fast_cwd; stats; cd ~; _dots_fast_cwd; stats')
+    proc = bash(linked, script, env={"DOTS_FAST_PATHS": "~/slow"})
+    on, off = "set colored-stats on set visible-stats on ", "set colored-stats off set visible-stats off "
+    assert proc.stdout.splitlines() == [on, off, on]
+
+
 @needs("dircolors")
 def test_ls_fast_colors_links_as_links_when_the_colors_follow_them(linked):
     dircolors = linked / ".dircolors"

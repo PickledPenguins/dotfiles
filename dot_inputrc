@@ -46,11 +46,13 @@ set show-all-if-unmodified on
 # A long common prefix is shown as ... after 3 characters in the list.
 set completion-prefix-display-length 3
 
-# The list in ls colors, with the typed part highlighted.
+# The list in ls colors, with the typed part highlighted. Off in bash's
+# fast mode (50-completion.sh): it stats every match.
 set colored-stats on
 set colored-completion-prefix on
 
 # / after directories, * after executables, @ after links, in the list.
+# Off in bash's fast mode (50-completion.sh): it stats every match.
 set visible-stats on
 
 # A trailing / on links to directories.
