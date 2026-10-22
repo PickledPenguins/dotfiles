@@ -62,3 +62,7 @@ return 1 if conflicts or missed else 0 ||| return 1 if conflicts else 0
 return 0 if set(counts) <= {"ok"} and not missed else 1 ||| return 0 if set(counts) <= {"ok"} else 1
 return 1 if missed else 0 ||| return 0
 missed = [p for p in paths if not any(selected(e, [p]) for e in entries)] ||| missed = [p for p in paths if not all(selected(e, [p]) for e in entries)]
+if setting.exists(): ||| if False:
+setting.write_text(args.mode + "\n") ||| setting.write_text(args.mode)
+if args.mode and os.environ.get("DOTS_FAST"): ||| if args.mode:
+str(home / ".bashrc.before")]).returncode ||| str(home / ".bashrc")]).returncode

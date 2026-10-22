@@ -27,6 +27,17 @@ os.environ.setdefault("GIT_TEMPLATE_DIR", str(
 DOTS = REPO / "dots"
 
 
+def fast_mode_apart(environment, home):
+    """The caller's fast mode out of a test shell's ENVIRONMENT, and fast mode's
+    samples kept beside HOME instead of in the runner's /dev/shm/dots-UID."""
+    for var in [v for v in environment if v.startswith("DOTS_FAST")]:
+        environment.pop(var)
+    run_dir = Path(home).parent / "xdg-run"
+    run_dir.mkdir(mode=0o700, exist_ok=True)
+    environment["XDG_RUNTIME_DIR"] = str(run_dir)
+    return environment
+
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "long: integration and end-to-end; not in the commit gate")
 
@@ -103,7 +114,7 @@ def linked(home):
 
 def run_subprocess(home, src, *args, env=None):
     """The CLI as a real process, for exit codes and argparse behavior."""
-    environment = dict(os.environ, HOME=str(home), DOTS_SOURCE=str(src))
+    environment = fast_mode_apart(dict(os.environ, HOME=str(home), DOTS_SOURCE=str(src)), home)
     environment.update(env or {})
     return subprocess.run([sys.executable, str(DOTS), *args], env=environment,
                           capture_output=True, text=True)

@@ -26,7 +26,7 @@ from another tree or `dots prune`. A `dots` copied on its own uses
 
 Paths given to `apply`, `status` and `unlink` restrict them to targets equal
 to or below those paths; `add` and `forget` require paths; `managed` and
-`prune` take none; `options` takes search words instead. Paths are made
+`prune` take none; `options` takes search words and `fast` a mode instead. Paths are made
 absolute lexically (`~` expanded, `..` collapsed, symlinks not followed).
 A path that selects no target (a typo, an unmanaged or ignored file) gets
 `skip      PATH: not managed` before the summary line, and the command
@@ -157,6 +157,41 @@ Exit 0 when anything was listed, 1 when nothing matched. To switch an
 option, open the file at the line shown (`vim +57 ~/.config/...`) and
 delete or add the comment character in front of the setting.
 
+### `dots fast [on | off | auto | reset]`
+
+Set fast mode for this machine, or print it. `on`, `off` and `auto` write
+the word to `~/.config/bash/fast` and print
+`fast mode: MODE in PATH`; `reset` removes the file
+(`fast mode: PATH removed`) and the mode falls back to off. When
+`DOTS_FAST` is set, a line says it overrides the file. New shells read the
+file; in the shell that ran it, the `dots` function from `05-fast.sh`
+applies it at once. Other open shells keep their mode.
+
+With no argument, print the mode, where it comes from (`DOTS_FAST`, the
+file, or the default), auto's verdict and reason, each host signal against
+its threshold (a line over it ends in `!`), and the samples kept on this
+host. The host is sampled over 1 s. The thresholds come from the
+environment and `~/.bashrc.before`. [fast-mode.md](fast-mode.md) has what
+each line means.
+
+```text
+fast mode  auto, on now (/home/me/.config/bash/fast)
+reason     iowait 23% >= 20
+blocked    0          at 2 or more (DOTS_FAST_BLOCKED)
+iowait     23 %       at 20% or more (DOTS_FAST_IOWAIT)  !
+...
+samples    1 of the last 5 slow (on at 2), 1 of the last 10 (off at 0 of 10)
+```
+
+| Flag | Effect |
+|------|--------|
+| `on` | fast mode on in every new shell, whatever the signals |
+| `off` | fast mode off, even where auto would turn it on |
+| `auto` | decide at each shell start from the signals |
+| `reset` | remove the setting: off |
+
+Exit 0, or with the status of the bash that prints the report.
+
 ### `dots unlink [-n] [paths...]`
 
 Remove every symlink whose state is `ok`; real files, foreign links and
@@ -184,6 +219,8 @@ Exit 0, or 1 when a path selected nothing.
 | Variable | Effect |
 |----------|--------|
 | `DOTS_SOURCE` | the source tree, when `-S` is not given |
+| `DOTS_FAST` | `on`, `off` or `auto`: overrides the file `dots fast` writes, which `dots fast` then says |
+| `XDG_CONFIG_HOME` | where `dots fast` keeps its setting: `$XDG_CONFIG_HOME/bash/fast`, `~/.config/bash/fast` when unset |
 | `HOME` | the home directory every target is relative to |
 
 ## Input and output
@@ -199,6 +236,7 @@ not stdout is a terminal; there is no color.
 | Path | Role |
 |------|------|
 | `SOURCE/.dotsignore` | target paths never managed; glob per line, `#` comments |
+| `~/.config/bash/fast` | the fast mode `dots fast` set: `on`, `off` or `auto` |
 | `~/.dotfiles-backup/<YYYYmmdd-HHMMSS>/` | where `apply --force` moves what it replaces |
 | `~/.local/bin/dots` | the command on `PATH`, a link `apply` makes to `SOURCE/dot_local/bin/dots`, itself a link to `SOURCE/dots` |
 | `~/.local/share/bash-completion/completions/dots` | Tab completion: subcommands, each one's options, directories after `-S`, file names for paths |

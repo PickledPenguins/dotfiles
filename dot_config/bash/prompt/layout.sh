@@ -36,6 +36,29 @@ _user_host_seg() {
     _ps_seg_pwd
 }
 
+# Fast mode (rc.d/05-fast.sh) and the host signals over threshold: FAST in
+# reverse red when auto turned it on, FAST! when forced, yellow "slow" with
+# the values while they are over and the mode is off; nothing while all is
+# well, or every value with DOTS_FAST_PROMPT=always. Values: blk tasks
+# blocked on I/O, io iowait, ld load per CPU, st steal, mem memory
+# available, swp pages swapped in per second, git the last git status ms.
+_fast_shows() {
+    [[ -n ${DOTS_FAST_ACTIVE-} || -n ${_dots_fast_over-} ]] ||
+        [[ ${DOTS_FAST_PROMPT-} == always && -n ${_dots_fast_all-} ]]
+}
+_fast_seg() {
+    local rv=""
+    [[ -n $PS_R ]] && rv=$'\001\e[1;7;31m\002'
+    if [[ -n ${DOTS_FAST_ACTIVE-} ]]; then
+        [[ $_dots_fast_mode == on ]] && printf '%sFAST!%s' "$rv" "$PS_R" || printf '%sFAST%s' "$rv" "$PS_R"
+        printf '%s' "${_dots_fast_over}"
+    elif [[ -n ${_dots_fast_over-} ]]; then
+        printf '%sslow%s%s' "$PS_YELLOW" "$_dots_fast_over" "$PS_R"
+    else
+        printf '%s%s%s' "$PS_DIM" "${_dots_fast_all# }" "$PS_R"
+    fi
+}
+
 # ── Segments ──────────────────────────────────────────────────────────────
 
 # @exit: ✓, or ✗ and the exit status of the last command.
@@ -49,31 +72,44 @@ prompt_segment exit             _ps_seg_exit
 # Lower is fresher, higher is faster in big repositories.
 #prompt_cache_ttl 5
 
-# Seconds a prompt waits for git status. Past that it shows the last state
-# read with a … mark, picks the result up at a later prompt, and lists no
-# untracked files in that work tree for the rest of the shell. 0 waits
-# until git is done.
-prompt_git_budget 1
+# Seconds a prompt waits for git status: 1, and 0.2 in fast mode. Past that
+# it shows the last state read with a ... mark, picks the result up at a
+# later prompt, and lists no untracked files in that work tree for the rest
+# of the shell. 0 waits until git is done.
+_git_budget() { if (( $1 )); then prompt_git_budget 0.2; else prompt_git_budget 1; fi; }
+
+# Fast mode's view of the prompt: git status timed for auto (a slow one is
+# a sample), the host signals read every 10 s for the fast segment.
+if declare -F dots_fast_hook >/dev/null; then
+    dots_fast_hook _git_budget
+    prompt_collector git 0 _dots_fast_collect_git
+    prompt_collector fast 10 _dots_fast_collect
+else
+    _git_budget 0
+fi
 
 
 
 # ── Rows ──────────────────────────────────────────────────────────────────
 # Single quotes, so \$ reaches PS1 as the prompt character ($, or # for root).
 
-# top: shell depth and background jobs, a bar, then the root mark and
-# user@host:directory.
+# top: fast mode, shell depth and background jobs, a bar, then the root
+# mark and user@host:directory.
 _top_seg() {
-    local s=0 j=0
+    local s=0 j=0 f=0
     (( ${SHLVL:-1} > 1 )) && s=1
     jobs %% >/dev/null 2>&1 && j=1
+    declare -F _dots_fast_collect >/dev/null && _fast_shows && f=1
     printf ' '
+    (( f )) && { _fast_seg; printf ' '; }
     (( s )) && { _ps_seg_shlvl; printf ' '; }
     (( j )) && { _ps_seg_jobs; printf ' '; }
-    (( s || j )) && printf '| '
+    (( s || j || f )) && printf '| '
     _ps_seg_root
     _user_host_seg
 }
 prompt_segment top_seg _top_seg
+declare -F _dots_fast_collect >/dev/null && prompt_segment_needs _top_seg fast
 prompt_row top '@top_seg'
 
 # env: $DISPLAY and the tmux pane, a bar, then the conda environment and the

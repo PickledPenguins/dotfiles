@@ -27,7 +27,12 @@ Exit status: 0 on success; 1 when apply leaves conflicts, status finds
 anything not ok, apply, status or unlink names a path that selects nothing,
 forget names an unmanaged path or one it refuses, or options matches
 nothing; 2 for usage errors, a missing source directory and two source
-files with one target.
+files with one target. `dots fast` exits with the status of the bash that
+prints it.
+
+`dots fast on|off|auto` writes the fast-mode setting for this machine to
+~/.config/bash/fast and `dots fast reset` removes it; `dots fast` alone
+prints the mode and the signals auto decides by (rc.d/05-fast.sh).
 """
 
 import argparse
@@ -36,6 +41,7 @@ import os
 import re
 import shutil
 import stat
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -325,6 +331,27 @@ def cmd_options(args, src, home):
     return 0 if found else 1
 
 
+def cmd_fast(args, src, home):
+    """Set fast mode for this machine, or print it and the signals it is decided by"""
+    config = Path(os.environ.get("XDG_CONFIG_HOME") or home / ".config") / "bash"
+    setting = config / "fast"
+    if args.mode == "reset":
+        if setting.exists():
+            setting.unlink()
+        print(f"fast mode: {setting} removed")
+    elif args.mode:
+        config.mkdir(parents=True, exist_ok=True)
+        setting.write_text(args.mode + "\n")
+        print(f"fast mode: {args.mode} in {setting}")
+    if args.mode and os.environ.get("DOTS_FAST"):
+        print(f"fast mode: DOTS_FAST={os.environ['DOTS_FAST']} in the environment overrides it")
+    if args.mode:
+        return 0
+    script = '[[ -r $2 ]] && source "$2"; source "$1" && _dots_fast_status'
+    return subprocess.run(["bash", "--norc", "--noprofile", "-c", script, "dots",
+                           str(src / "dot_config/bash/rc.d/05-fast.sh"), str(home / ".bashrc.before")]).returncode
+
+
 # ── the options format ────────────────────────────────────────────────────
 
 OPTIONS_TAG = "dots options"        # a file that mentions this is read by `dots options`
@@ -554,6 +581,11 @@ def main(argv=None):
     state.add_argument("--off", dest="state", action="store_const", const="off", help="only settings that are off")
     p.add_argument("-f", "--full", action="store_true", help="also print each description in full and its code")
     p.set_defaults(func=cmd_options)
+
+    p = sub.add_parser("fast", help="set fast mode, or print it and the signals behind it")
+    p.add_argument("mode", nargs="?", choices=["on", "off", "auto", "reset"],
+                   help="on, off or auto for this machine; reset removes the setting")
+    p.set_defaults(func=cmd_fast)
 
     args = parser.parse_args(argv)
     src = Path(args.source).resolve() if args.source else source_dir()

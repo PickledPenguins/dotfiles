@@ -121,6 +121,16 @@ Identity, hostnames and secrets go in these files, never in the repository.
 | `DOTFILES_VENV_DIR` | python | `.venv` | directory `venv` creates and activates |
 | `DOTFILES_FZF_OPTS` | tools | `--height 40% --layout=reverse --border` | `FZF_DEFAULT_OPTS` |
 | `DOTFILES_HPC_WATCH` | hpc | `10` | seconds between refreshes for `qw`/`sw` |
+| `DOTS_FAST` | fast | unset | `on`, `off` or `auto`: fast mode for this shell, over `dots fast` ([fast-mode.md](fast-mode.md)) |
+| `DOTS_FAST_STARTUP_MS` | fast | `300` | a shell start this many ms or slower is a slow sample |
+| `DOTS_FAST_GIT_MS` | fast | `200` | a prompt git status this many ms or slower is a slow sample |
+| `DOTS_FAST_BLOCKED` | fast | `2` | tasks blocked on I/O at which auto turns on |
+| `DOTS_FAST_IOWAIT` | fast | `20` | iowait percent at which auto turns on |
+| `DOTS_FAST_LOAD` | fast | `150` | 1-minute load per CPU, percent, at which auto turns on |
+| `DOTS_FAST_STEAL` | fast | `10` | steal percent at which auto turns on |
+| `DOTS_FAST_MEM` | fast | `10` | memory available, percent, at or under which auto turns on |
+| `DOTS_FAST_SWAPIN` | fast | `100` | pages swapped in per second at which auto turns on |
+| `DOTS_FAST_PROMPT` | fast | unset | `always`: the prompt shows the host values even when all is well |
 | `DOTFILES_OVERRIDE` | override | none | an array: `NAME` to unset, `NAME=VALUE` to set, after every module, read-only names too: `(TMOUT 'HISTSIZE=5000')` |
 
 Read-only variables the loader sets for modules and for you:
@@ -151,6 +161,7 @@ Read-only variables the loader sets for modules and for you:
 | Module | Provides |
 |--------|----------|
 | `00-env.sh` | `EDITOR`, `PAGER`, `LESS` with the mouse wheel, `SYSTEMD_LESS` (ours plus systemd's `-SMK`), colored man pages, `GREP_COLORS`, `COLORTERM`, XDG variables, `RIPGREP_CONFIG_PATH`, `PYTHONSTARTUP`, locale fallback, `TIME_STYLE`, `BROWSER`. Off: less chop/centering, bat or vim as `MANPAGER`, `MANWIDTH`, `NO_COLOR`, moves of tool files out of `$HOME` (the toolchains' and version managers' among them, which `20-path.sh` and `80-tools.sh` follow), `LC_COLLATE=C`, `PYTHONPYCACHEPREFIX`, `PYTHONDONTWRITEBYTECODE`, `GPG_TTY` |
+| `05-fast.sh` | Fast mode for a slow server: the mode from `DOTS_FAST`, `~/.config/bash/fast` (`dots fast`) or off; auto from host signals in `/proc` and samples of shell start and prompt git time; the `FAST MODE ON` notice, `dots_fast_hook` for modules, a `dots` wrapper that applies `dots fast X` in this shell. [fast-mode.md](fast-mode.md) |
 | `10-options.sh` | `globstar extglob autocd cdspell dirspell checkjobs huponexit histappend cmdhist lithist checkwinsize`, history sizes and control, history written after every command, `stty -ixon`, `umask 022`. Off: `dotglob nocaseglob nullglob failglob nocasematch cdable_vars direxpand notify noclobber pipefail IGNOREEOF histexpand TMOUT histverify histreedit`, XDG history file, live history sharing, no mail check, `umask 077/027`, `ulimit` core and stack |
 | `12-history.sh` | `hgrep PATTERN [N]` searches the command log. Off: one history file per tmux pane (a split starts from its source pane, a new window or session takes over the pane closed last in a session of the same name, else a copy of the shared file), the log of every command with time, host, session and directory, a file a month, the last 12 kept |
 | `15-tmux-env.sh` | Off: a shell in tmux takes `DISPLAY`, `SSH_AUTH_SOCK` and the rest of `update-environment` from the client typed on last, before each command (at each prompt before bash 5.3); goes with `45-client-env.conf` |

@@ -33,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO, load_dots, run_subprocess
+from conftest import REPO, fast_mode_apart, load_dots, run_subprocess
 
 dots = load_dots()
 
@@ -167,6 +167,7 @@ def run(argv, home, env=None, **kwargs):
                 "SSH_AUTH_SOCK", "SSH_AGENT_PID",
                 "GIT_CONFIG_GLOBAL", "WGETRC", "CONDARC", "PIP_CONFIG_FILE", "IPYTHONDIR", "MPLCONFIGDIR"):
         environment.pop(var, None)
+    fast_mode_apart(environment, home)
     environment.update(env or {})
     kwargs.setdefault("timeout", 120)
     return subprocess.run(argv, env=environment, capture_output=True, text=True, errors="replace",

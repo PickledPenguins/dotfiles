@@ -21,11 +21,11 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO
+from conftest import REPO, fast_mode_apart
 
 pytestmark = pytest.mark.long
 
-BASH_MODULES = ["env", "options", "history", "tmux-env", "path", "aliases", "functions", "arrays", "dirs",
+BASH_MODULES = ["env", "fast", "options", "history", "tmux-env", "path", "aliases", "functions", "arrays", "dirs",
                 "completion", "prompt", "title", "conda", "python", "tools", "hpc", "local", "override"]
 VIM_MODULES = ["00-general", "10-ui", "15-statusline", "20-search", "25-completion", "30-indent",
                "35-folding", "40-files", "45-filetypes", "50-keys", "52-tags", "55-netrw"]
@@ -42,10 +42,11 @@ def shell_env(home, env=None):
     # otherwise show in the prompt and the modules under test.
     for var in list(environment):
         if var in ("DOTFILES_DIR", "DOTFILES_BASH_DIR", "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_DATA_HOME",
-                   "XDG_CACHE_HOME", "XDG_RUNTIME_DIR", "PROMPT_COMMAND", "TMUX",
+                   "XDG_CACHE_HOME", "PROMPT_COMMAND", "TMUX",
                    "TMUX_PANE", "DISPLAY", "CONDA_DEFAULT_ENV", "CONDA_PREFIX", "VIRTUAL_ENV",
                    "SHLVL") or var.startswith("SSH_"):
             environment.pop(var)
+    fast_mode_apart(environment, home)
     environment.update(env or {})
     return environment
 
@@ -526,6 +527,115 @@ def test_prompt_git_row_with_an_upstream(linked):
     assert len(shas) == 2 and rows[1] == f"│ ⎇  (✓) main ({shas[0]}) → origin/main ({shas[1]}) (↑1)"
 
 
+def fast_files(home):
+    """Fast mode's sample files for this host, beside HOME as fast_mode_apart puts them"""
+    return home.parent / "xdg-run" / f"dots-fast.{socket.gethostname().split('.')[0]}"
+
+
+NOTICE = "\x1b[1;7m FAST MODE ON \x1b[0m  "
+
+
+def test_fast_mode_is_off_by_default_and_each_start_is_a_sample(linked):
+    proc = bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset} $_dots_fast_mode $_dots_fast_from"')
+    assert (proc.stdout, proc.stderr) == ("unset off default\n", "")
+    ring = (fast_files(linked).parent / (fast_files(linked).name + ".ring")).read_text()
+    assert re.fullmatch(r"startup \d+ [01]\n", ring)
+
+
+@pytest.mark.parametrize("env, file, why", [
+    ({"DOTS_FAST": "on"}, None, "forced: DOTS_FAST=on"),
+    ({}, "on", "forced: dots fast on"),
+    ({"DOTS_FAST": "on"}, "off", "forced: DOTS_FAST=on"),
+])
+def test_fast_mode_forced_on_says_so_and_by_what(linked, env, file, why):
+    if file:
+        (linked / ".config/bash/fast").write_text(file + "\n")
+    proc = bash(linked, 'echo "$DOTS_FAST_ACTIVE $_GIT_BUDGET"', env=env)
+    assert (proc.stdout, proc.stderr) == ("1 0.2\n", NOTICE + why)
+
+
+def test_fast_mode_off_in_the_environment_overrules_the_file(linked):
+    (linked / ".config/bash/fast").write_text("on\n")
+    proc = bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset} $_GIT_BUDGET"', env={"DOTS_FAST": "off"})
+    assert (proc.stdout, proc.stderr) == ("unset 1\n", "")
+
+
+def test_fast_mode_an_unknown_word_is_reported_and_taken_as_off(linked):
+    proc = bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset}"', env={"DOTS_FAST": "yes"})
+    assert (proc.stdout, proc.stderr) == ("unset\n", "fast mode: yes is not on, off or auto; taking off")
+
+
+def test_fast_mode_auto_turns_on_for_a_host_signal_over_its_threshold(linked):
+    proc = bash(linked, 'echo "$DOTS_FAST_ACTIVE"', env={"DOTS_FAST": "auto", "DOTS_FAST_MEM": "100"})
+    assert proc.stdout == "1\n"
+    assert re.fullmatch(re.escape(NOTICE) + r"auto: mem \d+% <= 100", proc.stderr)
+    assert Path(str(fast_files(linked)) + ".state").read_text() == "on\n"
+
+
+def write_ring(home, *samples, state=None):
+    files = str(fast_files(home))
+    Path(files + ".ring").write_text("".join(f"{s}\n" for s in samples))
+    if state:
+        Path(files + ".state").write_text(state + "\n")
+
+
+# The host thresholds out of reach, so only the samples decide; the start
+# itself is a sample, so the threshold for it is out of reach too.
+CALM = {"DOTS_FAST": "auto", "DOTS_FAST_STARTUP_MS": "99999", "DOTS_FAST_BLOCKED": "99999",
+        "DOTS_FAST_IOWAIT": "101", "DOTS_FAST_LOAD": "99999", "DOTS_FAST_STEAL": "101",
+        "DOTS_FAST_MEM": "0", "DOTS_FAST_SWAPIN": "99999999"}
+
+
+def test_fast_mode_auto_turns_on_after_two_slow_samples_of_five(linked):
+    write_ring(linked, *["git 10 0"] * 5, "git 340 1", "git 10 0", "git 250 1", "git 10 0")
+    proc = bash(linked, 'echo "$DOTS_FAST_ACTIVE"', env=CALM)
+    assert (proc.stdout, proc.stderr) == ("1\n", NOTICE + "auto: git 340 ms >= 200, git 250 ms >= 200")
+    write_ring(linked, *["git 10 0"] * 5, "git 340 1", *["git 10 0"] * 3, state="off")
+    assert bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset}"', env=CALM).stdout == "unset\n"
+
+
+def test_fast_mode_auto_turns_off_only_after_ten_fast_samples(linked):
+    write_ring(linked, "git 340 1", *["git 10 0"] * 9, state="on")
+    proc = bash(linked, 'echo "$DOTS_FAST_ACTIVE"', env=CALM)
+    assert proc.stdout == "1\n"
+    assert proc.stderr == NOTICE + ("auto: staying on: 1 of the last 10 samples slow, off once 10 in a row "
+                                    "are fast")
+    write_ring(linked, *["git 10 0"] * 10, state="on")
+    proc = bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset}"', env=CALM)
+    assert (proc.stdout, proc.stderr) == ("unset\n", "")
+    assert Path(str(fast_files(linked)) + ".state").read_text() == "off\n"
+
+
+def test_fast_mode_auto_turns_on_mid_session_after_two_slow_git_refreshes(linked):
+    # Every refresh is slow at 0 ms; the cache check is made to fail so each one runs git
+    script = ('git init -q r; cd r; git_info_cache_valid() { return 1; }; '
+              'for i in 1 2 3; do _dots_fast_collect_git; echo "$i ${DOTS_FAST_ACTIVE-unset} $_GIT_BUDGET"; done')
+    proc = bash(linked, script, env=dict(CALM, DOTS_FAST_GIT_MS="0"))
+    assert proc.stdout == "1 unset 1\n2 1 0.2\n3 1 0.2\n"
+    assert re.fullmatch(re.escape(NOTICE) + r"auto: git \d+ ms >= 0, 2 of the last 5 prompts", proc.stderr)
+
+
+def test_fast_mode_dots_fast_applies_in_the_shell_that_ran_it(linked):
+    proc = bash(linked, 'dots fast on >/dev/null; echo "$DOTS_FAST_ACTIVE"; '
+                        'dots fast off >/dev/null; echo "${DOTS_FAST_ACTIVE-unset}"')
+    assert proc.stdout == "1\nunset\n"
+    assert proc.stderr == NOTICE + "forced: dots fast on\nfast mode off"
+
+
+def test_prompt_top_row_shows_fast_mode_and_signals_over_threshold(linked):
+    user_host = f"{os.environ['USER']}@{socket.gethostname().split('.')[0]}:~"
+    def top(env):
+        proc = bash(linked, 'prompt_build; printf "%s\\n" "${PS1@P}"', env=env)
+        return re.sub(r"\x1b\[[0-9;]*m|[\x01\x02]", "", proc.stdout).splitlines()[0]
+    assert top({"DOTS_FAST": "on"}) == f"╭ FAST! | {user_host}"
+    assert re.fullmatch(rf"╭ slow mem\d+% \| {re.escape(user_host)}", top({"DOTS_FAST_MEM": "100"}))
+    assert re.fullmatch(rf"╭ FAST mem\d+% \| {re.escape(user_host)}",
+                        top({"DOTS_FAST": "auto", "DOTS_FAST_MEM": "100"}))
+    assert re.fullmatch(rf"╭ blk\d+ ld[\d.]+ mem\d+% git\d+ \| {re.escape(user_host)}",
+                        top({"DOTS_FAST_PROMPT": "always"}))
+    assert top({}) == f"╭ {user_host}"
+
+
 def test_simple_prompt_module_when_enabled(linked):
     (linked / ".config" / "bash" / "disabled").write_text("prompt\n")
     off = linked / ".config/bash/rc.d/61-prompt-simple.sh.off"
@@ -983,7 +1093,7 @@ def test_history_a_new_shell_deletes_the_scratch_files_of_shells_gone(linked, tm
     dead = subprocess.run(["sh", "-c", "echo $$"], capture_output=True, text=True).stdout.strip()
     for name in f"bash-history.{dead}", f"bash-history.{os.getpid()}", "bash-history.x", "other.1":
         (runtime / name).write_text("")
-    proc = bash(linked, 'ls "$XDG_RUNTIME_DIR" | grep -vx "bash-history.$$"', env={"XDG_RUNTIME_DIR": str(runtime)}, local="_hist_log_start\n")
+    proc = bash(linked, 'ls "$XDG_RUNTIME_DIR" | grep -vx -e "bash-history.$$" -e "dots-fast\\..*"', env={"XDG_RUNTIME_DIR": str(runtime)}, local="_hist_log_start\n")
     assert proc.stdout == f"bash-history.{os.getpid()}\nbash-history.x\nother.1\n"
 
 

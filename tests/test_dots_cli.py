@@ -6,6 +6,7 @@ as a subprocess.
 """
 
 import os
+import re
 import shutil
 import stat
 
@@ -410,7 +411,7 @@ def test_add_and_forget_require_a_path(home, src):
 def test_help_lists_every_subcommand(home, src):
     proc = run_subprocess(home, src, "--help")
     assert proc.returncode == 0
-    assert "{apply,status,managed,add,forget,unlink,prune,options}" in proc.stdout
+    assert "{apply,status,managed,add,forget,unlink,prune,options,fast}" in proc.stdout
     assert "dot_config/git/config" in proc.stdout           # the naming spec from the docstring
 
 
@@ -586,6 +587,78 @@ def test_options_on_and_off_together_is_a_usage_error(home, src):
 
 
 # ----------------------------------------------------------------------
+# fast
+# ----------------------------------------------------------------------
+
+
+@pytest.fixture
+def no_fast_env(monkeypatch, tmp_path):
+    """No DOTS_FAST* from the caller, and samples kept in the test's own tmpfs stand-in"""
+    for var in [v for v in os.environ if v.startswith("DOTS_FAST")]:
+        monkeypatch.delenv(var)
+    run_dir = tmp_path / "run"
+    run_dir.mkdir(mode=0o700)
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(run_dir))
+
+
+def test_fast_writes_the_mode_and_reset_removes_it(run, home, no_fast_env):
+    setting = home / ".config/bash/fast"
+    assert run("fast", "auto") == (0, f"fast mode: auto in {setting}\n", "")
+    assert setting.read_text() == "auto\n"
+    assert run("fast", "on")[0] == 0 and setting.read_text() == "on\n"
+    assert run("fast", "reset") == (0, f"fast mode: {setting} removed\n", "")
+    assert not setting.exists()
+    assert run("fast", "reset")[0] == 0
+
+
+def test_fast_keeps_the_setting_under_xdg_config_home(run, home, tmp_path, monkeypatch, no_fast_env):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    run("fast", "off")
+    assert (tmp_path / "xdg/bash/fast").read_text() == "off\n"
+    assert not (home / ".config").exists()
+    lines = run_subprocess(home, REPO, "fast").stdout.splitlines()
+    assert lines[0] == f"fast mode  off ({tmp_path}/xdg/bash/fast)"
+
+
+def test_fast_says_when_the_environment_overrides_the_file(run, home, monkeypatch, no_fast_env):
+    monkeypatch.setenv("DOTS_FAST", "off")
+    out = run("fast", "on")[1]
+    assert out.splitlines()[1] == "fast mode: DOTS_FAST=off in the environment overrides it"
+
+
+def test_fast_rejects_a_mode_it_does_not_know(home, src):
+    proc = run_subprocess(home, src, "fast", "maybe")
+    assert proc.returncode == 2 and "invalid choice: 'maybe'" in proc.stderr
+
+
+def test_fast_with_no_mode_reports_the_mode_and_each_signal(home, no_fast_env):
+    proc = run_subprocess(home, REPO, "fast")
+    assert proc.returncode == 0, proc.stderr
+    lines = proc.stdout.splitlines()
+    assert lines[0] == f"fast mode  off (default: no {home}/.config/bash/fast)"
+    assert [line.split()[0] for line in lines[1:7]] == ["blocked", "iowait", "load", "steal", "mem", "swapin"]
+    assert lines[7] == "samples    none yet on " + os.uname().nodename.split(".")[0]
+
+
+def test_fast_report_exits_with_the_status_of_its_bash(dots, home, no_fast_env, capfd):
+    assert dots.main(["-S", str(REPO), "fast"]) == 0
+    assert capfd.readouterr().out.startswith("fast mode  off (default: ")
+    assert dots.main(["-S", str(home), "fast"]) == 1          # no module there: source fails
+    assert "05-fast.sh: No such file or directory" in capfd.readouterr().err
+
+
+def test_fast_auto_reports_a_threshold_from_bashrc_before_as_the_reason(home, no_fast_env):
+    (home / ".bashrc.before").write_text("DOTS_FAST_MEM=100\n")
+    run_subprocess(home, REPO, "fast", "auto")
+    proc = run_subprocess(home, REPO, "fast")
+    lines = proc.stdout.splitlines()
+    assert lines[0] == f"fast mode  auto, on now ({home}/.config/bash/fast)"
+    assert re.fullmatch(r"reason     mem \d+% <= 100", lines[1])
+    mem = next(line for line in lines if line.startswith("mem "))
+    assert mem.endswith("at 100% or less (DOTS_FAST_MEM)  !")
+
+
+# ----------------------------------------------------------------------
 # dots on PATH, and its completion
 # ----------------------------------------------------------------------
 
@@ -649,7 +722,7 @@ def complete(tmp_path, *words):
 
 
 @pytest.mark.parametrize("words, offered", [
-    ((""), ["apply", "status", "managed", "add", "forget", "unlink", "prune", "options"]),
+    ((""), ["apply", "status", "managed", "add", "forget", "unlink", "prune", "options", "fast"]),
     (("ap",), ["apply"]),
     (("-",), ["-S", "--source", "-h", "--help"]),
     (("apply", "-"), ["-n", "--dry-run", "--force", "-h", "--help"]),
@@ -659,6 +732,8 @@ def complete(tmp_path, *words):
     (("managed", ""), ["-s", "--show-source", "-h", "--help"]),
     (("apply", ""), []),
     (("nosuch", "-"), []),
+    (("fast", ""), ["on", "off", "auto", "reset"]),
+    (("fast", "-"), ["-h", "--help"]),
 ], ids=lambda value: " ".join(value) if isinstance(value, tuple) else None)
 def test_completion_offers(tmp_path, words, offered):
     (tmp_path / "srcdir").mkdir()

@@ -40,6 +40,10 @@ set statusline+=\ \|\ %{&fileencoding?&fileencoding:&encoding}[%{&fileformat}]
 " Everything from here on sits at the right.
 set statusline+=%=
 
+" [FAST] while the shell that started vim is in fast mode (DOTS_FAST_ACTIVE,
+" rc.d/05-fast.sh in the bash config).
+set statusline+=%{$DOTS_FAST_ACTIVE==#'1'?'[FAST]\ \ ':''}
+
 " The git branch.
 set statusline+=%{DotfilesGitBranch()}
 

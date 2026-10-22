@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from conftest import fast_mode_apart
 
 REPO = Path(__file__).resolve().parent.parent
 EXAMPLES = REPO / "tests" / "examples"
@@ -50,6 +51,7 @@ def run_case(case, tmp):
         "PATH": f"{bin_dir}:{os.environ['PATH']}", "TERM": "xterm-256color", "LANG": "C.UTF-8",
         "USER": os.environ.get("USER", "user"), "GIT_TEMPLATE_DIR": os.environ["GIT_TEMPLATE_DIR"],
     }
+    fast_mode_apart(env, home)
     proc = subprocess.run(["bash", str(case / "case.sh")], cwd=home, env=env, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, text=True, errors="replace", timeout=120)
     out = (proc.stdout.replace(str(src), "SRC").replace(str(home), "HOME")

@@ -41,8 +41,12 @@ PROMPT_LOOP = (f'prompt_build; s=$EPOCHREALTIME; for _ in {{1..{PROMPT_CALLS}}};
 
 
 def environment(home: Path) -> dict[str, str]:
-    env = {k: v for k, v in os.environ.items() if k not in UNSET}
+    env = {k: v for k, v in os.environ.items() if k not in UNSET and not k.startswith("DOTS_FAST")}
     env.update(HOME=str(home), TERM="xterm-256color", DOTS_SOURCE=str(ROOT))
+    # Fast mode's samples beside the temporary HOME, not in /dev/shm/dots-UID
+    run_dir = home.parent / "xdg-run"
+    run_dir.mkdir(mode=0o700, exist_ok=True)
+    env["XDG_RUNTIME_DIR"] = str(run_dir)
     return env
 
 

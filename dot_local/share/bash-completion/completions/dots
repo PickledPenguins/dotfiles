@@ -20,7 +20,7 @@ _dots() {
         return
     fi
     case $cmd in
-        '')      words='apply status managed add forget unlink prune options'
+        '')      words='apply status managed add forget unlink prune options fast'
                  [[ $cur == -* ]] && words='-S --source -h --help' ;;
         apply)   words='-n --dry-run --force -h --help' ;;
         status)  words='-a --all -h --help' ;;
@@ -30,10 +30,12 @@ _dots() {
         unlink)  words='-n --dry-run -h --help' ;;
         prune)   words='-n --dry-run -h --help' ;;
         options) words='--on --off -f --full -h --help' ;;
+        fast)    words='-h --help'
+                 [[ $cur == -* ]] || words='on off auto reset' ;;
         *)       return ;;
     esac
     # Options only once a dash is typed, except where nothing else can follow.
-    if [[ -z $cmd || $cur == -* || $cmd == managed || $cmd == prune ]]; then
+    if [[ -z $cmd || $cur == -* || $cmd == managed || $cmd == prune || $cmd == fast ]]; then
         mapfile -t COMPREPLY < <(compgen -W "$words" -- "$cur")
     fi
 }
