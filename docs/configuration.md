@@ -119,7 +119,7 @@ Identity, hostnames and secrets go in these files, never in the repository.
 | `DOTFILES_PROMPT_COLOR` | prompt-simple (off) | auto | `0`/`1`: force color off/on |
 | `DOTFILES_TITLE_FORMAT` | title | `%u@%h: %d` | terminal title; `%u` user, `%h` host, `%d` directory |
 | `DOTFILES_CONDA_ROOT` | conda | first found of `~/miniconda3 ~/anaconda3 ~/miniforge3 ~/mambaforge /opt/anaconda3 /opt/miniconda3 /opt/miniforge3 /opt/conda` | conda install to source |
-| `DOTFILES_CONDA_ENV` | conda | none | environment to activate at start |
+| `DOTFILES_CONDA_ENV` | conda | none | environment to activate at start; in fast mode a name under the root's `envs/` or `~/.conda/envs`, or a path, is activated from what conda printed at an earlier start ([fast-mode.md](fast-mode.md#what-changes)) |
 | `DOTFILES_VENV_DIR` | python | `.venv` | directory `venv` creates and activates |
 | `DOTFILES_FZF_OPTS` | tools | `--height 40% --layout=reverse --border` | `FZF_DEFAULT_OPTS` |
 | `DOTFILES_HPC_WATCH` | hpc | `10` | seconds between refreshes for `qw`/`sw` |
@@ -178,7 +178,7 @@ Read-only variables the loader sets for modules and for you:
 | `60-prompt.sh` | the toolkit prompt: `prompt/toolkit/prompt.sh` + `prompt/layout.sh` (every segment described and switchable there). The toolkit's own variables are in its [README](../dot_config/bash/prompt/toolkit/README.md). The layout shows no command duration, so the prompt sets no DEBUG trap. A prompt waits at most 1 s for `git status` (`prompt_git_budget` in the layout); past that it shows the last state read with `…`, takes the result at a later prompt, and lists no untracked files in that work tree for the rest of the shell. In fast mode it waits 0.2 s, and in fast mode and under `DOTS_FAST_PATHS` git looks at less ([fast-mode.md](fast-mode.md#what-changes)) |
 | `61-prompt-simple.sh.off` | one-line colored prompt with git branch. Off inside: time, short directory, `PROMPT_DIRTRIM`, exit status |
 | `65-title.sh` | terminal title at each prompt. Off: the running command in the title |
-| `70-conda.sh` | finds conda and sources its `conda.sh`; optional env activation; `ca cda cel` |
+| `70-conda.sh` | finds conda and sources its `conda.sh`; optional env activation (in fast mode replayed from the last start while conda and the environment are unchanged); `ca cda cel` |
 | `75-python.sh` | `py pyv json pt ipy jl jn`, `venv`, uv completion. Off: `.venv` auto-activation, `PIP_REQUIRE_VIRTUALENV`, ipdb breakpoints, `PYTHON_BASIC_REPL` |
 | `80-tools.sh` | each only if installed: Homebrew, Nix, mise, asdf, pyenv, nvm (lazy), fnm, rbenv, SDKMAN!, ghcup, cargo env, lesspipe, `BAT_STYLE`, eza for `ll lt`, fzf, zoxide, direnv, docker/kubectl/aws/terraform/gh/lazygit shortcuts and completion (kubectl's and gh's loaded on the first Tab), tmux `ta tn tl`, yazi `y`, `lfcd`. Off: `cat` as bat, eza as ls/tree, vivid, fzf previews, `zoxide --cmd cd`, starship, atuin, thefuck, fortune, fastfetch |
 | `85-hpc.sh` | Each only if present: PBS (`qs qsa qw qi qd qn qh`, found by `${PBS_CONF_FILE:-/etc/pbs.conf}`, not by `qstat`, which Slurm's Torque wrappers also install), Slurm (`sq sqa sw si sc sn sacct-today sstart`), modules (`ml mla mll mlp mls`). Off: `qint`, `sint`, `SQUEUE_FORMAT`/`SACCT_FORMAT`, `LMOD_REDIRECT`, `LMOD_PAGER`, one thread per program, `TMPDIR` on scratch |

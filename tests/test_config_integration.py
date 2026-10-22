@@ -2037,6 +2037,53 @@ def test_dircolors_output_is_kept_per_terminal_and_follows_the_dircolors_file(li
     assert "di=" in colors("abc")
 
 
+def test_fast_mode_activates_the_conda_env_from_the_last_start_while_nothing_changed(linked):
+    # A conda that records each run and prints what activating sets
+    root = linked / "conda"
+    (root / "bin").mkdir(parents=True)
+    (root / "etc/profile.d").mkdir(parents=True)
+    history = root / "envs/work/conda-meta/history"
+    history.parent.mkdir(parents=True)
+    history.write_text("")
+    exe = root / "bin/conda"
+    exe.write_text('#!/bin/sh\necho "$*" >>"$HOME/conda.log"\n'
+                   '[ "$1 $2" = "shell.posix activate" ] || exit 0\n'
+                   'echo "export CONDA_PREFIX=$HOME/conda/envs/$3 CONDA_SHLVL=1"\n')
+    exe.chmod(0o755)
+    (root / "etc/profile.d/conda.sh").write_text(
+        f'export CONDA_EXE={exe}\n'
+        'conda() { local out; out=$("$CONDA_EXE" shell.posix "$@") || return; eval "$out"; }\n')
+    log = linked / "conda.log"
+    def start(name="work", **env):
+        env = {"DOTFILES_CONDA_ROOT": str(root), "DOTFILES_CONDA_ENV": name, **env}
+        proc = bash(linked, 'echo "${CONDA_PREFIX-none}"', env=env)
+        notice = "FAST MODE ON forced: DOTS_FAST=on".split() if "DOTS_FAST" in env else []
+        assert (proc.stdout, re.sub(r"\x1b\[[0-9;]*m", "", proc.stderr).split()) == (f"{root}/envs/{name}\n", notice)
+        return len(log.read_text().splitlines())
+    assert [start(), start()] == [1, 2]
+    assert [start(DOTS_FAST="on"), start(DOTS_FAST="on")] == [3, 3]
+    # An install writes the history; PATH another way: run again
+    os.utime(history, (1_000_000_000, 1_000_000_000))
+    assert [start(DOTS_FAST="on"), start(DOTS_FAST="on")] == [4, 4]
+    assert start(DOTS_FAST="on", PATH=f"/nowhere:{RUNNER_PATH}") == 5
+    # An environment active already, or one not found: conda as usual
+    assert [start(DOTS_FAST="on"), start(DOTS_FAST="on", CONDA_SHLVL="1")] == [6, 7]
+    history.unlink()
+    assert start(DOTS_FAST="on") == 8
+    # One in ~/.conda/envs
+    (linked / ".conda/envs/mine/conda-meta").mkdir(parents=True)
+    (linked / ".conda/envs/mine/conda-meta/history").write_text("")
+    assert [start("mine", DOTS_FAST="on"), start("mine", DOTS_FAST="on")] == [9, 9]
+    # A conda that fails: its error once, nothing kept or activated
+    history.write_text("")
+    exe.write_text('#!/bin/sh\necho "$*" >>"$HOME/conda.log"\necho "export CONDA_PREFIX=bad"\n'
+                   'echo "no such env" >&2; exit 1\n')
+    env = {"DOTFILES_CONDA_ROOT": str(root), "DOTFILES_CONDA_ENV": "work", "DOTS_FAST": "on"}
+    for runs in (10, 11):
+        proc = bash(linked, 'echo "${CONDA_PREFIX-none}"', env=env)
+        assert (proc.stdout, proc.stderr.count("no such env"), len(log.read_text().splitlines())) == ("none\n", 1, runs)
+
+
 @needs("dircolors")
 def test_ls_fast_colors_links_as_links_when_the_colors_follow_them(linked):
     dircolors = linked / ".dircolors"
