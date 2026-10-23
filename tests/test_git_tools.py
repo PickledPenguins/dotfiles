@@ -188,6 +188,14 @@ def test_wt_new_ls_rm_and_cd_with_the_cdw_function(linked):
     assert cdw.stdout == f"{linked}/app.wt/remote\n{linked}/app\n1\n{linked}/app\n", cdw.stderr
 
 
+def test_wt_keeps_the_name_of_a_repository_whose_directory_ends_in_dot_git(linked):
+    # Only a bare repository's .git suffix goes: lib.git is a work tree named so
+    proc = sh(linked, "git init -q -b main lib.git && cd lib.git && git commit -q --allow-empty -m one && "
+                      "git wt new feat && git wt cd && cd .. && git clone -q --bare lib.git bare.git && "
+                      "cd bare.git && git wt new feat")
+    assert proc.stdout == (f"{linked}/lib.git.wt/feat\n{linked}/lib.git\n{linked}/bare.wt/feat\n"), proc.stderr
+
+
 # ----------------------------------------------------------------------
 # git resolve, git absorb
 # ----------------------------------------------------------------------
@@ -268,6 +276,18 @@ def test_absorb_makes_one_fixup_per_owning_commit_and_keeps_the_rest_staged(link
         "fixup! Name twenty\nfixup! Name five\nName twenty\nName five\nbase\n"
         "f\nn\nf\n-five\n+FIVE\n"
         "Name twenty\nName five\nbase\n-5\n+FIVE\n"), proc.stderr
+
+
+def test_absorb_counts_lines_as_git_does_with_a_carriage_return_or_form_feed_inside_one(linked):
+    # Only \n ends a line for git: a fixup built from lines split anywhere else lands
+    # its hunk on the wrong line
+    proc = sh(linked, "git init -q --bare -b main o.git && git init -q -b main r && cd r && "
+                      "git remote add origin ../o.git && echo base >b && git add b && git commit -q -m base && "
+                      "git push -q -u origin main 2>/dev/null && printf '1\\n2\\rX\\n3\\f\\n4\\n' >c && "
+                      "git add c && git commit -q -m 'Add c' && printf '1\\n2\\rY\\n3\\f\\nFOUR\\n' >c && "
+                      "git add c && git absorb >/dev/null && git log -1 --format=%s && "
+                      "git cat-file blob HEAD:c | od -An -c | tr -s ' '")
+    assert proc.stdout == "fixup! Add c\n 1 \\n 2 \\r Y \\n 3 \\f \\n F O U R \\n\n", proc.stderr
 
 
 def test_absorb_dry_run_and_refusals_change_nothing(linked):

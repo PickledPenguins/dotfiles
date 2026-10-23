@@ -1,0 +1,4 @@
+usage: dots fast [-h] [{on,off,auto,reset}]
+dots fast: error: argument mode: invalid choice: 'maybe' (choose from on, off, auto, reset)
+exit 2
+nothing written

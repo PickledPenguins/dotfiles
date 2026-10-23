@@ -97,7 +97,9 @@ well as running ones, so a hung NFS mount raises it on an idle CPU.
 Samples: each shell start (from the process start in `/proc/$$/stat` to
 the end of `~/.bashrc`) and each prompt git status that had to run git is
 a sample, slow at `DOTS_FAST_STARTUP_MS` (300) and `DOTS_FAST_GIT_MS`
-(200) ms. A git status that ran past the prompt's budget is slow. The last
+(200) ms. A git status that ran past the prompt's budget is slow. A shell
+that `exec` put in place of another (`reload`, `exec bash`) takes no
+startup sample: it keeps the old shell's process and start time. The last
 10 samples on this host are kept.
 
 Verdict:

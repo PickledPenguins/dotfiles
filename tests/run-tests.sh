@@ -1,7 +1,7 @@
 #!/bin/sh
 # The test suites and their gates.
 #
-#   tests/run-tests.sh            fast: unit, interface, safety -- the pre-push gate (~4 s)
+#   tests/run-tests.sh            fast: unit, interface, safety -- the pre-push gate (~14 s)
 #   tests/run-tests.sh long       integration with the real programs + the example catalog
 #   tests/run-tests.sh all        both
 #   tests/run-tests.sh cov        fast with coverage of dots; fails below the floor in tests/coveragerc

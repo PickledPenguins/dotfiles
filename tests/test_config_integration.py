@@ -332,15 +332,18 @@ def test_arrays_slice_split_and_join_keep_empty_and_spaced_values(linked):
         arr_slice a a -3:; echo "${a[*]}"
         arr_slice b a 3:2; echo "${#b[@]}"
         arr_slice b a 1:x; echo "rc=$?"
+        arr_slice b a -:; echo "rc=$?"
+        c=(1 2 3 4 5 6 7 8 9 10 11); arr_slice b c 08:-01:02; echo "${b[*]}"
         arr_split p ', ' 'x, , y z, '; arr_show p
         arr_split p , ''; echo "${#p[@]}"
         arr_join p -; arr_split p "" x; echo "rc=$?"
         q=(a 'b c' $'d\ne'); arr_join q ' | '
     """)
-    assert proc.stdout == ("1 5 9 10\n1 5 9\n8 9 10\n0\nrc=2\n"
+    assert proc.stdout == ("1 5 9 10\n1 5 9\n8 9 10\n0\nrc=2\nrc=2\n8 10\n"
                            "p (4)\n  [0] x\n  [1] ''\n  [2] y\\ z\n  [3] ''\n0\n\nrc=2\n"
                            "a | b c | d\ne\n")
     assert proc.stderr.splitlines() == ["arr_slice: bad slice '1:x' (START:END:STEP)",
+                                        "arr_slice: bad slice '-:' (START:END:STEP)",
                                         "arr_split: empty separator"]
 
 
@@ -542,6 +545,13 @@ def test_fast_mode_is_off_by_default_and_each_start_is_a_sample(linked):
     assert re.fullmatch(r"startup \d+ [01]\n", ring)
 
 
+def test_fast_mode_takes_no_startup_sample_from_a_shell_exec_put_in_place_of_another(linked):
+    # exec keeps the process and its start time: the old shell's age is no startup time
+    bash(linked, "sleep 1.2; exec bash --rcfile ~/.bashrc -i -c true")
+    ring = (fast_files(linked).parent / (fast_files(linked).name + ".ring")).read_text()
+    assert len(ring.splitlines()) == 1 and int(ring.split()[1]) < 1200, ring
+
+
 @pytest.mark.parametrize("env, file, why", [
     ({"DOTS_FAST": "on"}, None, "forced: DOTS_FAST=on"),
     ({}, "on", "forced: dots fast on"),
@@ -558,6 +568,36 @@ def test_fast_mode_off_in_the_environment_overrules_the_file(linked):
     (linked / ".config/bash/fast").write_text("on\n")
     proc = bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset} $_GIT_BUDGET"', env={"DOTS_FAST": "off"})
     assert (proc.stdout, proc.stderr) == ("unset 1\n", "")
+
+
+def test_fast_mode_reads_a_threshold_with_a_leading_zero_in_base_10(linked):
+    proc = bash(linked, 'echo "$_dots_fast_t_LOAD $_dots_fast_t_MEM"', env={"DOTS_FAST_LOAD": "080",
+                                                                            "DOTS_FAST_MEM": "x"})
+    assert (proc.stdout, proc.stderr) == ("80 10\n", "")
+
+
+def uptime_cs():
+    """/proc/uptime in centiseconds, read as 05-fast.sh reads it"""
+    return int(Path("/proc/uptime").read_text().split()[0].replace(".", ""))
+
+
+@pytest.mark.parametrize("age, counters, rates", [
+    (1000, "0 0 0 0", True),                    # 10 s ago: rates since then
+    (0, "0 0 0 0", False),                      # under 1 s: too short for a rate, the base is kept
+    (70000, "0 0 0 0", False),                  # over 10 minutes ago: too old
+    (1000, "0 0 0", False),                     # a field missing
+    (1000, "999999999999999 0 0 0", False),     # CPU counters ahead of now: from before a reboot
+])
+def test_fast_mode_reads_iowait_steal_and_swapin_as_rates_since_the_base(linked, age, counters, rates):
+    base = Path(str(fast_files(linked)) + ".base")
+    base.parent.mkdir(exist_ok=True)
+    line = f"{uptime_cs() - age} {counters}\n"
+    base.write_text(line)
+    proc = bash(linked, 'echo "$_dots_fast_all"')
+    tags = re.findall(r"[a-z]+", proc.stdout)
+    assert tags == (["blk", "io", "ld", "st", "mem", "swp"] if rates else ["blk", "ld", "mem"]), proc.stdout
+    assert (base.read_text() == line) == (age == 0)
+    assert len(base.read_text().split()) == 5
 
 
 def test_fast_mode_an_unknown_word_is_reported_and_taken_as_off(linked):
@@ -592,6 +632,9 @@ def test_fast_mode_auto_turns_on_after_two_slow_samples_of_five(linked):
     assert (proc.stdout, proc.stderr) == ("1\n", NOTICE + "auto: git 340 ms >= 200, git 250 ms >= 200")
     write_ring(linked, *["git 10 0"] * 5, "git 340 1", *["git 10 0"] * 3, state="off")
     assert bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset}"', env=CALM).stdout == "unset\n"
+    # Slow samples older than the last 5 do not count
+    write_ring(linked, "git 340 1", "git 250 1", *["git 10 0"] * 8, state="off")
+    assert bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset}"', env=CALM).stdout == "unset\n"
 
 
 def test_fast_mode_auto_turns_off_only_after_ten_fast_samples(linked):
@@ -600,10 +643,23 @@ def test_fast_mode_auto_turns_off_only_after_ten_fast_samples(linked):
     assert proc.stdout == "1\n"
     assert proc.stderr == NOTICE + ("auto: staying on: 1 of the last 10 samples slow, off once 10 in a row "
                                     "are fast")
+    write_ring(linked, *["git 10 0"] * 5, state="on")
+    proc = bash(linked, 'echo "$DOTS_FAST_ACTIVE"', env=CALM)
+    assert proc.stderr == NOTICE + ("auto: staying on: 0 of the last 5 samples slow, off once 10 in a row "
+                                    "are fast")
     write_ring(linked, *["git 10 0"] * 10, state="on")
     proc = bash(linked, 'echo "${DOTS_FAST_ACTIVE-unset}"', env=CALM)
     assert (proc.stdout, proc.stderr) == ("unset\n", "")
     assert Path(str(fast_files(linked)) + ".state").read_text() == "off\n"
+
+
+def test_fast_mode_a_host_signal_at_its_threshold_is_over_it(linked):
+    script = ('_dots_fast_val=([blocked]=1 [load]=150 [mem]=10); _dots_fast_thresholds; '
+              '_dots_fast_t_LOAD=150; _dots_fast_t_MEM=10; _dots_fast_all=""; _dots_fast_over=""; '
+              '_dots_fast_mark blocked BLOCKED blk "" ge; _dots_fast_mark load LOAD ld "" ge; '
+              '_dots_fast_mark mem MEM mem % le; echo "$_dots_fast_all|$_dots_fast_over|$(_dots_fast_host_why)"')
+    proc = bash(linked, script)
+    assert (proc.stdout, proc.stderr) == (" blk1 ld1.5 mem10%| ld1.5 mem10%|load 150% >= 150, mem 10% <= 10\n", "")
 
 
 def test_fast_mode_auto_turns_on_mid_session_after_two_slow_git_refreshes(linked):
@@ -2154,8 +2210,8 @@ def pty_session(home, typed, before="", local="", seconds=3.0, argv=None):
 
 
 def test_prompt_shows_a_failed_command_even_with_the_title_module(linked):
-    # 65-title's hook runs before prompt_build and used to hand it its own
-    # exit status, so the prompt said ✓ after `false` on every terminal.
+    # 65-title's hook runs before prompt_build: were it to hand prompt_build
+    # its own exit status, the prompt would show success after `false`.
     screen = pty_session(linked, ["false"])
     assert "\x1b]0;" in screen                      # the title module is active
     assert "✗ 1" in screen
@@ -2254,7 +2310,7 @@ def test_ssh_agent_module_starts_one_agent_and_later_shells_reuse_it(linked):
     env = {"SSH_AUTH_SOCK": "", "SSH_AGENT_PID": ""}
     first = bash(linked, "echo $SSH_AGENT_PID", env=env).stdout.strip()
     try:
-        assert first.isdigit(), "no agent was started"          # used to think one was running
+        assert first.isdigit(), "no agent was started"          # an empty SSH_AUTH_SOCK is no running agent
         assert (linked / ".ssh" / "agent.env").is_file()
         assert bash(linked, "echo $SSH_AGENT_PID", env=env).stdout.strip() == first
     finally:

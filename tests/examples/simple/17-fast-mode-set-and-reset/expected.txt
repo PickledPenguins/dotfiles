@@ -1,0 +1,5 @@
+fast mode: auto in HOME/.config/bash/fast
+auto
+fast mode: on in HOME/.config/bash/fast
+fast mode: DOTS_FAST=off in the environment overrides it
+fast mode: HOME/.config/bash/fast removed

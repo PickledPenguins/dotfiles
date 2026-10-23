@@ -32,8 +32,7 @@ main_dir() {
     local common
     common=$(git rev-parse --git-common-dir)
     common=$(cd "$common" && pwd -P)
-    common=${common%/.git}
-    echo "${common%.git}"
+    if [[ $common == */.git ]]; then echo "${common%/.git}"; else echo "${common%.git}"; fi
 }
 
 # "PATH<TAB>BRANCH" for each worktree, BRANCH empty when detached or bare

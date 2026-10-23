@@ -333,7 +333,10 @@ def main():
     args = parse_args()
     if args.filter_index or args.filter_message:
         scrub = Scrubber.load(os.environ[ENV])
-        filter_index(scrub) if args.filter_index else filter_message(scrub)
+        if args.filter_index:
+            filter_index(scrub)
+        else:
+            filter_message(scrub)
         return
     top = Path(git("rev-parse", "--show-toplevel").strip())
     os.chdir(top)

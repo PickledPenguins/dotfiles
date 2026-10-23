@@ -107,7 +107,7 @@ _dots_fast_knob() {
     local v
     eval "v=\${DOTS_FAST_$1-}"
     [[ $v =~ ^[0-9]+$ ]] || v=$2
-    printf -v "_dots_fast_t_$1" '%d' "$v"
+    printf -v "_dots_fast_t_$1" '%d' "$(( 10#$v ))"
 }
 
 # Every threshold knob into _dots_fast_t_NAME
@@ -402,10 +402,14 @@ _dots_fast_init() {
 # this module), so a cd into DOTS_FAST_PATHS is in effect for the git
 # status of the same prompt and by the next Tab. Then the shell startup
 # time, from the process start in /proc/$$/stat to now (10 ms steps), as a
-# sample.
+# sample. A shell that exec put in place of another (reload) keeps that
+# one's process and start time, so it takes no sample: the exported PID of
+# the last shell to load here says which it is.
 _dots_fast_loaded() {
     local s up _
     [[ "${PROMPT_COMMAND-}" == *_dots_fast_cwd* ]] || PROMPT_COMMAND="_dots_fast_cwd${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+    [[ ${_dots_fast_loaded_pid-} != "$$" ]] || return 0
+    export _dots_fast_loaded_pid=$$
     { read -r s < "/proc/$$/stat" && read -r up _ < /proc/uptime; } 2>/dev/null || return 0
     local -a f
     read -ra f <<< "${s##*) }"

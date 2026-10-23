@@ -6,12 +6,12 @@ Back to the [README](../README.md).
 
 | Command | What | Runs when | Time |
 |---------|------|-----------|------|
-| `tests/run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (the packaged `test-push` hook, installed switched off by `tests/run-tests.sh hook`; `git hooks on test-push` switches it on) | ~4 s |
-| `tests/run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~140 s |
-| `tests/run-tests.sh all` | both | | ~145 s |
+| `tests/run-tests.sh` (`fast`) | unit, interface, safety and docs tests of `dots`, in-process | before every push, on each pushed commit (the packaged `test-push` hook, installed switched off by `tests/run-tests.sh hook`; `git hooks on test-push` switches it on) | ~14 s |
+| `tests/run-tests.sh long` | the applied configuration read by the real programs, every setting that is off switched on and loaded, the example catalog, and the prompt toolkit's bats suite (~45 s of it) | before a release, after any module change | ~290 s |
+| `tests/run-tests.sh all` | both | | ~306 s |
 | `tests/run-tests.sh cov` | fast suite under coverage; **fails below 100%** line and branch (`tests/coveragerc`) | with `fast` on a `dots` change | ~3 s |
 | `tests/run-tests.sh mutate` | every mutant in `tests/mutants.txt` applied to `dots` with `breaks-it`; **fails if any survives** | on a `dots` change | ~1 min |
-| `tests/run-tests.sh mutate-shell` | every mutant in `tests/shell-mutants.txt` applied to a copy of the checkout under `.build/mutate-shell` with `breaks-it`, each checked by its own long-test subset or toolkit bats file; **fails if any survives, or if its line is no longer in the file (stale)**; exits 2 first if a TESTS fails with no mutant applied (a `-k` selecting nothing, bats missing), which would read as every mutant caught | on a change to a hook, a bash module, `layout.sh` or the toolkit's git cache | ~6 min |
+| `tests/run-tests.sh mutate-shell` | every mutant in `tests/shell-mutants.txt` applied to a copy of the checkout under `.build/mutate-shell` with `breaks-it`, each checked by its own long-test subset or toolkit bats file; **fails if any survives, or if its line is no longer in the file (stale)**; exits 2 first if a TESTS fails with no mutant applied (a `-k` selecting nothing, bats missing), which would read as every mutant caught | on a change to a hook, a bash module, `layout.sh` or the toolkit's git cache | ~13 min |
 | `tests/run-tests.sh perf` | `tests/perf.py`: the median of 15 interactive bash starts and of a warm `prompt_build` at the top of the checkout, outside tmux and inside it with a stub `tmux`, in a temporary linked home; **fails more than 25% over this machine's baseline**. Needs no pytest | on a module or prompt change; before each push once the packaged `perf-push` hook is switched on (`tests/run-tests.sh hook` installs it off; `git hooks on perf-push`) | ~6 s |
 
 `tests/run-tests.sh perf` keeps one baseline per host name in
@@ -33,28 +33,29 @@ Generated files (coverage data) land in `.build/`; the pytest cache is
 disabled. Nothing here touches the real home directory: every test gets a
 temporary `HOME` through the `home` fixture.
 
-## Numbers (2026-10-16, this machine, measured on the commit that added this line)
+## Numbers (2026-10-22, this machine, measured on the commit that added this line)
 
-- fast: 440 tests, 3.5 s. long: 386 passed and 6 skipped (programs not
+- fast: 472 tests, 14 s (each `dots fast` report sleeps a second,
+  F.3.m). long: 521 passed and 7 skipped (programs not
   installed here: conda, sqlite3, ripgrep, matplotlib in the test
   interpreter; no loader for `~/.screenrc`; settings whose `Needs:`
-  program is missing), 140 s, of which the toolkit's bats tests are
-  about 45 s. A gdb built without debuginfod support passes the
-  debuginfod setting.
-- coverage of `dots`: 100% lines (392), 100% branches (166); floor 100.
-- mutation: 60 mutants, 60 caught, 0 survivors. The list is hand-written
+  program is missing); `all` takes 306 s. A gdb built without
+  debuginfod support passes the debuginfod setting.
+- coverage of `dots`: 100% lines (413), 100% branches (176); floor 100.
+- mutation: 64 mutants, 64 caught, 0 survivors. The list is hand-written
   (no mutmut here), one mutant per decision in the script: each attribute
   prefix, the ignore matching, the root-dotfile skip, the home-directory
   guard, each state classification, each mode bit, the force/dry-run
   branches, every exit code, the `add` attribute inference, path
   selection, and the options parser and filters. A new branch in `dots`
   needs a line there.
-- shell mutation: 55 mutants, 55 caught, 0 survivors, 0 stale: the git
+- shell mutation: 71 mutants, 71 caught, 0 survivors, 0 stale: the git
   hooks and the dispatcher, `git hooks`, the `20-path.sh` helpers and
   `path_clash`, `up`, `bd`, `cdg`, `retry`, `_title_arm`, `_venv_auto`, the
-  prompt rows in `layout.sh`, and the toolkit's git cache and collector
-  touch. The first runs had 5 survivors; four tests were added and one
-  equivalent mutant dropped (the list says which). ~6.5 min.
+  prompt rows in `layout.sh`, the toolkit's git cache and collector
+  touch, and fast mode's auto verdict, sample count, thresholds, rate
+  window and knobs. The first runs had 5 survivors; four tests were added
+  and one equivalent mutant dropped (the list says which). ~13 min.
 - performance (2026-10-13, 4 cores, load 0.5): an interactive start 70 ms
   median (68 to 74 over 15), a warm `prompt_build` 13.5 ms in this
   repository, 16 ms with a stub `tmux`, 12 ms outside git; `perf` takes
@@ -70,13 +71,14 @@ temporary `HOME` through the `home` fixture.
 | `tests/test_dots_cli.py` | every subcommand's exact output, state change and exit code; argparse behavior as a subprocess | fast |
 | `tests/test_dots_safety.py` | destructive paths (`--force`, `unlink`, `forget`), escapes from `$HOME`, names that map to `~`, modes, odd names, unreadable ignore file, backup collisions | fast |
 | `tests/test_docs.py` | the documentation against the code, both directions (see below) | fast |
-| `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
+| `tests/test_config_integration.py` | the repository applied into a temporary `HOME`; bash, vim, tmux, git, ssh, readline, gdb, curl, wget, python, xrdb, nano read it; each module asserted by a setting only it provides; knobs and hook files; fast mode: the auto verdict from written samples and state, host rates from a written base, `DOTS_FAST_PATHS` and the hooks it switches; on a pseudo-terminal, the prompt's exit status beside the title module and the title's running command | long |
 | `tests/test_options.py` | the [options format](configuration.md#the-options-format): every file declares it and describes every setting (fast); every setting that is off, switched on alone, loads in its real program -- bash, vim, tmux, git, ssh, readline, gdb, curl, wget, nano (on a pty), xrdb, conda, pip, python, IPython, matplotlib, kitty, sqlite, ripgrep, ctags, systemd (long) | fast + long |
 | `tests/test_git_hooks.py` | `git hooks` install, list, show, on, off and remove in real repositories; the dispatcher's order (byte order under a collating locale too), failure and stdin rules; each packaged hook refusing and passing; `update` following the packaged hooks as they change; the template `git hooks template` writes matching what install leaves, `git init` copying it through `init.templateDir`, `update` rewriting it and every other command warning while it is behind; `git ctags` on top | long |
+| `tests/test_forbidden_hook.py` | the packaged `forbidden` hook: the paths, text, author and message it refuses at commit and push, what `hooks:allow-forbidden` lets through, nothing checked while unset | long |
 | `tests/test_git_tools.py` | each git tool in [git-tools.md](git-tools.md) run as `git NAME` in throwaway repositories: what it changes, what it refuses, and that it keeps what it replaces | long |
 | `tests/test_runner.py` | `tests/run-tests.sh` finding pytest: `python3`'s, else through `in-env`, else exit 2; `hook` and `perf` need none | fast |
 | `tests/perf.py`, `tests/test_perf.py` | the `perf` gate; its baseline and verdict with the timing replaced (fast), one real measurement (long) | fast + long |
-| `tests/test_examples.py` | the example catalog: 53 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
+| `tests/test_examples.py` | the example catalog: 55 cases, output compared to `expected.txt` after path normalization (argparse's quoting of choices, which differs between Python versions, is dropped) | long |
 | `tests/examples/` | `simple/` 16, `moderate/` 13, `complex/` 10, `failures/` 14; each with `README.md`, `case.sh`, `expected.txt` | |
 | `tests/mutants.txt`, `tests/shell-mutants.txt`, `tests/coveragerc` | the gates | |
 
@@ -112,6 +114,8 @@ fails when any of it is missing from the document that owns it:
   each one's header is well formed and its `config:` line names exactly
   the `hooks.*` settings it reads; the `git hooks` completion offers
   exactly the subcommands of its usage line
+- the packaged hook count and every `cmd_*` function of `dots` ->
+  `docs/architecture.md`; every `tests/*.py` -> the layout table here
 - the README's example blocks are the recorded output of named catalog
   cases; the README stays under 150 lines; every file in `docs/` is linked
   from the README; no internal link or anchor is dead

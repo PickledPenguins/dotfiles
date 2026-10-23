@@ -641,6 +641,27 @@ def test_fast_with_no_mode_reports_the_mode_and_each_signal(home, no_fast_env):
     assert lines[8] == "samples    none yet on " + os.uname().nodename.split(".")[0]
 
 
+def test_fast_report_lists_the_samples_and_why_auto_stays_on(home, no_fast_env):
+    calm = ("DOTS_FAST_BLOCKED=99999 DOTS_FAST_IOWAIT=101 DOTS_FAST_LOAD=99999 DOTS_FAST_STEAL=101 "
+            "DOTS_FAST_MEM=0 DOTS_FAST_SWAPIN=99999999\n")
+    (home / ".bashrc.before").write_text(calm)
+    (home / ".config/bash").mkdir(parents=True)
+    (home / ".config/bash/fast").write_text("auto\n")
+    files = home.parent / "xdg-run" / f"dots-fast.{os.uname().nodename.split('.')[0]}"   # fast_mode_apart's
+    files.parent.mkdir(mode=0o700, exist_ok=True)
+    files.with_name(files.name + ".ring").write_text("git 340 1\nstartup 100 0\ngit 10 0\n")
+    files.with_name(files.name + ".state").write_text("on\n")
+    lines = run_subprocess(home, REPO, "fast").stdout.splitlines()
+    assert lines[:2] == [f"fast mode  auto, on now ({home}/.config/bash/fast)",
+                         "reason     staying on: 1 of the last 3 samples slow, off once 10 in a row are fast"]
+    assert not any(line.endswith("!") for line in lines[2:8])
+    assert lines[9:] == ["samples    1 of the last 5 slow (on at 2), 1 of the last 3 (off at 0 of 10)",
+                         "  git         340 ms  !",
+                         "  startup     100 ms",
+                         "  git          10 ms",
+                         "           startup at 300 ms (DOTS_FAST_STARTUP_MS), git at 200 ms (DOTS_FAST_GIT_MS)"]
+
+
 def test_fast_report_says_when_the_directory_is_under_dots_fast_paths(home, no_fast_env):
     (home / ".bashrc.before").write_text('DOTS_FAST_PATHS="~/none:$PWD/"\n')
     lines = run_subprocess(home, REPO, "fast").stdout.splitlines()

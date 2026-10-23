@@ -81,12 +81,15 @@ arr_slice() {
     [[ $1 == -e ]] && { _a_end_too=1; shift; }
     local -n _a_out=$1 _a_in=$2
     local _a_spec=$3 _a_vals=("${_a_in[@]}") _a_res=() _a_i
-    if [[ ! $_a_spec =~ ^(-?[0-9]*):(-?[0-9]*)(:([0-9]*))?$ ]]; then
+    if [[ ! $_a_spec =~ ^(-?[0-9]+)?:(-?[0-9]+)?(:([0-9]*))?$ ]]; then
         echo "arr_slice: bad slice '$_a_spec' (START:END:STEP)" >&2
         return 2
     fi
+    # Read in base 10 (10#), so a leading zero is not octal
     local _a_n=${#_a_vals[@]} _a_from=${BASH_REMATCH[1]:-1} _a_to=${BASH_REMATCH[2]:--1}
-    local _a_step=${BASH_REMATCH[4]:-1}
+    local _a_step=$(( 10#${BASH_REMATCH[4]:-1} ))
+    _a_from=$(( ${_a_from%%[0-9]*}10#${_a_from#-} ))
+    _a_to=$(( ${_a_to%%[0-9]*}10#${_a_to#-} ))
     (( _a_step > 0 )) || { echo "arr_slice: STEP must be over 0" >&2; return 2; }
     (( _a_from < 0 )) && (( _a_from += _a_n + 1 ))
     (( _a_to < 0 )) && (( _a_to += _a_n + 1 ))

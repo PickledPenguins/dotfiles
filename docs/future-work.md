@@ -72,6 +72,15 @@ here is scheduled; an item is cited by its label. Back to the
   that end in a skip (`failures/06`, `07`) and their `expected.txt`
   updated. From the 2026-10-17 code review.
 
+- **F.1.k  `dots fast reset` says "removed" when nothing was there.**
+  Open, the owner's call. `cmd_fast` in `dots` prints
+  `fast mode: PATH removed` whether or not the setting file existed, so a
+  second reset reports a removal that did not happen; the test asserts
+  only the exit status. Changing it is an output wording change: say
+  `fast mode: no setting in PATH` (exit 0) when the file is absent, and
+  assert both messages in `tests/test_dots_cli.py` and `docs/cli.md`.
+  From the 2026-10-23 test audit.
+
 ## F.2 configuration
 
 - **F.2.a  A `dots doctor`** that runs the integration checks against the
@@ -297,6 +306,30 @@ here is scheduled; an item is cited by its label. Back to the
   every fetch at once, with no limit for a directory of hundreds.
   `git recover show` of a stash leaves out its untracked files (the
   third parent). Build any of them when one is missed.
+
+- **F.2.ao  Fast mode writes each host signal out three times.**  Open,
+  the owner's call. `_dots_fast_host`, `_dots_fast_host_why` and
+  `_dots_fast_status` in `dot_config/bash/rc.d/05-fast.sh` each list the
+  six signals with their knob, unit and direction, so a seventh signal
+  is three edits that must agree, and the units already differ (load as
+  `ld1.8` in the prompt tag, a percentage in the notice). Not a defect
+  today; the fix is a design call: one table of name, knob, tag, unit and
+  `ge`/`le`, read by all three, with the notice and the tag agreeing on
+  units, which changes what the notice prints. From the 2026-10-23 code
+  review.
+
+- **F.2.ap  A `cd` prefetch can print a job's `Done` line.**  Open.
+  `_dirs_prefetch` in `dot_config/bash/rc.d/45-dirs.sh` starts `ls` with
+  `&` and then runs `disown`; when `ls` ends between the two, an
+  interactive bash 5.3 can report `[1]   Done ...` at the next prompt.
+  Seen once in a full run of the suite
+  (`test_a_cd_under_dots_fast_paths_reads_the_new_directory_in_the_background`),
+  not again in 90 runs of that test alone. Not fixed silently because the
+  fix changes how the job is started: start it outside job control (a
+  subshell that prints the child's PID, at the cost of one more fork per
+  prefetch) so no job entry exists to report, keeping the PID for the
+  `kill -0` check. Found while verifying the 2026-10-23 review fixes.
+
 ## F.3 tests
 
 - **F.3.a  mutmut or cosmic-ray** instead of the hand-written mutant list,
@@ -440,6 +473,26 @@ here is scheduled; an item is cited by its label. Back to the
   be asserted by `tests/test_docs.py`; times and test counts cannot
   without a dated measurement. From the 2026-10-17 documentation audit.
 
+- **F.3.m  The `dots fast` report test sleeps a second.**  Open.
+  `_dots_fast_status` samples the host twice, one second apart, to turn
+  counters into rates, so
+  `test_fast_with_no_mode_reports_the_mode_and_each_signal` in
+  `tests/test_dots_cli.py` spends a second of the fast suite in `sleep`.
+  A knob for the interval (an environment variable read only by
+  `_dots_fast_status`) would let the test pass 0; it is a new setting, so
+  the owner's call. From the 2026-10-23 test audit.
+
+- **F.3.n  Fast mode's choice of sample directory is untested.**  Open.
+  `_dots_fast_store` in `dot_config/bash/rc.d/05-fast.sh` takes
+  `$XDG_RUNTIME_DIR` only when it is a directory this user owns and can
+  write, and otherwise falls back to `/dev/shm/dots-UID`, then
+  `/tmp/dots-UID`. Every test sets `XDG_RUNTIME_DIR` to a directory of its
+  own; a test of the fallback would write into the real `/dev/shm` store
+  the running user's shells read, since `UID` cannot be changed. Testing it
+  needs a seam, a knob naming the fallback directories, which is a new
+  setting and so the owner's call; until then no shell mutant pins the
+  ownership and write checks. From the 2026-10-23 test audit.
+
 ## F.4 housekeeping
 
 Things done by hand outside the repository, moved from the 2026-09-20
@@ -465,7 +518,7 @@ notes.
   removed from `$HOME`, archived first in `~/env-pre-removal.tgz`. They
   held the old configuration, and nothing sourced
   `~/.bash_aliases -> env/.bash_aliases`. What is worth keeping is
-  now in linuxbin (`d78c13f` on its `claude` branch): `restic.sh`'s
+  now in linuxbin (`d78c13f`): `restic.sh`'s
   `backup` as `bin/restic-backup`, and `colors.sh`'s palette display and
   RGB conversion as `bin/palette`. The rest is dropped, each for a
   reason. `pvar` as a script sees only exported variables, which `envg`

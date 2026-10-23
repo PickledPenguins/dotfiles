@@ -24,6 +24,7 @@ be or git fails, 2 on a usage error. git turns "git absorb --help" into
 """
 
 import argparse
+import io
 import os
 import re
 import subprocess
@@ -63,11 +64,17 @@ class Hunk:
         return f"{self.path}:{self.old_start}" + (f"-{end}" if end > self.old_start else "")
 
 
+def git_lines(blob):
+    """BLOB's lines, each with its end, split on \\n only as git numbers them
+    (bytes.splitlines also splits on \\r, \\f and others)"""
+    return io.BytesIO(blob).readlines()
+
+
 def staged_hunks(path):
     """The hunks of PATH's staged diff, or the reason it stays whole"""
     out = git("diff", "--cached", "-U0", "--no-renames", "--no-ext-diff", "--no-textconv", "--no-color",
               "--", path)
-    lines = out.splitlines(keepends=True)
+    lines = git_lines(out)
     head_end = next((i for i, line in enumerate(lines) if line.startswith(b"@@")), len(lines))
     for line in lines[:head_end]:
         for start, why in WHOLE_FILE.items():
@@ -114,7 +121,7 @@ def owner(hunk, in_range, length):
 
 def apply(blob, hunks):
     """BLOB with HUNKS (in HEAD's line numbers) applied"""
-    lines = blob.splitlines(keepends=True)
+    lines = git_lines(blob)
     for hunk in sorted(hunks, key=lambda h: h.old_start, reverse=True):
         start = hunk.old_start - 1 if hunk.old_count else hunk.old_start
         lines[start:start + hunk.old_count] = hunk.new
@@ -149,7 +156,7 @@ def main(argv):
             continue
         blob = git("cat-file", "blob", f"HEAD:{path}")
         for hunk in hunks:
-            sha, why = owner(hunk, in_range, len(blob.splitlines()))
+            sha, why = owner(hunk, in_range, len(git_lines(blob)))
             if sha:
                 plan.setdefault(sha, []).append(hunk)
             else:

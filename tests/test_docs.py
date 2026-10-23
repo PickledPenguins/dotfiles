@@ -258,6 +258,23 @@ def test_every_packaged_git_hook_has_a_row_in_the_configuration_doc():
         assert f"| `{name}` | {events} |" in section, f"docs/configuration.md lacks a row for git hook {name}"
 
 
+def test_architecture_doc_states_the_packaged_git_hook_count():
+    count = len(packaged_git_hooks())
+    assert f"the {count} packaged hooks" in text(DOCS / "architecture.md"), f"docs/architecture.md: not {count} hooks"
+
+
+def test_architecture_doc_names_every_command_function_of_dots(dots):
+    band = next(line for line in text(DOCS / "architecture.md").splitlines() if line.startswith("| commands |"))
+    missing = [name for name in vars(dots) if name.startswith("cmd_") and f"`{name}`" not in band]
+    assert not missing, f"docs/architecture.md's commands band lacks {missing}"
+
+
+def test_testing_doc_has_a_layout_row_for_every_test_file():
+    layout = text(DOCS / "testing.md").split("\n## Layout")[1].split("\n## ")[0]
+    missing = [p.name for p in sorted((REPO / "tests").glob("*.py")) if f"`tests/{p.name}`" not in layout]
+    assert not missing, f"docs/testing.md's layout table lacks {missing}"
+
+
 GIT_PROGRAMS = sorted(p.name.removeprefix("executable_") for p in (REPO / "dot_local/bin").glob("executable_git*"))
 
 

@@ -24,10 +24,10 @@
 # hooks directory, by its event name. The hooks directory is shared by
 # every worktree of the repository.
 #
-# The stub is a copy, not a link to the dispatcher: a test that wrote
-# .git/hooks/pre-commit through such a link once overwrote the dispatcher
-# and broke every repository's hooks. update turns a link left by an older
-# install into the stub. While the dispatcher is missing, the stub says so
+# The stub is a copy, not a link to the dispatcher, so that anything writing
+# .git/hooks/EVENT writes the stub and cannot overwrite the dispatcher every
+# repository's hooks share. update turns a link left by an older install
+# into the stub. While the dispatcher is missing, the stub says so
 # and lets git go on.
 #
 # After dots apply brings new or changed packaged hooks, update removes each

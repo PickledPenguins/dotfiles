@@ -34,16 +34,18 @@ dot_local/share/bash-completion/completions/{dots,gits}   Tab completion for dot
 dot_local/bin/executable_git-hooks   git hooks: install, switch and remove the packaged hooks in a repository
 dot_local/bin/executable_git-ctags   git ctags: a tags file kept up to date by the ctags hook
 dot_local/bin/executable_git-*       the other git subcommands, and gits (docs/git-tools.md)
-dot_local/share/git-hooks/      the 34 packaged hooks and dispatch, the one file git runs per event
-tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, hooks/, mutants.txt, shell-mutants.txt, coveragerc
+dot_local/share/git-hooks/      the 35 packaged hooks and dispatch, which runs them for each event
+tests/                          conftest, unit/cli/safety/integration/examples/docs tests, examples/, mutants.txt, shell-mutants.txt, coveragerc
 tests/run-tests.sh              test runner and gates
 docs/                           this set
 ```
 
 `git hooks` and `git ctags` are bash, on `PATH` as git subcommands, and
 independent of `dots` too: `dots apply` only links them and the catalog
-into place. In a repository, `.git/hooks/EVENT` is a link to `dispatch`,
-which runs each hook in `.git/hooks/EVENT.d/`; a hook is off while its
+into place. In a repository, `.git/hooks/EVENT` is a small stub, a copy
+rather than a link so that nothing writing it can overwrite the
+dispatcher, that runs `dispatch`, which runs each hook in
+`.git/hooks/EVENT.d/`; a hook is off while its
 name ends in `.off`, and a hook the repository already had moves into
 `EVENT.d` under the event's name. The layout and the commands are in
 [configuration.md](configuration.md#packaged-git-hooks-localsharegit-hooks).
@@ -56,7 +58,7 @@ One file, about 400 executable lines, in five bands:
 |------|-----------|----------------|
 | source state | `source_dir`, `parse_name`, `load_ignores`, `ignored`, `Entry`, `managed_entries` | turn the source tree into a sorted list of entries with targets and attributes |
 | target state | `state`, `linked_dir`, `set_mode`, `backup` | classify one target; find a directory above it linked into the source; apply modes; move a conflict aside |
-| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `cmd_prune`, `cmd_options`, `source_name`, `reuse_source_dirs`, `cmd_add`, `cmd_forget`, `selected`, `skip_unmanaged` | one function per subcommand, each printing its own report and returning the exit code |
+| commands | `cmd_apply`, `cmd_status`, `cmd_managed`, `cmd_unlink`, `cmd_prune`, `cmd_options`, `cmd_fast`, `source_name`, `reuse_source_dirs`, `cmd_add`, `cmd_forget`, `selected`, `skip_unmanaged` | one function per subcommand, each printing its own report and returning the exit code |
 | the options format | `OPTIONS_TAG`, `comment_marker`, `Option`, `parse_options` | split a configuration file into settings, their descriptions and their on/off state; used by `cmd_options` and by the tests |
 | entry | `main` | argparse, source resolution, dispatch |
 

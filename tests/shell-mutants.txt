@@ -33,7 +33,7 @@ dot_local/bin/executable_git-hooks ||| [[ $here == *" $name "* ]] || check_packa
 dot_local/bin/executable_git-hooks |||         [[ -e $path ]] && continue |||         continue ||| update_refuses
 dot_local/bin/executable_git-hooks |||         elif [[ " $(field "$name" events) " != *" $event "* ]]; then |||         elif false; then ||| update_removes
 dot_local/bin/executable_git-hooks |||     quiet=1 install $(installed) |||     : ||| update_removes
-dot_local/bin/executable_git-hooks |||         quiet=1 install $(packaged) |||         : ||| template_holds
+dot_local/bin/executable_git-hooks |||     quiet=1 install "${hooks[@]}" |||     : ||| template_holds
 dot_local/bin/executable_git-hooks ||| [[ ! -d $path && $name != *.off && $name != *.sample ]] ||| [[ ! -d $path && $name != *.sample ]] ||| install_moves
 
 # the dispatcher: order, failure, stdin, .off and HOOKS_SKIP
@@ -42,7 +42,7 @@ dot_local/share/git-hooks/executable_dispatch ||| if ((status)) && [[ $GIT_HOOK_
 dot_local/share/git-hooks/executable_dispatch ||| && " ${HOOKS_SKIP-} " != *" $name "* ]] ||| ]] ||| dispatch
 dot_local/share/git-hooks/executable_dispatch ||| $name != *.off &&  ||| true &&  ||| dispatch or install
 dot_local/share/git-hooks/executable_dispatch |||     pre-push | post-rewrite) |||     pre-push) ||| dispatch
-dot_local/share/git-hooks/executable_dispatch ||| for hook in "$dir"/* "$private"/*; do ||| for hook in "$dir"/*; do ||| private_hooks
+dot_local/share/git-hooks/executable_dispatch ||| printf '%s\0' "$dir"/* "$private"/*) ||| printf '%s\0' "$dir"/*) ||| private_hooks
 dot_local/share/git-hooks/executable_dispatch ||| [[ -d $dir || -d $private ]] || exit 0 ||| [[ -d $dir ]] || exit 0 ||| private_hooks
 
 # 20-path.sh helpers
@@ -70,7 +70,7 @@ dot_config/bash/rc.d/75-python.sh ||| && ( -z "${VIRTUAL_ENV-}" || "$VIRTUAL_ENV
 dot_config/bash/rc.d/75-python.sh ||| elif [[ -n "${VIRTUAL_ENV-}" && "$VIRTUAL_ENV" == "${_venv_auto_env-}" ||| elif [[ -n "${VIRTUAL_ENV-}" ||| venv_auto
 
 # prompt/layout.sh: the rows and their separators
-dot_config/bash/prompt/layout.sh ||| (( s || j )) && printf '| ' ||| (( j )) && printf '| ' ||| prompt_rows or git_row or top_row
+dot_config/bash/prompt/layout.sh ||| (( s || j || f )) && printf '| ' ||| (( j || f )) && printf '| ' ||| prompt_rows or git_row or top_row
 dot_config/bash/prompt/layout.sh ||| jobs %% >/dev/null 2>&1 && j=1 ||| false && j=1 ||| prompt_rows or git_row or top_row
 dot_config/bash/prompt/layout.sh ||| (( (d || t) && (c || v) )) && sep=' | ' ||| (( c || v )) && sep=' | ' ||| prompt_rows or git_row or top_row
 dot_config/bash/prompt/layout.sh ||| [[ -n $GIT_REMOTE ]] && { printf ' (' ||| false && { printf ' (' ||| prompt_rows or git_row or top_row
@@ -83,6 +83,23 @@ dot_config/bash/prompt/layout.sh |||     _ps_seg_pwd |||     : ||| prompt_rows o
 dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "$_GIT_REFS" == "$_GIT_CACHE_REFS" ]] || return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
 dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "$_GIT_CACHE_GIT_DIR/index" -nt "$_GIT_CACHE_STAMP" ]] && return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
 dot_config/bash/prompt/toolkit/lib/git_info.sh ||| cache_stale git_info "$_GIT_CACHE_TTL" && return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
-dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "${d:-/}" -ef "$_GIT_CACHE_TOP" ]] || return 1 ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
+dot_config/bash/prompt/toolkit/lib/git_info.sh ||| [[ "${d:-/}" -ef "$_GIT_CACHE_TOP" ]] ||| true ||| dot_config/bash/prompt/toolkit/tests/git_info.bats
 
 dot_config/bash/prompt/toolkit/prompt.sh ||| (( ttl > 0 )) && cache_touch "collector:$c" ||| : ||| dot_config/bash/prompt/toolkit/tests/collectors.bats
+
+# fast mode: the auto verdict, the sample count, a signal at its threshold,
+# the rate window, the exec'd shell and the knob base
+dot_config/bash/rc.d/05-fast.sh ||| if [[ -n $host ]] || (( _dots_fast_n >= 2 )); then ||| if [[ -n $host ]] || (( _dots_fast_n >= 3 )); then ||| auto_turns_on_after_two
+dot_config/bash/rc.d/05-fast.sh ||| (( ${#_dots_fast_ring[@]} < 10 || _dots_fast_n > 0 )) ||| (( _dots_fast_n > 0 )) ||| turns_off_only_after_ten
+dot_config/bash/rc.d/05-fast.sh ||| (( ${#_dots_fast_ring[@]} < 10 || _dots_fast_n > 0 )) ||| (( ${#_dots_fast_ring[@]} < 10 || _dots_fast_n > 1 )) ||| turns_off_only_after_ten
+dot_config/bash/rc.d/05-fast.sh ||| for (( i = n > $1 ? n - $1 : 0; i < n; i++ )); do ||| for (( i = 0; i < n; i++ )); do ||| auto_turns_on_after_two
+dot_config/bash/rc.d/05-fast.sh ||| if [[ $5 == ge ]]; then (( v >= t )); ||| if [[ $5 == ge ]]; then (( v > t )); ||| at_its_threshold
+dot_config/bash/rc.d/05-fast.sh ||| else (( v <= t )); fi && _dots_fast_over+= ||| else (( v < t )); fi && _dots_fast_over+= ||| at_its_threshold
+dot_config/bash/rc.d/05-fast.sh ||| then (( _dots_fast_val[$n] >= t )); ||| then (( _dots_fast_val[$n] > t )); ||| at_its_threshold
+dot_config/bash/rc.d/05-fast.sh ||| cs - p[0] >= 100 && cs - p[0] <= 60000 ||| cs - p[0] >= 0 && cs - p[0] <= 60000 ||| rates_since_the_base
+dot_config/bash/rc.d/05-fast.sh ||| cs - p[0] >= 100 && cs - p[0] <= 60000 ||| cs - p[0] >= 100 && cs - p[0] <= 600000 ||| rates_since_the_base
+dot_config/bash/rc.d/05-fast.sh ||| cs - p[0] <= 60000 && total > p[1] )); then ||| cs - p[0] <= 60000 )); then ||| rates_since_the_base
+dot_config/bash/rc.d/05-fast.sh ||| if (( ${#p[@]} == 5 && cs ||| if (( ${#p[@]} >= 4 && cs ||| rates_since_the_base
+dot_config/bash/rc.d/05-fast.sh ||| (( ${#p[@]} == 5 && cs - p[0] < 100 )) || _dots_fast_prev= ||| _dots_fast_prev= ||| rates_since_the_base
+dot_config/bash/rc.d/05-fast.sh ||| [[ ${_dots_fast_loaded_pid-} != "$$" ]] || return 0 ||| : ||| exec_put_in_place
+dot_config/bash/rc.d/05-fast.sh ||| printf -v "_dots_fast_t_$1" '%d' "$(( 10#$v ))" ||| printf -v "_dots_fast_t_$1" '%d' "$v" ||| leading_zero_in_base_10
